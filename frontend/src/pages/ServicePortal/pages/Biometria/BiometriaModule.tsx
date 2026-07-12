@@ -1,16 +1,28 @@
 import React, { useEffect, useState } from 'react';
-import { Button, MaterialCard, Spinner } from '../../../../components/atoms';
+import { ArrowLeft } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Button, MaterialCard, Spinner, Text } from '../../../../components/atoms';
 import Callout from '../../../../components/molecules/Callout';
 import { obtenerCapacidadesBiometria } from '../../../../services/horariosRelacionesService';
 import BiometriaDashboard from './BiometriaDashboard';
 import BiometriaAdminView from './BiometriaAdminView';
 
 const BiometriaModule: React.FC = () => {
+    const navigate = useNavigate();
     const [view, setView] = useState<'admin' | 'asistencia'>('asistencia');
     const [puedeSupervisar, setPuedeSupervisar] = useState(false);
     const [cargandoCapacidades, setCargandoCapacidades] = useState(true);
     const [errorCapacidades, setErrorCapacidades] = useState('');
     const [revision, setRevision] = useState(0);
+
+    const conRetorno = (contenido: React.ReactNode) => (
+        <Text as="div" className="space-y-4">
+            <Button variant="ghost" icon={ArrowLeft} onClick={() => navigate('/service-portal/tiempo-asistencia')}>
+                Volver a Tiempo y Asistencia
+            </Button>
+            {contenido}
+        </Text>
+    );
 
     useEffect(() => {
         const controller = new AbortController();
@@ -29,15 +41,15 @@ const BiometriaModule: React.FC = () => {
     }, [revision]);
 
     if (cargandoCapacidades) {
-        return <MaterialCard className="flex min-h-64 items-center justify-center"><Spinner size="lg" /></MaterialCard>;
+        return conRetorno(<MaterialCard className="flex min-h-64 items-center justify-center"><Spinner size="lg" /></MaterialCard>);
     }
 
     if (errorCapacidades) {
-        return <div className="space-y-4"><Callout variant="error" role="alert" title="No fue posible verificar la supervisión">{errorCapacidades}<Button variant="ghost" size="sm" onClick={() => setRevision((value) => value + 1)}>Reintentar</Button></Callout><BiometriaDashboard /></div>;
+        return conRetorno(<Text as="div" className="space-y-4"><Callout variant="error" role="alert" title="No fue posible verificar la supervisión">{errorCapacidades}<Button variant="ghost" size="sm" onClick={() => setRevision((value) => value + 1)}>Reintentar</Button></Callout><BiometriaDashboard /></Text>);
     }
 
     if (!puedeSupervisar) {
-        return <BiometriaDashboard />;
+        return conRetorno(<BiometriaDashboard />);
     }
 
     const cambiarTab = (event: React.KeyboardEvent<HTMLButtonElement>, next: 'admin' | 'asistencia') => {
@@ -47,7 +59,7 @@ const BiometriaModule: React.FC = () => {
         window.setTimeout(() => document.getElementById(`biometria-tab-${next}`)?.focus(), 0);
     };
 
-    return (
+    return conRetorno(
         <MaterialCard className="flex min-h-full w-full flex-1 flex-col overflow-hidden bg-[var(--color-background)]">
             <div className="sticky top-0 z-10 flex justify-center gap-2 border-b border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 shadow-sm" role="tablist" aria-label="Vistas de biometría">
                 <Button

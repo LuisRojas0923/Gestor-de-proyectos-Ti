@@ -124,8 +124,8 @@ const PreLiquidacionView: React.FC = () => {
       addNotification(
         'success',
         r.total_horas_extras > 0
-          ? `Cálculo: ${r.total_horas_extras}h extras, costo ${fmtCurrency(r.total_costo_empresa)}`
-          : 'Sin horas extras esta semana',
+          ? `Simulación: ${r.total_horas_extras}h extras, costo ${fmtCurrency(r.total_costo_empresa)}`
+          : 'Simulación sin horas extras esta semana',
       );
     } catch (e: unknown) {
       addNotification('error', e instanceof Error ? e.message : 'Error al calcular');
@@ -139,7 +139,7 @@ const PreLiquidacionView: React.FC = () => {
     setConfirmando(true);
     try {
       if (!resultado.fecha_inicio || !resultado.fecha_fin) {
-        addNotification('error', 'Recalcula la pre-liquidación antes de confirmar');
+        addNotification('error', 'Vuelve a simular el cálculo antes de confirmar');
         return;
       }
 
@@ -190,13 +190,18 @@ const PreLiquidacionView: React.FC = () => {
       <div className="flex items-center gap-3 mb-6">
         <Button
           variant="secondary"
-          onClick={() => navigate('/service-portal/horas-extras')}
+          onClick={() => navigate('/service-portal/tiempo-asistencia')}
           className="!p-2 !rounded-full"
-          aria-label="Volver"
+          aria-label="Volver a Tiempo y Asistencia"
         >
           <ArrowLeft className="w-5 h-5" />
         </Button>
-        <Title level={2} className="!m-0">Pre-liquidación de Horas Extras</Title>
+        <div>
+          <Title level={2} className="!m-0">Calculadora individual de horas extras</Title>
+          <Text className="text-sm text-[var(--color-text-secondary)]">
+            Simula una semana de un empleado. Nada se guarda hasta confirmar la liquidación.
+          </Text>
+        </div>
       </div>
 
       <MaterialCard className="p-6 mb-6">
@@ -394,7 +399,7 @@ const PreLiquidacionView: React.FC = () => {
         <div className="flex justify-end">
           <Button onClick={handleCalcular} disabled={calculando || cargandoEmpleado || !salario}>
             <Play className="w-4 h-4 mr-2" />
-            {calculando ? 'Calculando...' : 'Calcular'}
+            {calculando ? 'Simulando...' : 'Simular cálculo'}
           </Button>
         </div>
       </MaterialCard>
@@ -403,7 +408,7 @@ const PreLiquidacionView: React.FC = () => {
         <MaterialCard className="p-6">
           <div className="flex items-center gap-2 mb-4">
             <CheckCircle2 className="w-5 h-5 text-green-600" />
-            <Title level={3} className="!m-0">Resultado</Title>
+            <Title level={3} className="!m-0">Resultado de la simulación</Title>
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
@@ -480,7 +485,7 @@ const PreLiquidacionView: React.FC = () => {
               </Button>
               <Button onClick={handleConfirmar} disabled={confirmando}>
                 <Save className="w-4 h-4 mr-2" />
-                {confirmando ? 'Confirmando...' : 'Confirmar y persistir'}
+                {confirmando ? 'Confirmando...' : 'Confirmar liquidación'}
               </Button>
             </div>
           )}

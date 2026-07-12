@@ -271,3 +271,15 @@ Las guardas frontend solo controlan navegacion y visibilidad. Backend conserva l
 - `utils/validarTurno.ts` centraliza la coherencia de pares de horas, francos, igualdad, almuerzo y `cruza_medianoche` para editores individuales y masivos.
 - Relaciones impide preparar mas de 200 cambios, bloquea doble submit y refresca empleados y conteos de gestores tras guardar.
 - Biometria diferencia error de capacidades de ausencia de permiso, permite reintento, implementa tabs ARIA con flechas y confirma la eliminacion de zonas en un modal.
+
+## Hub de Gestion de Tiempo y Asistencia
+
+**Agregado:** 2026-07-12
+
+El tablero del Portal de Servicios expone una sola entrada para horarios, horas extras, biometria, plantillas y alcance de empleados. La ruta `/service-portal/tiempo-asistencia` carga de forma diferida el modulo `GestionTiempoAsistencia` y organiza las opciones autorizadas en Asistencia, Planificacion, Horas extras y Administracion.
+
+`gestionTiempoAsistenciaConfig.ts` es la unica fuente de metadatos de navegacion del hub: seccion, ruta, permiso exacto y estado de modulo aplicable. `DashboardView` deriva la visibilidad de la tarjeta principal del mismo filtro, evitando reglas duplicadas. Los permisos se comparan de forma exacta y no existen bypasses por rol.
+
+La configuracion solo gobierna presentacion y descubrimiento. Cada destino conserva su `ProtectedRoute` historico y el backend mantiene la autoridad sobre RBAC, alcance y datos sensibles. `BiometriaModule` sigue consultando capacidades remotas antes de habilitar la supervision del equipo.
+
+`ServiceCard` usa una primitiva `Button` del sistema de diseno para conservar foco visible, semantica interactiva y navegacion por teclado. Las vistas de primer nivel vuelven al hub; detalles y formularios mantienen su lista padre.

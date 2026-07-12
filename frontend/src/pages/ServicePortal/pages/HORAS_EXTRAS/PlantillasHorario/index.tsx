@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
-import { CalendarClock, Copy, Pencil, Plus, Power, Users } from 'lucide-react';
+import { ArrowLeft, CalendarClock, Copy, Pencil, Plus, Power, Users } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { Badge, Button, Input, MaterialCard, Skeleton, Switch, Text, Title } from '../../../../../components/atoms';
 import Callout from '../../../../../components/molecules/Callout';
 import { useNotifications } from '../../../../../components/notifications/NotificationsContext';
@@ -12,6 +13,7 @@ import PlantillaEditorModal from './components/PlantillaEditorModal';
 import { usePlantillasHorario } from './hooks/usePlantillasHorario';
 
 const PlantillasHorarioPage = () => {
+  const navigate = useNavigate();
   const catalogo = usePlantillasHorario();
   const { state } = useAppContext();
   const { addNotification } = useNotifications();
@@ -42,7 +44,7 @@ const PlantillasHorarioPage = () => {
   return (
     <div className="space-y-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div><Title variant="h3">Plantillas de horario</Title><Text color="text-secondary">Catálogo semanal reutilizable y versionado.</Text></div>
+        <div><Button variant="ghost" icon={ArrowLeft} className="-ml-2 mb-2" onClick={() => navigate('/service-portal/tiempo-asistencia')}>Volver a Tiempo y Asistencia</Button><Title variant="h3">Plantillas de horario</Title><Text color="text-secondary">Catálogo semanal reutilizable y versionado.</Text></div>
         <Button variant="primary" icon={Plus} onClick={() => setEditando(null)}>Nueva plantilla</Button>
       </div>
       <MaterialCard className="grid gap-3 p-4 sm:grid-cols-[1fr_auto]">

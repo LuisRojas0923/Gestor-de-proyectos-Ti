@@ -50,9 +50,9 @@ const NovedadesView: React.FC = () => {
       <div className="flex items-center gap-3 mb-6">
         <Button
           variant="secondary"
-          onClick={() => navigate('/service-portal/horas-extras')}
+          onClick={() => navigate('/service-portal/tiempo-asistencia')}
           className="!p-2 !rounded-full"
-          aria-label="Volver"
+          aria-label="Volver a Tiempo y Asistencia"
         >
           <ArrowLeft className="w-5 h-5" />
         </Button>
@@ -163,7 +163,7 @@ const NovedadesView: React.FC = () => {
       <MaterialCard className="p-4 mt-6 bg-slate-50">
         <Text className="text-xs text-slate-600 !m-0">
           Esta pantalla es captura de eventos. La integración con el motor de
-          pre-liquidación (cómo cada categoría afecta el cálculo semanal) se
+          cálculo individual (cómo cada categoría afecta el cálculo semanal) se
           entrega en S5b. Categorías S5: AUSENCIA, LICENCIA, VACACION,
           INCAPACIDAD. REM/RETIRO es S5c.
         </Text>

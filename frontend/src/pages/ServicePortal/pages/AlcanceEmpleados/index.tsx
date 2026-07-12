@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { Save, Users } from 'lucide-react';
+import { ArrowLeft, Save, Users } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { Badge, Button, Input, MaterialCard, Select, Skeleton, Text, Title } from '../../../../components/atoms';
 import Callout from '../../../../components/molecules/Callout';
 import Modal from '../../../../components/molecules/Modal';
@@ -18,6 +19,7 @@ const opcionesFaceta = (items: string[] | undefined) => [
 const MAX_CAMBIOS = 200;
 
 const AlcanceEmpleadosPage = () => {
+  const navigate = useNavigate();
   const datos = useAlcanceEmpleados();
   const { addNotification } = useNotifications();
   const [altas, setAltas] = useState<Set<string>>(new Set());
@@ -107,7 +109,7 @@ const AlcanceEmpleadosPage = () => {
 
   return (
     <div className="space-y-5">
-      <div><Title variant="h3">Alcance de empleados</Title><Text color="text-secondary">Administra qué empleados ERP puede operar cada gestor.</Text></div>
+      <div><Button variant="ghost" icon={ArrowLeft} className="-ml-2 mb-2" onClick={() => navigate('/service-portal/tiempo-asistencia')}>Volver a Tiempo y Asistencia</Button><Title variant="h3">Alcance de empleados</Title><Text color="text-secondary">Administra qué empleados ERP puede operar cada gestor.</Text></div>
       <MaterialCard className="grid gap-3 p-4 md:grid-cols-2 xl:grid-cols-4">
         <Input label="Buscar gestor" value={datos.busquedaGestor} onChange={(event) => datos.setBusquedagestor(event.target.value)} placeholder="Nombre" />
         <Select label="Gestor" value={datos.gestorId} disabled={datos.cargandoGestores} onChange={(event) => cambiarGestor(event.target.value)} options={[{ value: '', label: datos.cargandoGestores ? 'Consultando gestores...' : 'Selecciona un gestor' }, ...datos.gestores.map((item) => ({ value: item.id, label: `${item.nombre} · ${item.rol} (${item.relaciones_activas})` }))]} />

@@ -163,7 +163,7 @@ const NovedadFormView: React.FC = () => {
           variant="secondary"
           onClick={() => navigate('/service-portal/horas-extras/novedades')}
           className="!p-2 !rounded-full"
-          aria-label="Volver"
+          aria-label="Volver a Novedades"
         >
           <ArrowLeft className="w-5 h-5" />
         </Button>

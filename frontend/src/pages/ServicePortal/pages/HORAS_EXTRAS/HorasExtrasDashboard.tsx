@@ -48,8 +48,8 @@ const ACCIONES_FLUJO: DashboardAction[] = [
   },
   {
     id: 'pre-liquidacion',
-    title: 'Pre-liquidación',
-    description: 'Calcula horas extras semanales y costo asociado a OT.',
+    title: 'Calculadora individual de horas extras',
+    description: 'Simula las horas y el costo de un empleado antes de confirmar su liquidación.',
     icon: Calculator,
     to: '/service-portal/horas-extras/pre-liquidacion',
   },
@@ -158,17 +158,17 @@ const HorasExtrasDashboard: React.FC = () => {
       <div className="flex items-center gap-3 mb-2">
         <Button
           variant="secondary"
-          onClick={() => navigate('/service-portal/inicio')}
+          onClick={() => navigate('/service-portal/tiempo-asistencia')}
           className="!p-2 !rounded-full"
-          aria-label="Volver al inicio"
+          aria-label="Volver a Tiempo y Asistencia"
         >
           <ArrowLeft className="w-5 h-5" />
         </Button>
-        <Title level={2} className="!m-0">Nómina — Horas Extras y Pre-liquidación</Title>
+        <Title level={2} className="!m-0">Nómina — Horas Extras</Title>
       </div>
       <Text className="mb-8 text-slate-500">
         Cálculo automático de horas extras según normatividad colombiana, gestión de bolsa
-        de horas, factores prestacionales ARL y pre-liquidación por OT.
+        de horas, factores prestacionales ARL y distribución de costos por OT.
       </Text>
 
       <div className="space-y-8">

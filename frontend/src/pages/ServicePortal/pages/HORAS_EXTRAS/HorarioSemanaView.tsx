@@ -16,6 +16,12 @@ const HorarioSemanaView: React.FC = () => {
   const navigate = useNavigate();
   const { cedula: cedulaParam } = useParams<{ cedula: string }>();
   const { addNotification } = useNotifications();
+  const rutaRetorno = cedulaParam
+    ? '/service-portal/horas-extras/planificador?panel=empleados'
+    : '/service-portal/tiempo-asistencia';
+  const etiquetaRetorno = cedulaParam
+    ? 'Volver al Planificador'
+    : 'Volver a Tiempo y Asistencia';
 
   const [cedula, setCedula] = useState(cedulaParam ?? '');
   const [dias, setDias] = useState<HorarioPactadoDiaUpdate[]>([]);
@@ -65,7 +71,7 @@ const HorarioSemanaView: React.FC = () => {
     try {
       await actualizarHorarioSemana(cedula.trim(), dias, localStorage.getItem('token') || '');
       addNotification('success', `Horario de ${cedula} guardado`);
-      navigate('/service-portal/horas-extras/calculos');
+      navigate(rutaRetorno);
     } catch (e: unknown) {
       addNotification('error', e instanceof Error ? e.message : 'Error al guardar');
     } finally {
@@ -78,9 +84,9 @@ const HorarioSemanaView: React.FC = () => {
       <div className="flex items-center gap-3 mb-6">
         <Button
           variant="secondary"
-          onClick={() => navigate('/service-portal/horas-extras')}
+          onClick={() => navigate(rutaRetorno)}
           className="!p-2 !rounded-full"
-          aria-label="Volver"
+          aria-label={etiquetaRetorno}
         >
           <ArrowLeft className="w-5 h-5" />
         </Button>
@@ -113,7 +119,7 @@ const HorarioSemanaView: React.FC = () => {
       {dias.length > 0 && (
         <MaterialCard className="p-4">
           <div className="flex justify-end gap-2">
-            <Button variant="secondary" onClick={() => navigate('/service-portal/horas-extras')}>
+            <Button variant="secondary" onClick={() => navigate(rutaRetorno)}>
               Cancelar
             </Button>
             <Button onClick={handleGuardar} disabled={guardando}>

@@ -105,9 +105,9 @@ const ConfiguracionHorasExtrasView: React.FC = () => {
           <div className="flex items-start gap-2.5">
             <Button
               variant="secondary"
-              onClick={() => navigate('/service-portal/horas-extras')}
+              onClick={() => navigate('/service-portal/tiempo-asistencia')}
               className="h-10 w-10 shrink-0 !rounded-full !p-0 shadow-sm md:h-9 md:w-9"
-              aria-label="Volver al planificador"
+              aria-label="Volver a Tiempo y Asistencia"
             >
               <ArrowLeft className="h-4 w-4" />
             </Button>

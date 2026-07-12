@@ -1,5 +1,7 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { MemoryRouter, useLocation } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { Text } from '../components/atoms';
 
 const mocks = vi.hoisted(() => ({
   aplicar: vi.fn(), actualizar: vi.fn(), crear: vi.fn(), desactivar: vi.fn(), duplicar: vi.fn(),
@@ -35,6 +37,9 @@ vi.mock('../services/horariosRelacionesService', () => ({
 
 import PlantillasHorarioPage from '../pages/ServicePortal/pages/HORAS_EXTRAS/PlantillasHorario';
 
+const LocationProbe = () => <Text as="span" aria-label="ruta actual">{useLocation().pathname}</Text>;
+const renderPage = () => render(<MemoryRouter initialEntries={['/service-portal/horas-extras/plantillas']}><PlantillasHorarioPage /><LocationProbe /></MemoryRouter>);
+
 const empleadoResponse = {
   items: [{ cedula: '10', nombre: 'Ana', cargo: 'Operaria', area: 'A', ciudadcontratacion: 'Bogotá', jefe: 'Jefe', autoriza_he: true, disponible_semana: true, motivo_no_disponible: null }],
   total: 1, limit: 20, offset: 0, facetas: {},
@@ -50,7 +55,7 @@ describe('PlantillasHorarioPage', () => {
   });
 
   it('ejecuta crear, duplicar y desactivar mediante modales', async () => {
-    render(<PlantillasHorarioPage />);
+    renderPage();
     fireEvent.click(screen.getByRole('button', { name: 'Nueva plantilla' }));
     const editor = await screen.findByRole('dialog', { name: 'Nueva plantilla' });
     fireEvent.change(within(editor).getAllByRole('textbox')[0], { target: { value: 'Nueva' } });
@@ -68,7 +73,7 @@ describe('PlantillasHorarioPage', () => {
 
   it('reutiliza solicitud_id al reintentar una aplicación', async () => {
     mocks.aplicar.mockRejectedValueOnce(new Error('respuesta perdida')).mockResolvedValueOnce({ aplicacion_id: 'a1' });
-    render(<PlantillasHorarioPage />);
+    renderPage();
     fireEvent.click(screen.getByRole('button', { name: 'Aplicar' }));
     fireEvent.click(await screen.findByRole('checkbox', { name: 'Seleccionar Ana' }));
     fireEvent.click(screen.getByRole('button', { name: 'Aplicar a 1' }));
@@ -81,7 +86,7 @@ describe('PlantillasHorarioPage', () => {
   it('evita doble submit de aplicación', async () => {
     let resolver!: (value: { aplicacion_id: string }) => void;
     mocks.aplicar.mockReturnValue(new Promise((resolve) => { resolver = resolve; }));
-    render(<PlantillasHorarioPage />);
+    renderPage();
     fireEvent.click(screen.getByRole('button', { name: 'Aplicar' }));
     fireEvent.click(await screen.findByRole('checkbox', { name: 'Seleccionar Ana' }));
     const aplicar = screen.getByRole('button', { name: 'Aplicar a 1' });
@@ -94,5 +99,11 @@ describe('PlantillasHorarioPage', () => {
     expect(screen.getByRole('dialog', { name: 'Aplicar Horario base' })).toBeInTheDocument();
     resolver({ aplicacion_id: 'a1' });
     await waitFor(() => expect(mocks.recargar).toHaveBeenCalledOnce());
+  });
+
+  it('vuelve al hub de Tiempo y Asistencia', () => {
+    renderPage();
+    fireEvent.click(screen.getByRole('button', { name: 'Volver a Tiempo y Asistencia' }));
+    expect(screen.getByLabelText('ruta actual')).toHaveTextContent('/service-portal/tiempo-asistencia');
   });
 });

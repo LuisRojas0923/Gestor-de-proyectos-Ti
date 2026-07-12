@@ -1,6 +1,6 @@
 import React from 'react';
 import { ChevronRight } from 'lucide-react';
-import { Title, Text, Icon, MaterialCard } from '../atoms';
+import { Button, Text, Icon } from '../atoms';
 
 export interface ServiceCardProps {
     title: string;
@@ -18,33 +18,31 @@ export const ServiceCard: React.FC<ServiceCardProps> = ({
     className = ''
 }) => {
     return (
-        <MaterialCard
+        <Button
+            variant="custom"
             onClick={onClick}
-            hoverable={true}
-            className={`p-4 text-left w-full min-h-24 h-auto group ${className}`}
+            wrapContent={false}
+            className={`group min-h-24 h-auto w-full rounded-[1.5rem] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 text-left shadow-sm hover:-translate-y-0.5 hover:border-[var(--color-primary)] hover:shadow-lg focus:ring-[var(--color-primary)] ${className}`}
         >
-            <div className="flex items-center gap-4 w-full h-full">
-                {/* Contenedor del Icono/Logo */}
-                <div className="w-16 h-16 bg-white dark:bg-neutral-800 rounded-xl flex items-center justify-center p-2 border border-slate-100 dark:border-neutral-700 shadow-sm shrink-0">
-                    <div className="w-full h-full flex items-center justify-center text-[var(--color-primary)]">
+            <Text as="span" className="flex h-full w-full items-center gap-4">
+                <Text as="span" className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-variant)] p-2 text-[var(--color-primary)] shadow-sm">
+                    <Text as="span" className="flex h-full w-full items-center justify-center">
                         {icon}
-                    </div>
-                </div>
-                {/* Textos */}
-                <div className="flex-grow min-w-0">
-                    <Title variant="h6" weight="bold" className="truncate leading-tight text-slate-800 dark:text-white group-hover:text-[var(--color-primary)] transition-colors">
+                    </Text>
+                </Text>
+                <Text as="span" className="min-w-0 flex-grow">
+                    <Text as="span" variant="body1" weight="bold" className="block truncate leading-tight text-[var(--color-text-primary)] transition-colors group-hover:text-[var(--color-primary)]">
                         {title}
-                    </Title>
+                    </Text>
                     {description && (
-                        <Text variant="caption" color="text-secondary" className="block mt-1 font-medium line-clamp-2">
+                        <Text as="span" variant="caption" color="text-secondary" className="mt-1 block line-clamp-2 font-medium">
                             {description}
                         </Text>
                     )}
-                </div>
-                {/* Indicador de Acción */}
-                <Icon name={ChevronRight} className="w-5 h-5 text-slate-400 group-hover:text-[var(--color-primary)] group-hover:translate-x-1 transition-all shrink-0" />
-            </div>
-        </MaterialCard>
+                </Text>
+                <Icon name={ChevronRight} className="h-5 w-5 shrink-0 text-[var(--color-text-secondary)] transition-all group-hover:translate-x-1 group-hover:text-[var(--color-primary)]" />
+            </Text>
+        </Button>
     );
 };
 

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Route } from 'react-router-dom';
+import { Navigate, Route } from 'react-router-dom';
 import ProtectedRoute from '../../../components/auth/ProtectedRoute';
 
 const PreLiquidacionView = React.lazy(() => import('../pages/HORAS_EXTRAS/PreLiquidacionView'));
@@ -17,17 +17,20 @@ const EmpleadosActivosView = React.lazy(() => import('../pages/HORAS_EXTRAS/Empl
 const PlantillasHorario = React.lazy(() => import('../pages/HORAS_EXTRAS/PlantillasHorario'));
 const AlcanceEmpleados = React.lazy(() => import('../pages/AlcanceEmpleados'));
 const BiometriaModule = React.lazy(() => import('../pages/Biometria/BiometriaModule'));
+const GestionTiempoAsistencia = React.lazy(() => import('../pages/GestionTiempoAsistencia'));
 
 const protegida = (element: React.ReactElement, moduleCode = 'nomina_horas_extras.leer') => (
   <ProtectedRoute moduleCode={moduleCode}>{element}</ProtectedRoute>
 );
 
-export const createServicePortalFeatureRoutes = () => [
+export const createServicePortalFeatureRoutes = (moduleStatus: Record<string, boolean> = {}) => [
+  <Route key="he-root" path="horas-extras" element={<Navigate to="/service-portal/tiempo-asistencia" replace />} />,
+  <Route key="tiempo-asistencia" path="tiempo-asistencia" element={<ProtectedRoute><GestionTiempoAsistencia moduleStatus={moduleStatus} /></ProtectedRoute>} />,
   <Route key="he-pre" path="horas-extras/pre-liquidacion" element={protegida(<PreLiquidacionView />, 'nomina_horas_extras.planificar')} />,
   <Route key="he-list" path="horas-extras/calculos" element={protegida(<CalculoListView />)} />,
   <Route key="he-detail" path="horas-extras/calculos/:calculoId" element={protegida(<CalculoDetailView />)} />,
   <Route key="he-bolsa" path="horas-extras/bolsa" element={protegida(<BolsaView />)} />,
-  <Route key="he-empleados" path="horas-extras/empleados" element={protegida(<EmpleadosActivosView />)} />,
+  <Route key="he-empleados" path="horas-extras/empleados" element={protegida(<EmpleadosActivosView />, 'nomina_horas_extras.planificar')} />,
   <Route key="he-costos" path="horas-extras/costos-ot" element={protegida(<CostosOtView />)} />,
   <Route key="he-festivos" path="horas-extras/festivos" element={protegida(<FestivosView />)} />,
   <Route key="he-config" path="horas-extras/configuracion" element={protegida(<ConfiguracionHorasExtrasView />, 'nomina_horas_extras.admin')} />,

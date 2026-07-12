@@ -58,9 +58,9 @@ const CalculoListView: React.FC = () => {
       <div className="flex items-center gap-3 mb-6">
         <Button
           variant="secondary"
-          onClick={() => navigate('/service-portal/horas-extras')}
+          onClick={() => navigate('/service-portal/tiempo-asistencia')}
           className="!p-2 !rounded-full"
-          aria-label="Volver"
+          aria-label="Volver a Tiempo y Asistencia"
         >
           <ArrowLeft className="w-5 h-5" />
         </Button>

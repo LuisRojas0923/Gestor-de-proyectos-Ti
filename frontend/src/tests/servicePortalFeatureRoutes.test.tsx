@@ -9,5 +9,10 @@ describe('rutas de horarios y alcance', () => {
     expect(permiso('horas-extras/plantillas')).toBe('nomina_horas_extras.plantillas_horario.administrar');
     expect(permiso('alcance-empleados')).toBe('alcance_empleados.administrar');
     expect(permiso('biometria')).toBe('biometria');
+    expect(routes.some((route) => route.props.path === 'tiempo-asistencia')).toBe(true);
+    expect(permiso('tiempo-asistencia')).toBeUndefined();
+    const alias = routes.find((route) => route.props.path === 'horas-extras');
+    expect(alias?.props.element.props.to).toBe('/service-portal/tiempo-asistencia');
+    expect(alias?.props.element.props.replace).toBe(true);
   });
 });

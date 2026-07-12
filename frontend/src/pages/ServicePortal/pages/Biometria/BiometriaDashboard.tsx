@@ -5,7 +5,7 @@ import { useNotifications } from '../../../../components/notifications/Notificat
 import { API_CONFIG, API_ENDPOINTS } from '../../../../config/api';
 import { useAppContext } from '../../../../context/AppContext';
 import axios from 'axios';
-import { ArrowLeft, CheckCircle, XCircle, MapPin } from 'lucide-react';
+import { CheckCircle, XCircle, MapPin } from 'lucide-react';
 import WebcamCapture from './components/WebcamCapture';
 
 // Haversine formula to calculate distance in meters
@@ -184,9 +184,10 @@ const BiometriaDashboard: React.FC = () => {
                     addNotification('error', 'Verificación fallida.');
                 }
             }
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error("Error en validación biométrica:", error);
-            const msg = error.response?.data?.detail || 'Ocurrió un error en el servidor al verificar tu rostro.';
+            const detail = axios.isAxiosError<{ detail?: string }>(error) ? error.response?.data?.detail : undefined;
+            const msg = typeof detail === 'string' ? detail : 'Ocurrió un error en el servidor al verificar tu rostro.';
             
             // Auto switch to enroll if backend says not enrolled
             if (msg.toLowerCase().includes('no tiene un rostro enrolado')) {
@@ -211,14 +212,6 @@ const BiometriaDashboard: React.FC = () => {
     return (
         <div className="flex-1 w-full p-4 lg:p-8 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-4xl mx-auto">
             <div className="flex items-center mb-6">
-                <Button 
-                    variant="ghost" 
-                    icon={ArrowLeft} 
-                    onClick={() => navigate('/service-portal/inicio')}
-                    className="mr-2"
-                >
-                    Volver
-                </Button>
                 <div>
                     <Title variant="h3" weight="bold" className="text-slate-800 dark:text-white">
                         {isEnrolling ? 'Registro Biométrico' : 'Autenticación Facial'}
@@ -247,10 +240,10 @@ const BiometriaDashboard: React.FC = () => {
                             if (resultMessage.includes('Ahora puedes registrar')) {
                                 handleRetry();
                             } else {
-                                navigate('/service-portal/inicio');
+                                navigate('/service-portal/tiempo-asistencia');
                             }
                         }}>
-                            {resultMessage.includes('Ahora puedes registrar') ? 'Continuar a Verificación' : 'Volver al Inicio'}
+                            {resultMessage.includes('Ahora puedes registrar') ? 'Continuar a Verificación' : 'Volver a Tiempo y Asistencia'}
                         </Button>
                     </div>
                 ) : result === 'error' ? (

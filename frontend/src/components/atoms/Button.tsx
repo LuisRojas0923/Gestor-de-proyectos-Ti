@@ -31,6 +31,7 @@ interface ButtonProps {
   tabIndex?: number;
   draggable?: boolean;
   role?: React.AriaRole;
+  wrapContent?: boolean;
 }
 
 const textVariantMap: Record<'xs' | 'sm' | 'md' | 'lg', 'body1' | 'body2' | 'caption'> = {
@@ -67,6 +68,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(({
   tabIndex,
   draggable,
   role,
+  wrapContent = true,
   'aria-label': ariaLabel,
   'aria-describedby': ariaDescribedBy,
   'aria-hidden': ariaHidden,
@@ -156,11 +158,13 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(({
         />
       )}
 
-      {children && (
+      {children && wrapContent && (
         <Text as="span" variant={textVariantMap[size]} color="inherit">
           {children}
         </Text>
       )}
+
+      {children && !wrapContent && children}
 
       {!loading && IconComponent && iconPosition === 'right' && (
         <Icon

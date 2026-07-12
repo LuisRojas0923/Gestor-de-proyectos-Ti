@@ -1,5 +1,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { MemoryRouter, useLocation } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { Text } from '../components/atoms';
 
 const mocks = vi.hoisted(() => ({
   guardar: vi.fn(),
@@ -41,6 +43,9 @@ vi.mock('../components/notifications/NotificationsContext', () => ({
 
 import AlcanceEmpleadosPage from '../pages/ServicePortal/pages/AlcanceEmpleados';
 
+const LocationProbe = () => <Text as="span" aria-label="ruta actual">{useLocation().pathname}</Text>;
+const renderPage = () => render(<MemoryRouter initialEntries={['/service-portal/alcance-empleados']}><AlcanceEmpleadosPage /><LocationProbe /></MemoryRouter>);
+
 const resultado = { gestor_id: 'g1', agregadas: 1, reactivadas: 0, desactivadas: 0, sin_cambio: 0, idempotente: false };
 
 describe('AlcanceEmpleadosPage', () => {
@@ -51,7 +56,7 @@ describe('AlcanceEmpleadosPage', () => {
 
   it('conserva solicitud_id al reintentar y refresca empleados y gestores al tener éxito', async () => {
     mocks.guardar.mockRejectedValueOnce(new Error('respuesta perdida')).mockResolvedValueOnce(resultado);
-    render(<AlcanceEmpleadosPage />);
+    renderPage();
     fireEvent.click(screen.getAllByRole('checkbox', { name: 'Relacionar Empleado 1' })[0]);
     fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }));
     await waitFor(() => expect(mocks.guardar).toHaveBeenCalledTimes(1));
@@ -66,7 +71,7 @@ describe('AlcanceEmpleadosPage', () => {
   it('evita doble submit incluso antes del rerender', async () => {
     let resolver!: (value: typeof resultado) => void;
     mocks.guardar.mockReturnValue(new Promise((resolve) => { resolver = resolve; }));
-    render(<AlcanceEmpleadosPage />);
+    renderPage();
     fireEvent.click(screen.getAllByRole('checkbox', { name: 'Relacionar Empleado 1' })[0]);
     const guardar = screen.getByRole('button', { name: 'Guardar cambios' });
     fireEvent.click(guardar);
@@ -77,7 +82,7 @@ describe('AlcanceEmpleadosPage', () => {
   });
 
   it('confirma de forma accesible el descarte al cambiar de gestor', async () => {
-    render(<AlcanceEmpleadosPage />);
+    renderPage();
     fireEvent.click(screen.getAllByRole('checkbox', { name: 'Relacionar Empleado 1' })[0]);
     fireEvent.change(screen.getAllByRole('combobox')[0], { target: { value: 'g2' } });
     expect(await screen.findByRole('dialog', { name: 'Descartar cambios pendientes' })).toBeInTheDocument();
@@ -88,11 +93,17 @@ describe('AlcanceEmpleadosPage', () => {
   it('limita la selección masiva y el payload a 200 cambios', async () => {
     items = Array.from({ length: 201 }, (_, index) => empleado(index + 1));
     mocks.guardar.mockResolvedValue(resultado);
-    render(<AlcanceEmpleadosPage />);
+    renderPage();
     fireEvent.click(screen.getByRole('button', { name: 'Seleccionar página' }));
     expect(screen.getByRole('status')).toHaveTextContent('Máximo alcanzado: 200');
     fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }));
     await waitFor(() => expect(mocks.guardar).toHaveBeenCalledOnce());
     expect(mocks.guardar.mock.calls[0][1].cedulas_agregar).toHaveLength(200);
+  });
+
+  it('vuelve al hub de Tiempo y Asistencia', () => {
+    renderPage();
+    fireEvent.click(screen.getByRole('button', { name: 'Volver a Tiempo y Asistencia' }));
+    expect(screen.getByLabelText('ruta actual')).toHaveTextContent('/service-portal/tiempo-asistencia');
   });
 });

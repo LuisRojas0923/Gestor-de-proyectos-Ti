@@ -83,9 +83,10 @@ const PlanificadorHeader: React.FC<PlanificadorHeaderProps> = ({
               <div className="flex min-w-0 items-center gap-2">
                 <Button
                   variant="secondary"
-                  onClick={() => navigate('/service-portal/inicio')}
+                  onClick={() => navigate('/service-portal/tiempo-asistencia')}
                   className="h-8 w-8 shrink-0 !rounded-full !p-0 shadow-none [&_svg]:h-3.5 [&_svg]:w-3.5"
-                  aria-label="Volver al inicio"
+                  aria-label="Volver a Tiempo y Asistencia"
+                  title="Volver a Tiempo y Asistencia"
                 >
                   <ArrowLeft />
                 </Button>

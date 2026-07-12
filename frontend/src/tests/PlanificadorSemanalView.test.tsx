@@ -482,7 +482,7 @@ describe('PlanificadorSemanalView', () => {
       <MemoryRouter initialEntries={['/service-portal/horas-extras/empleados']}>
         <Routes>
           <Route path="/service-portal/horas-extras/empleados" element={<EmpleadosActivosView />} />
-          <Route path="/service-portal/horas-extras" element={<PlanificadorSemanalView />} />
+          <Route path="/service-portal/horas-extras/planificador" element={<PlanificadorSemanalView />} />
         </Routes>
       </MemoryRouter>,
     );

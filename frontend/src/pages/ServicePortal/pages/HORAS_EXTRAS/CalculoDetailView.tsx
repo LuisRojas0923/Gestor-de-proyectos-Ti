@@ -128,7 +128,7 @@ const CalculoDetailView: React.FC = () => {
           variant="secondary"
           onClick={() => navigate('/service-portal/horas-extras/calculos')}
           className="!p-2 !rounded-full mb-4"
-          aria-label="Volver"
+          aria-label="Volver a Cálculos"
         >
           <ArrowLeft className="w-5 h-5" />
         </Button>
@@ -148,7 +148,7 @@ const CalculoDetailView: React.FC = () => {
           variant="secondary"
           onClick={() => navigate('/service-portal/horas-extras/calculos')}
           className="!p-2 !rounded-full"
-          aria-label="Volver"
+          aria-label="Volver a Cálculos"
         >
           <ArrowLeft className="w-5 h-5" />
         </Button>

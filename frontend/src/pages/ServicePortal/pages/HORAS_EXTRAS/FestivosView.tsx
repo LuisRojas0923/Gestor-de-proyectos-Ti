@@ -121,9 +121,9 @@ const FestivosView: React.FC = () => {
         <div className="flex items-center gap-3">
         <Button
           variant="secondary"
-          onClick={() => navigate('/service-portal/horas-extras')}
+          onClick={() => navigate('/service-portal/tiempo-asistencia')}
           className="!p-2 !rounded-full shadow-sm"
-          aria-label="Volver"
+          aria-label="Volver a Tiempo y Asistencia"
         >
           <ArrowLeft className="w-5 h-5" />
         </Button>

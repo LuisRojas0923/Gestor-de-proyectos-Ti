@@ -115,13 +115,6 @@ const ServicePortal: React.FC = () => {
         if (success) navigate('/service-portal/mis-tickets');
     };
 
-    const rutaInicialHorasExtras = () => {
-        const permisos = portalUser.permissions || [];
-        if (permisos.includes('nomina_horas_extras.planificar')) return '/service-portal/horas-extras/planificador';
-        if (permisos.includes('nomina_horas_extras.admin')) return '/service-portal/horas-extras/configuracion';
-        return '/service-portal/horas-extras/calculos';
-    };
-
     const onSelectReport = async (reporte: ReporteResumen) => {
         const rid = reporte.reporte_id;
         try {
@@ -214,14 +207,8 @@ const ServicePortal: React.FC = () => {
                             else if (v === 'contabilidad') navigate('/service-portal/gestion-humana');
                             else if (v === 'gestion_actividades') navigate('/service-portal/gestion-actividades');
                             else if (v === 'comisiones') navigate('/service-portal/comisiones');
-                            else if (v === 'biometria') navigate('/service-portal/biometria');
-                            else if (v === 'horas_extras') navigate('/service-portal/horas-extras');
-                            else if (v === 'horas_extras_planificador') navigate('/service-portal/horas-extras/planificador');
-                            else if (v === 'horas_extras_configuracion') navigate('/service-portal/horas-extras/configuracion');
-                            else if (v === 'horas_extras_calculos') navigate('/service-portal/horas-extras/calculos');
+                            else if (v === 'tiempo_asistencia') navigate('/service-portal/tiempo-asistencia');
                             else if (v === 'auditoria_indicadores') navigate('/service-portal/auditoria-indicadores');
-                            else if (v === 'horas_extras_plantillas') navigate('/service-portal/horas-extras/plantillas');
-                            else if (v === 'alcance_empleados') navigate('/service-portal/alcance-empleados');
                         }}
                     />
                 } />
@@ -434,8 +421,7 @@ const ServicePortal: React.FC = () => {
                     </ProtectedRoute>
                 } />
 
-                <Route path="horas-extras" element={<Navigate to={rutaInicialHorasExtras()} replace />} />
-                {createServicePortalFeatureRoutes()}
+                {createServicePortalFeatureRoutes(moduleStatus)}
 
                 <Route path="inventario" element={
                     <ProtectedRoute moduleCode="inventario_2026">

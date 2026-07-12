@@ -108,8 +108,14 @@ Ubicación: `frontend/src/tests/`
 | `BiometriaModule.test.tsx` | Error/reintento de capacidades y tabs enlazadas con teclado. |
 | `BiometriaAdminView.test.tsx` | Tabs ARIA y confirmación antes de eliminar zona. |
 | `CeldaDiaEditor.test.tsx` / `validarTurno.test.ts` | Feedback y reglas compartidas para turnos nocturnos. |
+| `gestionTiempoAsistenciaConfig.test.ts` | Matriz exacta de permisos, unión sin duplicados, fail-closed y `moduleStatus`. |
+| `GestionTiempoAsistenciaHub.test.tsx` | Secciones autorizadas, estado vacío, navegación y tarjetas accesibles. |
+| `DashboardView.test.tsx` | Tarjeta única de Tiempo y Asistencia, alias de búsqueda y ausencia sin permiso navegable. |
+| `servicePortalFeatureRoutes.test.tsx` | Nueva ruta autenticada y conservación de guardas independientes históricas. |
+| `GestionTiempoAsistenciaReturns.test.tsx` | Retornos directos al hub y alias de empleados hacia el panel integrado del Planificador. |
+| `components/molecules/__tests__/ServiceCard.test.tsx` | Semántica nativa, foco e interacción de la tarjeta accesible. |
 
-La evidencia final frontend reportada es 199 passed/2 skipped; el subconjunto focal de las ultimas correcciones pasa 10/10. `tsc`, build y lint focal estan OK. Como historia se conservan 196 passed/2 skipped y el baseline previo del orquestador de 176 passed/2 skipped. El lint global permanece en 531 errores/63 warnings preexistentes. Estos conteos no constituyen medición de cobertura.
+La evidencia de Gestion de Tiempo y Asistencia es 55/55 focales; `tsc`, build y lint focal estan OK. La suite global ejecutada el 2026-07-12 reporta 245 passed/2 skipped/3 failed: la suite completa del Planificador pasa 20/20 al reejecutarse y los fallos deterministas de MyDevelopments/Register corresponden a expectativas desactualizadas fuera del alcance. El lint global mantiene 517 errores/60 warnings preexistentes. Estos conteos no constituyen medicion de cobertura.
 
 Backend consolidado final reportado: 154 passed; focal overrides: 19 passed; health: 4 passed/4 skipped; carreras PostgreSQL reales: 2 passed. La suite ERP no recolecta localmente sin `pdfplumber`; el import Docker reporta 318 rutas.
 
