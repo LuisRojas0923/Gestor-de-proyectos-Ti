@@ -8,7 +8,7 @@ describe('configuración de Gestión de Tiempo y Asistencia', () => {
   it.each([
     ['biometria', ['biometria']],
     ['nomina_horas_extras.planificar', ['planificador', 'horario', 'pre-liquidacion']],
-    ['nomina_horas_extras.leer', ['calculos', 'bolsa', 'costos-ot', 'festivos']],
+    ['nomina_horas_extras.leer', ['calculos', 'costos-ot', 'festivos']],
     ['nomina_horas_extras.admin', ['configuracion']],
     ['nomina_horas_extras.plantillas_horario.administrar', ['plantillas']],
     ['alcance_empleados.administrar', ['alcance']],
@@ -49,7 +49,6 @@ describe('configuración de Gestión de Tiempo y Asistencia', () => {
       { id: 'plantillas', ruta: '/service-portal/horas-extras/plantillas', permiso: 'nomina_horas_extras.plantillas_horario.administrar' },
       { id: 'pre-liquidacion', ruta: '/service-portal/horas-extras/pre-liquidacion', permiso: 'nomina_horas_extras.planificar' },
       { id: 'calculos', ruta: '/service-portal/horas-extras/calculos', permiso: 'nomina_horas_extras.leer' },
-      { id: 'bolsa', ruta: '/service-portal/horas-extras/bolsa', permiso: 'nomina_horas_extras.leer' },
       { id: 'costos-ot', ruta: '/service-portal/horas-extras/costos-ot', permiso: 'nomina_horas_extras.leer' },
       { id: 'festivos', ruta: '/service-portal/horas-extras/festivos', permiso: 'nomina_horas_extras.leer' },
       { id: 'configuracion', ruta: '/service-portal/horas-extras/configuracion', permiso: 'nomina_horas_extras.admin' },
@@ -72,5 +71,9 @@ describe('configuración de Gestión de Tiempo y Asistencia', () => {
 
   it('no expone novedades como acceso separado del planificador', () => {
     expect(OPCIONES_TIEMPO_ASISTENCIA.some((opcion) => opcion.id === 'novedades')).toBe(false);
+  });
+
+  it('no expone la bolsa de horas como acceso operativo', () => {
+    expect(OPCIONES_TIEMPO_ASISTENCIA.some((opcion) => opcion.id === 'bolsa')).toBe(false);
   });
 });

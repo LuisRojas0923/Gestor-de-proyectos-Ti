@@ -1,7 +1,20 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, RefreshCw, Save, Settings2 } from 'lucide-react';
-import { Badge, Button, Input, MaterialCard, Text, Textarea, Title } from '../../../../components/atoms';
+import {
+  ArrowLeft,
+  CalendarDays,
+  Calculator,
+  Clock3,
+  RefreshCw,
+  Save,
+  Scale,
+  Settings2,
+  Sparkles,
+  type LucideIcon,
+} from 'lucide-react';
+import { Badge, Button, Input, MaterialCard, Skeleton, Text, Textarea, Title } from '../../../../components/atoms';
+import Callout from '../../../../components/molecules/Callout';
+import Modal from '../../../../components/molecules/Modal';
 import { useNotifications } from '../../../../components/notifications/NotificationsContext';
 import {
   actualizarParametrosCalculo,
@@ -12,10 +25,62 @@ import type { ParametroCalculo } from '../../../../types/horasExtras';
 type ParametroEditable = ParametroCalculo & { editado: string; observacionEditada: string };
 
 const ordenGrupos = ['Jornada semanal', 'Valor hora', 'Jornada nocturna', 'Topes'];
+const metadataGrupos: Record<string, { icono: LucideIcon; descripcion: string }> = {
+  'Jornada semanal': {
+    icono: CalendarDays,
+    descripcion: 'Define la jornada ordinaria que sirve como base del cálculo.',
+  },
+  'Valor hora': {
+    icono: Calculator,
+    descripcion: 'Controla el divisor usado para obtener el valor de la hora ordinaria.',
+  },
+  'Jornada nocturna': {
+    icono: Clock3,
+    descripcion: 'Establece la franja que activa recargos y horas nocturnas.',
+  },
+  Topes: {
+    icono: Scale,
+    descripcion: 'Centraliza los límites legales diarios, semanales y anuales.',
+  },
+};
 const parametrosHistoricosOcultos = new Set([
   'HORAS_ORDINARIAS_SEMANALES_PREVIAS',
   'DIVISOR_HORA_ORDINARIA_PREVIO',
 ]);
+
+const obtenerNumero = (parametros: ParametroEditable[], codigo: string) => {
+  const valor = parametros.find((parametro) => parametro.codigo === codigo)?.editado;
+  return valor === undefined || valor.trim() === '' ? null : Number(valor);
+};
+
+const validarValorParametro = (parametro: ParametroEditable, parametros: ParametroEditable[]) => {
+  const valor = parametro.editado.trim();
+  if (!valor) return 'El valor es obligatorio.';
+  if (parametro.tipo_dato === 'NUMERICO') {
+    const numero = Number(valor);
+    if (!Number.isFinite(numero) || numero <= 0) return 'Ingresa un número mayor que cero.';
+  }
+  if (parametro.tipo_dato === 'FECHA' && Number.isNaN(Date.parse(`${valor}T00:00:00`))) {
+    return 'Ingresa una fecha válida.';
+  }
+  if (parametro.tipo_dato === 'HORA' && !/^([01]\d|2[0-3]):[0-5]\d$/.test(valor)) {
+    return 'Ingresa una hora válida.';
+  }
+  const maxDiarias = obtenerNumero(parametros, 'MAX_HE_DIARIAS');
+  const maxSemanales = obtenerNumero(parametros, 'MAX_HE_SEMANALES');
+  const maxAnuales = obtenerNumero(parametros, 'MAX_HE_ANUALES');
+  if (parametro.codigo === 'MAX_HE_DIARIAS' && maxDiarias !== null && maxSemanales !== null && maxDiarias > maxSemanales) {
+    return 'El tope diario no puede superar el semanal.';
+  }
+  if (parametro.codigo === 'MAX_HE_SEMANALES' && maxSemanales !== null) {
+    if (maxDiarias !== null && maxSemanales < maxDiarias) return 'El tope semanal no puede ser menor que el diario.';
+    if (maxAnuales !== null && maxSemanales > maxAnuales) return 'El tope semanal no puede superar el anual.';
+  }
+  if (parametro.codigo === 'MAX_HE_ANUALES' && maxAnuales !== null && maxSemanales !== null && maxAnuales < maxSemanales) {
+    return 'El tope anual no puede ser menor que el semanal.';
+  }
+  return null;
+};
 
 const ConfiguracionHorasExtrasView: React.FC = () => {
   const navigate = useNavigate();
@@ -23,9 +88,12 @@ const ConfiguracionHorasExtrasView: React.FC = () => {
   const [parametros, setParametros] = useState<ParametroEditable[]>([]);
   const [cargando, setCargando] = useState(true);
   const [guardando, setGuardando] = useState(false);
+  const [errorCarga, setErrorCarga] = useState<string | null>(null);
+  const [accionPendiente, setAccionPendiente] = useState<'volver' | 'recargar' | null>(null);
 
   const cargar = async () => {
     setCargando(true);
+    setErrorCarga(null);
     try {
       const respuesta = await obtenerParametrosCalculo(localStorage.getItem('token') || '');
       setParametros(
@@ -36,7 +104,10 @@ const ConfiguracionHorasExtrasView: React.FC = () => {
         })),
       );
     } catch (error) {
-      addNotification('error', error instanceof Error ? error.message : 'Error al cargar reglas');
+      const mensaje = error instanceof Error ? error.message : 'Error al cargar reglas';
+      setParametros([]);
+      setErrorCarga(mensaje);
+      addNotification('error', mensaje);
     } finally {
       setCargando(false);
     }
@@ -59,6 +130,10 @@ const ConfiguracionHorasExtrasView: React.FC = () => {
     ));
     if (modificados.length === 0) {
       addNotification('info', 'No hay cambios para guardar');
+      return;
+    }
+    if (!formularioValido) {
+      addNotification('warning', 'Revisa los valores y agrega una justificación nueva para cada ajuste');
       return;
     }
     setGuardando(true);
@@ -97,91 +172,245 @@ const ConfiguracionHorasExtrasView: React.FC = () => {
   }, {});
 
   const grupos = ordenGrupos.filter((grupo) => parametrosPorGrupo[grupo]?.length);
+  const cambiosPendientes = parametrosVisibles.filter((parametro) => (
+    parametro.editado !== parametro.valor
+    || parametro.observacionEditada !== (parametro.observaciones || '')
+  )).length;
+  const erroresValores = new Map(
+    parametrosVisibles.map((parametro) => [parametro.codigo, validarValorParametro(parametro, parametrosVisibles)]),
+  );
+  const codigosSinJustificacion = new Set(parametrosVisibles.filter((parametro) => (
+    parametro.editado !== parametro.valor
+    && (
+      !parametro.observacionEditada.trim()
+      || parametro.observacionEditada.trim() === (parametro.observaciones || '').trim()
+    )
+  )).map((parametro) => parametro.codigo));
+  const formularioValido = !Array.from(erroresValores.values()).some(Boolean) && codigosSinJustificacion.size === 0;
+
+  useEffect(() => {
+    if (cambiosPendientes === 0) return undefined;
+    const prevenirSalida = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = '';
+    };
+    window.addEventListener('beforeunload', prevenirSalida);
+    return () => window.removeEventListener('beforeunload', prevenirSalida);
+  }, [cambiosPendientes]);
+
+  const solicitarAccion = (accion: 'volver' | 'recargar') => {
+    if (cambiosPendientes > 0) {
+      setAccionPendiente(accion);
+      return;
+    }
+    if (accion === 'volver') navigate('/service-portal/tiempo-asistencia');
+    else cargar();
+  };
+
+  const descartarCambios = () => {
+    const accion = accionPendiente;
+    setAccionPendiente(null);
+    if (accion === 'volver') navigate('/service-portal/tiempo-asistencia');
+    if (accion === 'recargar') cargar();
+  };
 
   return (
-    <MaterialCard className="m-2 overflow-visible border-[var(--color-primary)]/20 p-0 shadow-md shadow-[var(--color-primary)]/5 md:m-4">
-      <MaterialCard elevation={0} className="rounded-t-[1.5rem] border-b border-[var(--color-border)] bg-gradient-to-br from-[var(--color-primary)]/10 via-[var(--color-surface)] to-[var(--color-surface-variant)] p-3 shadow-none md:p-4">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex items-start gap-2.5">
+    <MaterialCard elevation={0} className="mx-auto my-3 max-w-[1500px] overflow-visible border-0 bg-transparent p-3 shadow-none md:my-6 md:p-6">
+      <MaterialCard className="overflow-hidden border-[var(--color-primary)]/15 p-0 shadow-lg shadow-[var(--color-primary)]/5">
+        <MaterialCard elevation={0} className="rounded-none border-0 border-b border-[var(--color-primary)]/15 bg-gradient-to-br from-[var(--color-primary)]/15 via-[var(--color-surface)] to-[var(--color-surface-variant)] p-5 shadow-none md:p-7">
+          <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
+            <div className="flex items-start gap-3 md:gap-4">
             <Button
-              variant="secondary"
-              onClick={() => navigate('/service-portal/tiempo-asistencia')}
-              className="h-10 w-10 shrink-0 !rounded-full !p-0 shadow-sm md:h-9 md:w-9"
+              variant="ghost"
+              onClick={() => solicitarAccion('volver')}
+              className="h-11 w-11 shrink-0 !rounded-2xl !border !border-[var(--color-border)]/70 !bg-[var(--color-surface)]/80 !p-0 shadow-sm backdrop-blur-sm"
               aria-label="Volver a Tiempo y Asistencia"
             >
-              <ArrowLeft className="h-4 w-4" />
+              <ArrowLeft className="h-5 w-5" />
             </Button>
-            <div>
-              <Badge size="sm" variant="info">Reglas vigentes</Badge>
-              <Title level={2} className="!m-0 mt-1 !text-xl leading-tight md:!text-2xl">Configuración de Horas Extras</Title>
-              <Text className="max-w-3xl text-xs text-[var(--color-text-secondary)] md:text-sm">
-                Edita las reglas usadas por el cálculo semanal: jornada ordinaria, divisor mensual,
-                jornada nocturna y topes legales.
-              </Text>
-            </div>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Button size="sm" variant="secondary" onClick={cargar} disabled={cargando || guardando} className="min-h-10 md:min-h-0">
-              <RefreshCw className="mr-1.5 h-3.5 w-3.5" />Recargar
-            </Button>
-            <Button size="sm" onClick={guardar} disabled={cargando || guardando || parametros.length === 0} className="min-h-10 md:min-h-0">
-              <Save className="mr-1.5 h-3.5 w-3.5" />{guardando ? 'Guardando...' : 'Guardar reglas'}
-            </Button>
-          </div>
-        </div>
-      </MaterialCard>
-
-      <div className="grid gap-3 p-3 md:p-4 xl:grid-cols-2">
-        {cargando ? (
-          <MaterialCard className="p-4 xl:col-span-2">
-            <Text className="text-[var(--color-text-secondary)]">Cargando reglas de cálculo...</Text>
-          </MaterialCard>
-        ) : grupos.map((grupo) => (
-          <MaterialCard key={grupo} elevation={0} className="border border-[var(--color-border)] bg-[var(--color-surface)] p-3 shadow-sm">
-            <div className="mb-2.5 flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
-                <Settings2 className="h-3.5 w-3.5 text-[var(--color-primary)]" />
-                <Title level={3} className="!m-0 !text-base">{grupo}</Title>
+              <div className="min-w-0">
+                <div className="mb-2 flex flex-wrap items-center gap-2">
+                  <Badge size="sm" variant="info">Administración</Badge>
+                  <Text as="div" aria-live="polite">
+                    <Badge size="sm" variant={errorCarga ? 'error' : cambiosPendientes > 0 ? 'warning' : 'success'}>
+                      {errorCarga
+                        ? 'No se pudieron cargar las reglas'
+                        : cambiosPendientes > 0
+                          ? `${cambiosPendientes} ${cambiosPendientes === 1 ? 'cambio pendiente' : 'cambios pendientes'}`
+                          : 'Reglas sincronizadas'}
+                    </Badge>
+                  </Text>
+                </div>
+                <Title level={2} className="!m-0 !text-2xl leading-tight md:!text-3xl">Configuración de horas extras</Title>
+                <Text className="mt-1 max-w-3xl text-sm leading-relaxed text-[var(--color-text-secondary)]">
+                  Ajusta las reglas legales que usa el cálculo semanal. Cada modificación queda
+                  acompañada por una justificación para facilitar su trazabilidad.
+                </Text>
               </div>
-              <Badge size="xs" variant="default">{parametrosPorGrupo[grupo].length} reglas</Badge>
             </div>
+            <div className="grid grid-cols-2 gap-2 sm:flex sm:justify-end">
+              <Button variant="secondary" onClick={() => solicitarAccion('recargar')} disabled={cargando || guardando} className="min-h-11">
+                <RefreshCw className={`mr-2 h-4 w-4 ${cargando ? 'animate-spin' : ''}`} />Recargar
+              </Button>
+              <Button onClick={guardar} disabled={cargando || guardando || cambiosPendientes === 0 || !formularioValido} className="min-h-11 shadow-md shadow-[var(--color-primary)]/15 dark:!text-[var(--color-background)]">
+                <Save className="mr-2 h-4 w-4" />{guardando ? 'Guardando...' : 'Guardar cambios'}
+              </Button>
+            </div>
+          </div>
+        </MaterialCard>
 
-            <div className="grid gap-2">
-              {parametrosPorGrupo[grupo].map((parametro) => (
-                <MaterialCard key={parametro.codigo} elevation={0} className="border border-[var(--color-border)] bg-[var(--color-surface-variant)]/40 p-2.5 shadow-none">
-                  <div className="grid gap-2 lg:grid-cols-[minmax(0,1fr)_150px] lg:items-start xl:grid-cols-[minmax(0,1fr)_150px_minmax(160px,0.75fr)]">
-                    <div>
-                      <Text className="text-sm font-semibold leading-snug text-[var(--color-text)]">{parametro.nombre}</Text>
-                      {parametro.norma_soporte && (
-                        <Text className="mt-0.5 text-[11px] leading-tight text-[var(--color-text-secondary)]">Soporte: {parametro.norma_soporte}</Text>
-                      )}
+        <div className="bg-[var(--color-surface-secondary)]/45 p-4 md:p-6">
+          {cargando ? (
+            <div className="grid gap-5 xl:grid-cols-2" aria-label="Cargando reglas de cálculo" role="status" aria-busy="true">
+              {[0, 1, 2, 3].map((item) => (
+                <MaterialCard key={item} className="space-y-4 border-[var(--color-border)]/60 p-5 shadow-sm">
+                  <div className="flex items-center gap-3">
+                    <Skeleton variant="circular" width={40} height={40} />
+                    <div className="flex-1 space-y-2">
+                      <Skeleton variant="text" width="45%" />
+                      <Skeleton variant="text" width="75%" />
                     </div>
-                    <Input
-                      type={parametro.tipo_dato === 'NUMERICO' ? 'number' : parametro.tipo_dato === 'FECHA' ? 'date' : parametro.tipo_dato === 'HORA' ? 'time' : 'text'}
-                      size="sm"
-                      inputClassName="md:h-8 md:px-2 md:py-1 md:text-[11px]"
-                      aria-label={`Valor de ${parametro.nombre}`}
-                      value={parametro.editado}
-                      onChange={(event) => actualizarCampo(parametro.codigo, { editado: event.target.value })}
-                      disabled={!parametro.editable || guardando}
-                    />
-                    <Textarea
-                      value={parametro.observacionEditada}
-                      onChange={(event) => actualizarCampo(parametro.codigo, { observacionEditada: event.target.value })}
-                      placeholder="Observación del cambio"
-                      aria-label={`Observación del cambio para ${parametro.nombre}`}
-                      rows={1}
-                      className="lg:col-span-2 xl:col-span-1"
-                      textareaClassName="min-h-10 py-1 leading-tight md:min-h-8"
-                      disabled={guardando}
-                    />
                   </div>
+                  <Skeleton height={132} />
+                  <Skeleton height={132} />
                 </MaterialCard>
               ))}
             </div>
-          </MaterialCard>
-        ))}
-      </div>
+          ) : errorCarga ? (
+            <Callout variant="error" title="No pudimos cargar las reglas" role="alert">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <Text color="inherit" className="text-sm">{errorCarga}</Text>
+                <Button variant="secondary" size="sm" onClick={cargar}>Reintentar</Button>
+              </div>
+            </Callout>
+          ) : (
+            <div className="grid items-start gap-5 xl:grid-cols-2">
+              {grupos.map((grupo) => {
+                const metadata = metadataGrupos[grupo] ?? { icono: Settings2, descripcion: 'Parámetros del cálculo semanal.' };
+                const IconoGrupo = metadata.icono;
+                return (
+                  <MaterialCard key={grupo} className="overflow-hidden border-[var(--color-border)]/70 p-0 shadow-sm">
+                    <div className="flex items-start justify-between gap-3 border-b border-[var(--color-border)]/60 bg-[var(--color-surface-variant)]/45 p-4 md:p-5">
+                      <div className="flex min-w-0 items-start gap-3">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[var(--color-primary)]/12 text-[var(--color-primary)]">
+                          <IconoGrupo className="h-5 w-5" />
+                        </div>
+                        <div>
+                          <Title level={3} className="!m-0 !text-lg">{grupo}</Title>
+                          <Text className="mt-0.5 text-xs leading-relaxed text-[var(--color-text-secondary)]">
+                            {metadata.descripcion}
+                          </Text>
+                        </div>
+                      </div>
+                      <Badge size="sm" variant="default">{parametrosPorGrupo[grupo].length}</Badge>
+                    </div>
+
+                    <div className="grid gap-3 p-3 md:p-4">
+                      {parametrosPorGrupo[grupo].map((parametro) => {
+                        const modificado = parametro.editado !== parametro.valor
+                          || parametro.observacionEditada !== (parametro.observaciones || '');
+                        const valorModificado = parametro.editado !== parametro.valor;
+                        const errorValor = erroresValores.get(parametro.codigo) || undefined;
+                        const faltaJustificacion = codigosSinJustificacion.has(parametro.codigo);
+                        return (
+                          <MaterialCard
+                            key={parametro.codigo}
+                            elevation={0}
+                            className={`p-4 shadow-none transition-colors md:p-5 ${modificado
+                              ? 'border-[var(--color-primary)] bg-[var(--color-primary)]/5'
+                              : 'border-[var(--color-border)]/60 bg-[var(--color-surface)]'}`}
+                          >
+                            <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                              <div className="min-w-0">
+                                <Text className="font-semibold leading-snug text-[var(--color-text-primary)]">{parametro.nombre}</Text>
+                                {parametro.norma_soporte && (
+                                  <Text className="mt-1 text-xs leading-relaxed text-[var(--color-text-secondary)]">
+                                    Soporte: {parametro.norma_soporte}
+                                  </Text>
+                                )}
+                              </div>
+                              {modificado && <Badge size="xs" variant="warning">Cambio pendiente</Badge>}
+                            </div>
+
+                            <div className="grid gap-3 md:grid-cols-[minmax(140px,0.7fr)_minmax(220px,1.3fr)]">
+                              <Input
+                                label="Valor vigente"
+                                type={parametro.tipo_dato === 'NUMERICO' ? 'number' : parametro.tipo_dato === 'FECHA' ? 'date' : parametro.tipo_dato === 'HORA' ? 'time' : 'text'}
+                                size="sm"
+                                aria-label={`Valor vigente de ${parametro.nombre}`}
+                                value={parametro.editado}
+                                onChange={(event) => actualizarCampo(parametro.codigo, {
+                                  editado: event.target.value,
+                                  ...(event.target.value !== parametro.valor
+                                    && parametro.observacionEditada === (parametro.observaciones || '')
+                                    ? { observacionEditada: '' }
+                                    : {}),
+                                })}
+                                disabled={!parametro.editable || guardando}
+                                success={valorModificado && !errorValor}
+                                error={!!errorValor}
+                                errorMessage={errorValor}
+                              />
+                              <Textarea
+                                label="Justificación del cambio"
+                                value={parametro.observacionEditada}
+                                onChange={(event) => actualizarCampo(parametro.codigo, { observacionEditada: event.target.value })}
+                                placeholder="Describe brevemente el motivo del ajuste"
+                                aria-label={`Justificación del cambio para ${parametro.nombre}`}
+                                rows={2}
+                                maxLength={500}
+                                textareaClassName="min-h-[68px] resize-none"
+                                disabled={guardando}
+                                error={faltaJustificacion}
+                                errorMessage={faltaJustificacion ? 'Agrega una justificación nueva para este valor.' : undefined}
+                              />
+                            </div>
+                          </MaterialCard>
+                        );
+                      })}
+                    </div>
+                  </MaterialCard>
+                );
+              })}
+            </div>
+          )}
+
+          {!cargando && !errorCarga && grupos.length === 0 && (
+            <Callout variant="info" title="No hay reglas disponibles">
+              No se encontraron parámetros editables para mostrar. Recarga la vista o consulta con un administrador.
+            </Callout>
+          )}
+
+          {!cargando && cambiosPendientes > 0 && (
+            <Callout variant={formularioValido ? 'info' : 'warning'} title="Revisión pendiente" icon={Sparkles} className="mt-5">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <Text color="inherit" className="text-sm">
+                  Verifica {cambiosPendientes === 1 ? 'el ajuste' : `los ${cambiosPendientes} ajustes`} antes de guardar.
+                  La actualización se aplicará al próximo cálculo.
+                </Text>
+                <Button onClick={guardar} disabled={guardando || !formularioValido} className="min-h-10 shrink-0 dark:!text-[var(--color-background)]">
+                  <Save className="mr-2 h-4 w-4" />{guardando ? 'Guardando...' : 'Guardar cambios'}
+                </Button>
+              </div>
+            </Callout>
+          )}
+        </div>
+      </MaterialCard>
+
+      <Modal
+        isOpen={accionPendiente !== null}
+        onClose={() => setAccionPendiente(null)}
+        title="¿Descartar cambios pendientes?"
+        size="sm"
+      >
+        <Text className="mb-5 text-sm text-[var(--color-text-secondary)]">
+          Los ajustes que todavía no guardaste se perderán. Esta acción no se puede deshacer.
+        </Text>
+        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          <Button variant="secondary" onClick={() => setAccionPendiente(null)}>Seguir editando</Button>
+          <Button variant="danger" onClick={descartarCambios}>Descartar cambios</Button>
+        </div>
+      </Modal>
     </MaterialCard>
   );
 };

@@ -1,5 +1,5 @@
 import { LucideIcon, Eye, EyeOff } from 'lucide-react';
-import React, { useState } from 'react';
+import React, { useId, useState } from 'react';
 import { Text } from './Text';
 import Icon from './Icon';
 import Button from './Button';
@@ -80,6 +80,9 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(({
   readOnly = false,
 }, ref) => {
   const [showPassword, setShowPassword] = useState(false); // [CONTROLADO]
+  const generatedId = useId();
+  const inputId = id ?? generatedId;
+  const supportId = `${inputId}-support`;
   const isPasswordType = type === 'password'; // [CONTROLADO]
   const isHidden = type === 'hidden';
   const inputType = isPasswordType ? (showPassword ? 'text' : 'password') : type; // [CONTROLADO]
@@ -130,7 +133,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(({
     <div className={`${fullWidth ? 'w-full' : ''} ${className}`}>
       {label && (
         <div className="mb-1 flex flex-wrap items-baseline gap-x-2 gap-y-0">
-          <Text as="label" variant="body2" weight="medium" color="text-primary" className="block">
+            <Text as="label" htmlFor={inputId} variant="body2" weight="medium" color="text-primary" className="block">
             {label}
             {required && <Text as="span" color="error" className="ml-1">*</Text>}
           </Text>
@@ -155,7 +158,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(({
 
         <input // @audit-ok
           ref={ref}
-          id={id}
+          id={inputId}
           type={inputType}
           placeholder={placeholder}
           value={value}
@@ -163,6 +166,8 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(({
           disabled={disabled}
           required={required}
           aria-label={ariaLabel}
+          aria-invalid={error || undefined}
+          aria-describedby={(error && errorMessage) || (!error && helperText) ? supportId : undefined}
           name={name}
           onChange={onChange}
           onFocus={onFocus}
@@ -207,11 +212,11 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(({
       </div>
 
       {error && errorMessage && (
-        <Text variant="caption" color="error" className="mt-1">{errorMessage}</Text>
+          <Text id={supportId} variant="caption" color="error" className="mt-1">{errorMessage}</Text>
       )}
 
       {!error && helperText && (
-        <Text variant="caption" color="text-secondary" className="mt-1">{helperText}</Text>
+          <Text id={supportId} variant="caption" color="text-secondary" className="mt-1">{helperText}</Text>
       )}
     </div>
   );

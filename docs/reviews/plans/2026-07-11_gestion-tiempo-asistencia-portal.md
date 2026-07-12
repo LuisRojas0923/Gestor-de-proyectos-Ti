@@ -294,3 +294,14 @@ Los bloqueos iniciales del revisor frontend quedaron resueltos al definir la gua
 - [ ] `bloqueado`
 
 La implementación puede comenzar cuando se preserve la matriz exacta de permisos y rutas definida en este plan. Cualquier cambio de permisos backend, semántica de `moduleStatus` o eliminación de rutas exige volver a revisión de alcance y seguridad.
+
+## 17. Ajustes aprobados durante la validación UX
+
+Durante la revisión funcional del hub, el usuario aprobó estos ajustes sin eliminar rutas, datos ni contratos backend:
+
+- Retirar del hub los accesos redundantes `Empleados y disponibilidad`, `Novedades` y `Bolsa de horas`; sus capacidades permanecen integradas o disponibles por compatibilidad.
+- Presentar la pre-liquidación como `Calculadora individual de horas extras` para diferenciarla del Planificador masivo.
+- Rediseñar Configuración de horas extras con tarjetas por grupo, carga skeleton, estado de cambios pendientes y comportamiento mobile-first.
+- Exigir una justificación nueva cuando cambia un valor legal, validar formatos y coherencia básica de topes, mostrar errores persistentes y confirmar antes de descartar cambios.
+
+Estos ajustes reducen opciones del hub sin modificar permisos RBAC, `moduleStatus`, endpoints ni rutas históricas.

@@ -10,7 +10,6 @@ import {
   ScanFace,
   Settings,
   Users,
-  WalletCards,
 } from 'lucide-react';
 
 export type SeccionTiempoAsistencia = 'asistencia' | 'planificacion' | 'horas_extras' | 'administracion';
@@ -44,7 +43,6 @@ export const OPCIONES_TIEMPO_ASISTENCIA: ReadonlyArray<OpcionTiempoAsistencia> =
   { id: 'plantillas', seccion: 'planificacion', titulo: 'Plantillas de horario', descripcion: 'Diseña y aplica jornadas semanales reutilizables.', ruta: '/service-portal/horas-extras/plantillas', permiso: 'nomina_horas_extras.plantillas_horario.administrar', icono: CalendarClock },
   { id: 'pre-liquidacion', seccion: 'horas_extras', titulo: 'Calculadora individual de horas extras', descripcion: 'Simula horas y costos de un empleado antes de confirmar su liquidación.', ruta: '/service-portal/horas-extras/pre-liquidacion', permiso: 'nomina_horas_extras.planificar', icono: Banknote, moduloEstado: 'nomina_horas_extras' },
   { id: 'calculos', seccion: 'horas_extras', titulo: 'Cálculos', descripcion: 'Consulta cálculos procesados y su trazabilidad diaria.', ruta: '/service-portal/horas-extras/calculos', permiso: 'nomina_horas_extras.leer', icono: Calculator, moduloEstado: 'nomina_horas_extras' },
-  { id: 'bolsa', seccion: 'horas_extras', titulo: 'Bolsa de horas', descripcion: 'Consulta saldos, movimientos y compensaciones registradas.', ruta: '/service-portal/horas-extras/bolsa', permiso: 'nomina_horas_extras.leer', icono: WalletCards, moduloEstado: 'nomina_horas_extras' },
   { id: 'costos-ot', seccion: 'horas_extras', titulo: 'Costos por OT', descripcion: 'Revisa el costo de horas extras asociado a órdenes de trabajo.', ruta: '/service-portal/horas-extras/costos-ot', permiso: 'nomina_horas_extras.leer', icono: BriefcaseBusiness, moduloEstado: 'nomina_horas_extras' },
   { id: 'festivos', seccion: 'administracion', titulo: 'Festivos', descripcion: 'Consulta el calendario usado por las reglas de liquidación.', ruta: '/service-portal/horas-extras/festivos', permiso: 'nomina_horas_extras.leer', icono: ListChecks, moduloEstado: 'nomina_horas_extras' },
   { id: 'configuracion', seccion: 'administracion', titulo: 'Configuración de horas extras', descripcion: 'Administra parámetros legales y operativos del módulo.', ruta: '/service-portal/horas-extras/configuracion', permiso: 'nomina_horas_extras.admin', icono: Settings, moduloEstado: 'nomina_horas_extras' },

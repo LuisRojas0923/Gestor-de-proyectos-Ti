@@ -21,6 +21,8 @@ Agrupar horarios, horas extras, biometria, plantillas y alcance de empleados baj
 - La pre-liquidacion individual se presenta como `Calculadora individual de horas extras`, con acciones separadas para simular y confirmar, para distinguirla del Planificador semanal.
 - Se elimino `Empleados y disponibilidad` como acceso redundante del hub; la tabla permanece integrada en el Planificador y su ruta historica se conserva como alias compatible.
 - Se elimino `Novedades` como acceso independiente del hub para centralizar su captura operativa en el Planificador; las rutas, historicos y endpoints se conservan por compatibilidad.
+- Se elimino `Bolsa de horas` del hub; la ruta, los historicos y la logica backend se conservan para trazabilidad y compatibilidad con calculos existentes.
+- Se rediseño Configuracion de horas extras con jerarquia visual por grupos, skeletons, indicadores de cambios, validacion legal basica, justificacion nueva obligatoria y proteccion contra descarte accidental.
 
 ## Seguridad
 
@@ -28,7 +30,7 @@ El hub aplica una union visual de permisos exactos y falla cerrado cuando no hay
 
 ## Verificacion
 
-- Pruebas focales: 55 aprobadas en configuracion, hub, dashboard, rutas, retornos y tarjeta accesible.
+- Pruebas focales: 58 aprobadas en configuracion, hub, dashboard, rutas, retornos y tarjeta accesible.
 - TypeScript y lint focal sin errores.
 - Build de produccion: 4025 modulos transformados.
 - Suite global: 245 aprobadas, 2 omitidas y 3 fallidas. La suite completa del Planificador pasa 20/20 al reejecutarse; MyDevelopments y Register conservan dos expectativas desactualizadas ajenas al cambio.

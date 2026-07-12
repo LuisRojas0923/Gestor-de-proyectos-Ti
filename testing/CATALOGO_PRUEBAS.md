@@ -113,9 +113,10 @@ Ubicación: `frontend/src/tests/`
 | `DashboardView.test.tsx` | Tarjeta única de Tiempo y Asistencia, alias de búsqueda y ausencia sin permiso navegable. |
 | `servicePortalFeatureRoutes.test.tsx` | Nueva ruta autenticada y conservación de guardas independientes históricas. |
 | `GestionTiempoAsistenciaReturns.test.tsx` | Retornos directos al hub y alias de empleados hacia el panel integrado del Planificador. |
+| `ConfiguracionHorasExtrasView.test.tsx` | Cambios pendientes, justificación obligatoria, descarte protegido, reintento y payload mínimo de reglas. |
 | `components/molecules/__tests__/ServiceCard.test.tsx` | Semántica nativa, foco e interacción de la tarjeta accesible. |
 
-La evidencia de Gestion de Tiempo y Asistencia es 55/55 focales; `tsc`, build y lint focal estan OK. La suite global ejecutada el 2026-07-12 reporta 245 passed/2 skipped/3 failed: la suite completa del Planificador pasa 20/20 al reejecutarse y los fallos deterministas de MyDevelopments/Register corresponden a expectativas desactualizadas fuera del alcance. El lint global mantiene 517 errores/60 warnings preexistentes. Estos conteos no constituyen medicion de cobertura.
+La evidencia de Gestion de Tiempo y Asistencia es 58/58 focales; `tsc`, build y lint focal estan OK. La suite global ejecutada el 2026-07-12 reporta 245 passed/2 skipped/3 failed: la suite completa del Planificador pasa 20/20 al reejecutarse y los fallos deterministas de MyDevelopments/Register corresponden a expectativas desactualizadas fuera del alcance. El lint global mantiene 517 errores/60 warnings preexistentes. Estos conteos no constituyen medicion de cobertura.
 
 Backend consolidado final reportado: 154 passed; focal overrides: 19 passed; health: 4 passed/4 skipped; carreras PostgreSQL reales: 2 passed. La suite ERP no recolecta localmente sin `pdfplumber`; el import Docker reporta 318 rutas.
 

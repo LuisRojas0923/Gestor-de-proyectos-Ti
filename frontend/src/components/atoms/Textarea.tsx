@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useId } from 'react';
 import { Text } from './Text';
 
 interface TextareaProps {
@@ -17,6 +17,7 @@ interface TextareaProps {
     className?: string;
     textareaClassName?: string;
     name?: string;
+    id?: string;
     'aria-label'?: string;
     onChange?: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
     onFocus?: (e: React.FocusEvent<HTMLTextAreaElement>) => void;
@@ -40,12 +41,16 @@ const Textarea: React.FC<TextareaProps> = ({
     className = '',
     textareaClassName = '',
     name,
+    id,
     'aria-label': ariaLabel,
     onChange,
     onFocus,
     onBlur,
     onKeyDown,
 }) => {
+    const generatedId = useId();
+    const textareaId = id ?? generatedId;
+    const supportId = `${textareaId}-support`;
     const baseClasses = 'w-full border rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed resize-y';
 
     const stateClasses = error
@@ -58,7 +63,7 @@ const Textarea: React.FC<TextareaProps> = ({
         <div className={`w-full ${className}`}>
             {label && (
                 <div className="mb-1 flex flex-wrap items-baseline gap-x-2 gap-y-0">
-                    <Text as="label" variant="body2" weight="medium" color="text-primary" className="block">
+                    <Text as="label" htmlFor={textareaId} variant="body2" weight="medium" color="text-primary" className="block">
                         {label}
                         {required && <Text as="span" color="error" className="ml-1">*</Text>}
                     </Text>
@@ -71,12 +76,15 @@ const Textarea: React.FC<TextareaProps> = ({
             )}
 
             <textarea // @audit-ok
+                id={textareaId}
                 placeholder={placeholder}
                 value={value}
                 defaultValue={defaultValue}
                 disabled={disabled}
                 required={required}
                 aria-label={ariaLabel}
+                aria-invalid={error || undefined}
+                aria-describedby={(error && errorMessage) || (!error && helperText) ? supportId : undefined}
                 rows={rows}
                 maxLength={maxLength}
                 name={name}
@@ -88,11 +96,11 @@ const Textarea: React.FC<TextareaProps> = ({
             />
 
             {error && errorMessage && (
-                <Text variant="caption" color="error" className="mt-1">{errorMessage}</Text>
+                <Text id={supportId} variant="caption" color="error" className="mt-1">{errorMessage}</Text>
             )}
 
             {!error && helperText && (
-                <Text variant="caption" color="text-secondary" className="mt-1">{helperText}</Text>
+                <Text id={supportId} variant="caption" color="text-secondary" className="mt-1">{helperText}</Text>
             )}
 
             {maxLength && value && (

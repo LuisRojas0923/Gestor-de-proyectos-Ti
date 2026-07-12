@@ -14,7 +14,7 @@ No se modificaron backend, contratos API, modelos, migraciones ni manifiesto RBA
 
 ## Cambios principales
 
-- Registro tipado unico para las 11 opciones del hub.
+- Registro tipado unico para las 10 opciones del hub.
 - Tarjeta unica en `DashboardView`, con busqueda por alias.
 - Ruta lazy `/service-portal/tiempo-asistencia` autenticada y fail-closed cuando no hay opciones.
 - Alias `/service-portal/horas-extras` redirigido al hub.
@@ -24,6 +24,8 @@ No se modificaron backend, contratos API, modelos, migraciones ni manifiesto RBA
 - Pre-liquidacion renombrada visualmente como Calculadora individual, diferenciando simulacion y confirmacion del flujo masivo.
 - Acceso redundante de Empleados retirado del hub; su tabla permanece integrada en el Planificador y la ruta legacy sigue redirigiendo.
 - Acceso independiente de Novedades retirado del hub; el flujo operativo queda en el Planificador sin eliminar rutas ni datos historicos.
+- Bolsa de horas retirada del hub sin eliminar su ruta, historicos ni efectos backend existentes.
+- Configuracion de horas extras rediseñada con validacion, trazabilidad de cambios, estados de carga/error y descarte protegido.
 - `ServiceCard` migrado a boton nativo del sistema de diseno.
 - Documentacion, catalogo y bitacora sincronizados.
 
@@ -31,7 +33,7 @@ No se modificaron backend, contratos API, modelos, migraciones ni manifiesto RBA
 
 | Validacion | Resultado |
 |---|---|
-| Pruebas focales | 55 passed |
+| Pruebas focales | 58 passed |
 | TypeScript `tsc --noEmit` | Passed |
 | ESLint focal | Passed |
 | Build Vite aislado en `/tmp` | Passed, 4025 modulos |
@@ -43,7 +45,7 @@ No se modificaron backend, contratos API, modelos, migraciones ni manifiesto RBA
 ### Comandos
 
 ```powershell
-docker compose exec -T frontend npm run test -- --run src/tests/gestionTiempoAsistenciaConfig.test.ts src/tests/GestionTiempoAsistenciaHub.test.tsx src/tests/GestionTiempoAsistenciaReturns.test.tsx src/tests/DashboardView.test.tsx src/tests/servicePortalFeatureRoutes.test.tsx src/tests/BiometriaModule.test.tsx src/tests/PlantillasHorarioPage.test.tsx src/tests/AlcanceEmpleados.test.tsx src/components/molecules/__tests__/ServiceCard.test.tsx
+docker compose exec -T frontend npm run test -- --run src/tests/gestionTiempoAsistenciaConfig.test.ts src/tests/GestionTiempoAsistenciaHub.test.tsx src/tests/GestionTiempoAsistenciaReturns.test.tsx src/tests/ConfiguracionHorasExtrasView.test.tsx src/tests/DashboardView.test.tsx src/tests/servicePortalFeatureRoutes.test.tsx src/tests/BiometriaModule.test.tsx src/tests/PlantillasHorarioPage.test.tsx src/tests/AlcanceEmpleados.test.tsx src/components/molecules/__tests__/ServiceCard.test.tsx
 docker compose exec -T frontend npm exec tsc -- --noEmit --pretty false
 docker compose exec -T frontend npm exec eslint -- <archivos focales>
 docker compose exec -T frontend npm run build -- --outDir /tmp/gestion-tiempo-asistencia-dist --emptyOutDir
