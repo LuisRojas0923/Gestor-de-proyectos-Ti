@@ -14,7 +14,7 @@ No se modificaron backend, contratos API, modelos, migraciones ni manifiesto RBA
 
 ## Cambios principales
 
-- Registro tipado unico para las 10 opciones del hub.
+- Registro tipado unico para las 9 opciones del hub.
 - Tarjeta unica en `DashboardView`, con busqueda por alias.
 - Ruta lazy `/service-portal/tiempo-asistencia` autenticada y fail-closed cuando no hay opciones.
 - Alias `/service-portal/horas-extras` redirigido al hub.
@@ -26,6 +26,7 @@ No se modificaron backend, contratos API, modelos, migraciones ni manifiesto RBA
 - Acceso independiente de Novedades retirado del hub; el flujo operativo queda en el Planificador sin eliminar rutas ni datos historicos.
 - Bolsa de horas retirada del hub sin eliminar su ruta, historicos ni efectos backend existentes.
 - Configuracion de horas extras rediseñada con validacion, trazabilidad de cambios, estados de carga/error y descarte protegido.
+- Horario semanal retirado como acceso redundante del hub sin eliminar su ruta, endpoints ni datos pactados.
 - `ServiceCard` migrado a boton nativo del sistema de diseno.
 - Documentacion, catalogo y bitacora sincronizados.
 

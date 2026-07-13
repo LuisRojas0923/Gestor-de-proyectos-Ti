@@ -5,7 +5,6 @@ import {
   CalendarCheck,
   CalendarClock,
   Calculator,
-  Clock3,
   ListChecks,
   ScanFace,
   Settings,
@@ -39,7 +38,6 @@ export const SECCIONES_TIEMPO_ASISTENCIA: ReadonlyArray<{
 export const OPCIONES_TIEMPO_ASISTENCIA: ReadonlyArray<OpcionTiempoAsistencia> = [
   { id: 'biometria', seccion: 'asistencia', titulo: 'Biometría y asistencia', descripcion: 'Registra tu asistencia y consulta la información habilitada para tu equipo.', ruta: '/service-portal/biometria', permiso: 'biometria', icono: ScanFace },
   { id: 'planificador', seccion: 'planificacion', titulo: 'Planificador semanal', descripcion: 'Prepara horarios, novedades y órdenes de trabajo por semana.', ruta: '/service-portal/horas-extras/planificador', permiso: 'nomina_horas_extras.planificar', icono: CalendarCheck, moduloEstado: 'nomina_horas_extras' },
-  { id: 'horario', seccion: 'planificacion', titulo: 'Horario semanal', descripcion: 'Consulta y edita la jornada semanal de un empleado.', ruta: '/service-portal/horas-extras/horario', permiso: 'nomina_horas_extras.planificar', icono: Clock3, moduloEstado: 'nomina_horas_extras' },
   { id: 'plantillas', seccion: 'planificacion', titulo: 'Plantillas de horario', descripcion: 'Diseña y aplica jornadas semanales reutilizables.', ruta: '/service-portal/horas-extras/plantillas', permiso: 'nomina_horas_extras.plantillas_horario.administrar', icono: CalendarClock },
   { id: 'pre-liquidacion', seccion: 'horas_extras', titulo: 'Calculadora individual de horas extras', descripcion: 'Simula horas y costos de un empleado antes de confirmar su liquidación.', ruta: '/service-portal/horas-extras/pre-liquidacion', permiso: 'nomina_horas_extras.planificar', icono: Banknote, moduloEstado: 'nomina_horas_extras' },
   { id: 'calculos', seccion: 'horas_extras', titulo: 'Cálculos', descripcion: 'Consulta cálculos procesados y su trazabilidad diaria.', ruta: '/service-portal/horas-extras/calculos', permiso: 'nomina_horas_extras.leer', icono: Calculator, moduloEstado: 'nomina_horas_extras' },

@@ -23,6 +23,7 @@ Agrupar horarios, horas extras, biometria, plantillas y alcance de empleados baj
 - Se elimino `Novedades` como acceso independiente del hub para centralizar su captura operativa en el Planificador; las rutas, historicos y endpoints se conservan por compatibilidad.
 - Se elimino `Bolsa de horas` del hub; la ruta, los historicos y la logica backend se conservan para trazabilidad y compatibilidad con calculos existentes.
 - Se rediseño Configuracion de horas extras con jerarquia visual por grupos, skeletons, indicadores de cambios, validacion legal basica, justificacion nueva obligatoria y proteccion contra descarte accidental.
+- Se elimino `Horario semanal` como acceso independiente del hub; la edición individual conserva su ruta y el flujo principal permanece integrado en Planificador y Plantillas.
 
 ## Seguridad
 
