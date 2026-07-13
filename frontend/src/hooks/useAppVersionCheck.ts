@@ -32,6 +32,8 @@ export function useAppVersionCheck() {
 
   useEffect(() => {
     ensureStoredBuildId();
+    if (import.meta.env.DEV) return;
+
     void checkVersion();
 
     const intervalId = window.setInterval(() => {

@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Button, Input, Text } from '../../../../../../components/atoms';
+import Button from '../../../../../../components/atoms/Button';
+import Input from '../../../../../../components/atoms/Input';
+import { Text } from '../../../../../../components/atoms/Text';
 import Modal from '../../../../../../components/molecules/Modal';
 import type { PlantillaHorario } from '../types';
 

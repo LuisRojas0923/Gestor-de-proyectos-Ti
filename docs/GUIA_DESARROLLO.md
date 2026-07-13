@@ -175,6 +175,20 @@ Para estado de UI que NO debe llegar al backend (marcas personales, vistas, etc.
 
 Ejemplo de referencia: `src/pages/MyDevelopments/hooks/useReviewedDevelopments.ts`.
 
+### 5.5 Vite en Docker Desktop
+
+El Compose local usa polling porque el bind mount Windows/Linux del equipo de referencia no propaga todos los eventos nativos. Para reducir CPU, el intervalo predeterminado es de 2000 ms y Vite ignora `dist` y `coverage`.
+
+Se puede ajustar sin modificar archivos:
+
+```powershell
+$env:VITE_USE_POLLING = 'true'
+$env:VITE_POLLING_INTERVAL_MS = '1000'
+docker compose up -d --no-deps --force-recreate frontend
+```
+
+Si el host propaga eventos correctamente, usar `VITE_USE_POLLING=false`. Verificar siempre que Vite registre un `hmr update` al guardar un archivo; de lo contrario, restaurar polling. Las rutas lazy de uso frecuente pueden declararse en `server.warmup.clientFiles`, pero solo con mediciones: precalentar un grafo amplio puede empeorar el arranque.
+
 ---
 
 ## 6. Grafo del codebase (graphify)

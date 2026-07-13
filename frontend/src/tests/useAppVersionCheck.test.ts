@@ -33,10 +33,21 @@ describe('useAppVersionCheck', () => {
   beforeEach(() => {
     sessionStorage.clear();
     vi.restoreAllMocks();
+    vi.stubEnv('DEV', false);
   });
 
   afterEach(() => {
     vi.useRealTimers();
+    vi.unstubAllEnvs();
+  });
+
+  it('no consulta version.json durante desarrollo', () => {
+    vi.stubEnv('DEV', true);
+    const fetchMock = vi.spyOn(global, 'fetch');
+
+    renderHook(() => useAppVersionCheck());
+
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it('no muestra actualizacion si version.json coincide con la sesion', async () => {

@@ -12,7 +12,7 @@ services:
       - DATABASE_URL=postgresql://${DB_USER:-user}:${DB_PASS:-pass}@db:${DB_PORT:-5432}/${DB_NAME:-project_manager} # [CONTROLADO]
       - APP_VERSION=v2.1.0-DEV
       - ERP_DATABASE_URL=${ERP_DATABASE_URL}
-      - ENVIRONMENT=${ENVIRONMENT:-development}
+      - ENVIRONMENT=development
       - JWT_SECRET_KEY=${JWT_SECRET_KEY} # [CONTROLADO]
       - ALGORITHM=${ALGORITHM}
       - JWT_TOKEN_EXPIRE_MINUTES=${JWT_TOKEN_EXPIRE_MINUTES} # [CONTROLADO]
@@ -49,7 +49,7 @@ services:
     expose:
       - "8010"
     environment:
-      - ENVIRONMENT=${ENVIRONMENT:-development}
+      - ENVIRONMENT=development
       - DEEPFACE_MODEL=${DEEPFACE_MODEL:-Facenet}
       - DEEPFACE_DETECTOR=${DEEPFACE_DETECTOR:-opencv}
       - ANTI_SPOOFING=${ANTI_SPOOFING:-1}
@@ -87,9 +87,9 @@ services:
     environment:
       # URL RELATIVA: Permite que funcione por IP o por Dominio automáticamente a través de Nginx (puerto 80)
       - VITE_API_BASE_URL=/api/v2
-      - CHOKIDAR_USEPOLLING=true
-      - WATCHPACK_POLLING=true
-      - WATCHFILES_FORCE_POLLING=true
+      # El host actual requiere polling; puede desactivarse si otro host propaga eventos.
+      - VITE_USE_POLLING=${VITE_USE_POLLING:-true}
+      - VITE_POLLING_INTERVAL_MS=${VITE_POLLING_INTERVAL_MS:-2000}
     volumes:
       - ./frontend:/app
       - /app/node_modules

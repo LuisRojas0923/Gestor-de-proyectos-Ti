@@ -1,7 +1,14 @@
 import { useRef, useState } from 'react';
 import { ArrowLeft, CalendarClock, Copy, Pencil, Plus, Power, Users } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { Badge, Button, Input, MaterialCard, Skeleton, Switch, Text, Title } from '../../../../../components/atoms';
+import Badge from '../../../../../components/atoms/Badge';
+import Button from '../../../../../components/atoms/Button';
+import Input from '../../../../../components/atoms/Input';
+import MaterialCard from '../../../../../components/atoms/MaterialCard';
+import Skeleton from '../../../../../components/atoms/Skeleton';
+import Switch from '../../../../../components/atoms/Switch';
+import { Text } from '../../../../../components/atoms/Text';
+import { Title } from '../../../../../components/atoms/Title';
 import Callout from '../../../../../components/molecules/Callout';
 import { useNotifications } from '../../../../../components/notifications/NotificationsContext';
 import { useAppContext } from '../../../../../context/AppContext';

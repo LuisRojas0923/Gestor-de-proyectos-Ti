@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Button, Input, Textarea } from '../../../../../../components/atoms';
+import Button from '../../../../../../components/atoms/Button';
+import Input from '../../../../../../components/atoms/Input';
+import Textarea from '../../../../../../components/atoms/Textarea';
 import Modal from '../../../../../../components/molecules/Modal';
 import Callout from '../../../../../../components/molecules/Callout';
 import WeeklyScheduleEditor from '../../components/WeeklyScheduleEditor';

@@ -1,6 +1,9 @@
 import React, { useMemo, useState } from 'react';
 import { Clock } from 'lucide-react';
-import { Badge, Button, MaterialCard, Text } from '../../../../../components/atoms';
+import Badge from '../../../../../components/atoms/Badge';
+import Button from '../../../../../components/atoms/Button';
+import MaterialCard from '../../../../../components/atoms/MaterialCard';
+import { Text } from '../../../../../components/atoms/Text';
 import Modal from '../../../../../components/molecules/Modal';
 
 interface TimeClockPickerProps {

@@ -135,6 +135,14 @@ Estos scripts se utilizan para validaciones específicas que requieren intervenc
 
 ## 🚀 Guía de Ejecución
 
+### Scripts de rendimiento
+
+| Archivo | Cobertura |
+|---|---|
+| `testing/scripts/test_performance_baseline.py` | Autoevaluación de percentiles y contrato de evidencia sin secretos del baseline PowerShell. |
+
+Ejecutar con `python -m pytest testing/scripts/test_performance_baseline.py -v`.
+
 ### Backend
 Para ejecutar el **Master Health Check** (Recomendado antes de cualquier commit):
 ```powershell

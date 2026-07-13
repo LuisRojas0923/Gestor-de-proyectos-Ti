@@ -1,0 +1,1664 @@
+﻿{
+    "schema_version":  1,
+    "generated_at":  "2026-07-12T21:33:27.3961444+00:00",
+    "git_sha":  "d704ada3",
+    "worktree_dirty":  true,
+    "environment":  {
+                        "platform":  "windows-docker-desktop",
+                        "warmup":  5,
+                        "iterations":  50,
+                        "percentile_method":  "nearest-rank",
+                        "cpu_window_seconds":  30,
+                        "mode":  "frontend-only"
+                    },
+    "resources":  {
+                      "summary":  [
+                                      {
+                                          "container":  "gestor-de-proyectos-ti-backend-1",
+                                          "cpu_percent":  {
+                                                              "count":  30,
+                                                              "p50":  8.92,
+                                                              "p95":  10.31,
+                                                              "max":  10.43
+                                                          },
+                                          "memory_mib":  {
+                                                             "count":  30,
+                                                             "p50":  298.6,
+                                                             "p95":  298.9,
+                                                             "max":  298.9
+                                                         }
+                                      },
+                                      {
+                                          "container":  "gestor-de-proyectos-ti-frontend-1",
+                                          "cpu_percent":  {
+                                                              "count":  30,
+                                                              "p50":  38.81,
+                                                              "p95":  43.67,
+                                                              "max":  43.67
+                                                          },
+                                          "memory_mib":  {
+                                                             "count":  30,
+                                                             "p50":  166.7,
+                                                             "p95":  167.1,
+                                                             "max":  167.1
+                                                         }
+                                      }
+                                  ],
+                      "samples":  [
+                                      {
+                                          "captured_at":  "2026-07-12T21:32:26.5748099+00:00",
+                                          "container":  "gestor-de-proyectos-ti-frontend-1",
+                                          "cpu_percent":  10.74,
+                                          "memory_mib":  166.2
+                                      },
+                                      {
+                                          "captured_at":  "2026-07-12T21:32:27.4890380+00:00",
+                                          "container":  "gestor-de-proyectos-ti-frontend-1",
+                                          "cpu_percent":  36.85,
+                                          "memory_mib":  166.2
+                                      },
+                                      {
+                                          "captured_at":  "2026-07-12T21:32:28.4889821+00:00",
+                                          "container":  "gestor-de-proyectos-ti-frontend-1",
+                                          "cpu_percent":  42.51,
+                                          "memory_mib":  166.5
+                                      },
+                                      {
+                                          "captured_at":  "2026-07-12T21:32:29.4889340+00:00",
+                                          "container":  "gestor-de-proyectos-ti-frontend-1",
+                                          "cpu_percent":  39.52,
+                                          "memory_mib":  166.6
+                                      },
+                                      {
+                                          "captured_at":  "2026-07-12T21:32:30.4887845+00:00",
+                                          "container":  "gestor-de-proyectos-ti-frontend-1",
+                                          "cpu_percent":  37.35,
+                                          "memory_mib":  166.4
+                                      },
+                                      {
+                                          "captured_at":  "2026-07-12T21:32:31.4886303+00:00",
+                                          "container":  "gestor-de-proyectos-ti-frontend-1",
+                                          "cpu_percent":  41.23,
+                                          "memory_mib":  166.7
+                                      },
+                                      {
+                                          "captured_at":  "2026-07-12T21:32:32.4883859+00:00",
+                                          "container":  "gestor-de-proyectos-ti-frontend-1",
+                                          "cpu_percent":  37.99,
+                                          "memory_mib":  166.7
+                                      },
+                                      {
+                                          "captured_at":  "2026-07-12T21:32:33.4881013+00:00",
+                                          "container":  "gestor-de-proyectos-ti-frontend-1",
+                                          "cpu_percent":  38.47,
+                                          "memory_mib":  166.5
+                                      },
+                                      {
+                                          "captured_at":  "2026-07-12T21:32:34.4882340+00:00",
+                                          "container":  "gestor-de-proyectos-ti-frontend-1",
+                                          "cpu_percent":  38.64,
+                                          "memory_mib":  166.6
+                                      },
+                                      {
+                                          "captured_at":  "2026-07-12T21:32:35.4888617+00:00",
+                                          "container":  "gestor-de-proyectos-ti-frontend-1",
+                                          "cpu_percent":  39.49,
+                                          "memory_mib":  166.9
+                                      },
+                                      {
+                                          "captured_at":  "2026-07-12T21:32:36.4880368+00:00",
+                                          "container":  "gestor-de-proyectos-ti-frontend-1",
+                                          "cpu_percent":  41.24,
+                                          "memory_mib":  166.9
+                                      },
+                                      {
+                                          "captured_at":  "2026-07-12T21:32:37.4891955+00:00",
+                                          "container":  "gestor-de-proyectos-ti-frontend-1",
+                                          "cpu_percent":  37.24,
+                                          "memory_mib":  166.7
+                                      },
+                                      {
+                                          "captured_at":  "2026-07-12T21:32:38.4890089+00:00",
+                                          "container":  "gestor-de-proyectos-ti-frontend-1",
+                                          "cpu_percent":  41.82,
+                                          "memory_mib":  166.7
+                                      },
+                                      {
+                                          "captured_at":  "2026-07-12T21:32:39.4888861+00:00",
+                                          "container":  "gestor-de-proyectos-ti-frontend-1",
+                                          "cpu_percent":  41.29,
+                                          "memory_mib":  167.1
+                                      },
+                                      {
+                                          "captured_at":  "2026-07-12T21:32:40.4879564+00:00",
+                                          "container":  "gestor-de-proyectos-ti-frontend-1",
+                                          "cpu_percent":  41.83,
+                                          "memory_mib":  167.1
+                                      },
+                                      {
+                                          "captured_at":  "2026-07-12T21:32:41.4885413+00:00",
+                                          "container":  "gestor-de-proyectos-ti-frontend-1",
+                                          "cpu_percent":  41.43,
+                                          "memory_mib":  166.1
+                                      },
+                                      {
+                                          "captured_at":  "2026-07-12T21:32:42.4892753+00:00",
+                                          "container":  "gestor-de-proyectos-ti-frontend-1",
+                                          "cpu_percent":  38.92,
+                                          "memory_mib":  166.7
+                                      },
+                                      {
+                                          "captured_at":  "2026-07-12T21:32:43.4885947+00:00",
+                                          "container":  "gestor-de-proyectos-ti-frontend-1",
+                                          "cpu_percent":  37.65,
+                                          "memory_mib":  166.7
+                                      },
+                                      {
+                                          "captured_at":  "2026-07-12T21:32:44.4880022+00:00",
+                                          "container":  "gestor-de-proyectos-ti-frontend-1",
+                                          "cpu_percent":  38.81,
+                                          "memory_mib":  166.3
+                                      },
+                                      {
+                                          "captured_at":  "2026-07-12T21:32:45.4886805+00:00",
+                                          "container":  "gestor-de-proyectos-ti-frontend-1",
+                                          "cpu_percent":  37.19,
+                                          "memory_mib":  166.3
+                                      },
+                                      {
+                                          "captured_at":  "2026-07-12T21:32:46.4888042+00:00",
+                                          "container":  "gestor-de-proyectos-ti-frontend-1",
+                                          "cpu_percent":  42.48,
+                                          "memory_mib":  166.6
+                                      },
+                                      {
+                                          "captured_at":  "2026-07-12T21:32:47.4879402+00:00",
+                                          "container":  "gestor-de-proyectos-ti-frontend-1",
+                                          "cpu_percent":  37.18,
+                                          "memory_mib":  166.4
+                                      },
+                                      {
+                                          "captured_at":  "2026-07-12T21:32:48.4888313+00:00",
+                                          "container":  "gestor-de-proyectos-ti-frontend-1",
+                                          "cpu_percent":  41.06,
+                                          "memory_mib":  166.4
+                                      },
+                                      {
+                                          "captured_at":  "2026-07-12T21:32:49.4885540+00:00",
+                                          "container":  "gestor-de-proyectos-ti-frontend-1",
+                                          "cpu_percent":  38.21,
+                                          "memory_mib":  166.8
+                                      },
+                                      {
+                                          "captured_at":  "2026-07-12T21:32:50.4890671+00:00",
+                                          "container":  "gestor-de-proyectos-ti-frontend-1",
+                                          "cpu_percent":  41,
+                                          "memory_mib":  166.8
+                                      },
+                                      {
+                                          "captured_at":  "2026-07-12T21:32:51.4888283+00:00",
+                                          "container":  "gestor-de-proyectos-ti-frontend-1",
+                                          "cpu_percent":  43.67,
+                                          "memory_mib":  166.9
+                                      },
+                                      {
+                                          "captured_at":  "2026-07-12T21:32:52.4889569+00:00",
+                                          "container":  "gestor-de-proyectos-ti-frontend-1",
+                                          "cpu_percent":  43.67,
+                                          "memory_mib":  166.9
+                                      },
+                                      {
+                                          "captured_at":  "2026-07-12T21:32:53.4882573+00:00",
+                                          "container":  "gestor-de-proyectos-ti-frontend-1",
+                                          "cpu_percent":  38.23,
+                                          "memory_mib":  166.9
+                                      },
+                                      {
+                                          "captured_at":  "2026-07-12T21:32:54.4877913+00:00",
+                                          "container":  "gestor-de-proyectos-ti-frontend-1",
+                                          "cpu_percent":  38.02,
+                                          "memory_mib":  166.9
+                                      },
+                                      {
+                                          "captured_at":  "2026-07-12T21:32:55.4884304+00:00",
+                                          "container":  "gestor-de-proyectos-ti-frontend-1",
+                                          "cpu_percent":  38.57,
+                                          "memory_mib":  166.8
+                                      },
+                                      {
+                                          "captured_at":  "2026-07-12T21:32:56.0973010+00:00",
+                                          "container":  "gestor-de-proyectos-ti-backend-1",
+                                          "cpu_percent":  3.97,
+                                          "memory_mib":  298.6
+                                      },
+                                      {
+                                          "captured_at":  "2026-07-12T21:32:57.0970909+00:00",
+                                          "container":  "gestor-de-proyectos-ti-backend-1",
+                                          "cpu_percent":  10.04,
+                                          "memory_mib":  298.6
+                                      },
+                                      {
+                                          "captured_at":  "2026-07-12T21:32:58.0965084+00:00",
+                                          "container":  "gestor-de-proyectos-ti-backend-1",
+                                          "cpu_percent":  6.73,
+                                          "memory_mib":  298.6
+                                      },
+                                      {
+                                          "captured_at":  "2026-07-12T21:32:59.0966156+00:00",
+                                          "container":  "gestor-de-proyectos-ti-backend-1",
+                                          "cpu_percent":  10.01,
+                                          "memory_mib":  298.9
+                                      },
+                                      {
+                                          "captured_at":  "2026-07-12T21:33:00.0966543+00:00",
+                                          "container":  "gestor-de-proyectos-ti-backend-1",
+                                          "cpu_percent":  10.25,
+                                          "memory_mib":  298.7
+                                      },
+                                      {
+                                          "captured_at":  "2026-07-12T21:33:01.0972866+00:00",
+                                          "container":  "gestor-de-proyectos-ti-backend-1",
+                                          "cpu_percent":  7.96,
+                                          "memory_mib":  298.6
+                                      },
+                                      {
+                                          "captured_at":  "2026-07-12T21:33:02.0974172+00:00",
+                                          "container":  "gestor-de-proyectos-ti-backend-1",
+                                          "cpu_percent":  8.63,
+                                          "memory_mib":  298.6
+                                      },
+                                      {
+                                          "captured_at":  "2026-07-12T21:33:03.0965550+00:00",
+                                          "container":  "gestor-de-proyectos-ti-backend-1",
+                                          "cpu_percent":  9.46,
+                                          "memory_mib":  298.6
+                                      },
+                                      {
+                                          "captured_at":  "2026-07-12T21:33:04.0970561+00:00",
+                                          "container":  "gestor-de-proyectos-ti-backend-1",
+                                          "cpu_percent":  9.78,
+                                          "memory_mib":  298.6
+                                      },
+                                      {
+                                          "captured_at":  "2026-07-12T21:33:05.0970874+00:00",
+                                          "container":  "gestor-de-proyectos-ti-backend-1",
+                                          "cpu_percent":  10.31,
+                                          "memory_mib":  298.9
+                                      },
+                                      {
+                                          "captured_at":  "2026-07-12T21:33:06.0967494+00:00",
+                                          "container":  "gestor-de-proyectos-ti-backend-1",
+                                          "cpu_percent":  6.76,
+                                          "memory_mib":  298.6
+                                      },
+                                      {
+                                          "captured_at":  "2026-07-12T21:33:07.0967279+00:00",
+                                          "container":  "gestor-de-proyectos-ti-backend-1",
+                                          "cpu_percent":  9.12,
+                                          "memory_mib":  298.6
+                                      },
+                                      {
+                                          "captured_at":  "2026-07-12T21:33:08.0965528+00:00",
+                                          "container":  "gestor-de-proyectos-ti-backend-1",
+                                          "cpu_percent":  9.91,
+                                          "memory_mib":  298.6
+                                      },
+                                      {
+                                          "captured_at":  "2026-07-12T21:33:09.0973886+00:00",
+                                          "container":  "gestor-de-proyectos-ti-backend-1",
+                                          "cpu_percent":  10.43,
+                                          "memory_mib":  298.6
+                                      },
+                                      {
+                                          "captured_at":  "2026-07-12T21:33:10.0968183+00:00",
+                                          "container":  "gestor-de-proyectos-ti-backend-1",
+                                          "cpu_percent":  10.05,
+                                          "memory_mib":  298.6
+                                      },
+                                      {
+                                          "captured_at":  "2026-07-12T21:33:11.0966814+00:00",
+                                          "container":  "gestor-de-proyectos-ti-backend-1",
+                                          "cpu_percent":  6.25,
+                                          "memory_mib":  298.9
+                                      },
+                                      {
+                                          "captured_at":  "2026-07-12T21:33:12.0973617+00:00",
+                                          "container":  "gestor-de-proyectos-ti-backend-1",
+                                          "cpu_percent":  9.26,
+                                          "memory_mib":  298.6
+                                      },
+                                      {
+                                          "captured_at":  "2026-07-12T21:33:13.0968039+00:00",
+                                          "container":  "gestor-de-proyectos-ti-backend-1",
+                                          "cpu_percent":  9.3,
+                                          "memory_mib":  298.6
+                                      },
+                                      {
+                                          "captured_at":  "2026-07-12T21:33:14.0968542+00:00",
+                                          "container":  "gestor-de-proyectos-ti-backend-1",
+                                          "cpu_percent":  9.03,
+                                          "memory_mib":  298.6
+                                      },
+                                      {
+                                          "captured_at":  "2026-07-12T21:33:15.0969124+00:00",
+                                          "container":  "gestor-de-proyectos-ti-backend-1",
+                                          "cpu_percent":  9.03,
+                                          "memory_mib":  298.6
+                                      },
+                                      {
+                                          "captured_at":  "2026-07-12T21:33:16.1044956+00:00",
+                                          "container":  "gestor-de-proyectos-ti-backend-1",
+                                          "cpu_percent":  7.14,
+                                          "memory_mib":  298.9
+                                      },
+                                      {
+                                          "captured_at":  "2026-07-12T21:33:17.0976371+00:00",
+                                          "container":  "gestor-de-proyectos-ti-backend-1",
+                                          "cpu_percent":  7.98,
+                                          "memory_mib":  298.6
+                                      },
+                                      {
+                                          "captured_at":  "2026-07-12T21:33:18.0977010+00:00",
+                                          "container":  "gestor-de-proyectos-ti-backend-1",
+                                          "cpu_percent":  6.55,
+                                          "memory_mib":  298.6
+                                      },
+                                      {
+                                          "captured_at":  "2026-07-12T21:33:19.0970019+00:00",
+                                          "container":  "gestor-de-proyectos-ti-backend-1",
+                                          "cpu_percent":  8.92,
+                                          "memory_mib":  298.6
+                                      },
+                                      {
+                                          "captured_at":  "2026-07-12T21:33:20.0973184+00:00",
+                                          "container":  "gestor-de-proyectos-ti-backend-1",
+                                          "cpu_percent":  10,
+                                          "memory_mib":  298.6
+                                      },
+                                      {
+                                          "captured_at":  "2026-07-12T21:33:21.0964300+00:00",
+                                          "container":  "gestor-de-proyectos-ti-backend-1",
+                                          "cpu_percent":  6.85,
+                                          "memory_mib":  298.6
+                                      },
+                                      {
+                                          "captured_at":  "2026-07-12T21:33:22.0973446+00:00",
+                                          "container":  "gestor-de-proyectos-ti-backend-1",
+                                          "cpu_percent":  8.67,
+                                          "memory_mib":  298.9
+                                      },
+                                      {
+                                          "captured_at":  "2026-07-12T21:33:23.0967657+00:00",
+                                          "container":  "gestor-de-proyectos-ti-backend-1",
+                                          "cpu_percent":  8.76,
+                                          "memory_mib":  298.6
+                                      },
+                                      {
+                                          "captured_at":  "2026-07-12T21:33:24.0970458+00:00",
+                                          "container":  "gestor-de-proyectos-ti-backend-1",
+                                          "cpu_percent":  8.38,
+                                          "memory_mib":  298.6
+                                      },
+                                      {
+                                          "captured_at":  "2026-07-12T21:33:25.0968489+00:00",
+                                          "container":  "gestor-de-proyectos-ti-backend-1",
+                                          "cpu_percent":  8.43,
+                                          "memory_mib":  298.6
+                                      }
+                                  ]
+                  },
+    "requests":  [
+                     {
+                         "alias":  "modulo_configuracion_he",
+                         "category":  "vite_module",
+                         "path":  "/src/pages/ServicePortal/pages/HORAS_EXTRAS/ConfiguracionHorasExtrasView.tsx",
+                         "summary_ms":  {
+                                            "count":  50,
+                                            "p50":  6.91,
+                                            "p95":  15.39,
+                                            "max":  17.42
+                                        },
+                         "samples":  [
+                                         {
+                                             "iteration":  1,
+                                             "status":  200,
+                                             "duration_ms":  14.08,
+                                             "bytes":  83238
+                                         },
+                                         {
+                                             "iteration":  2,
+                                             "status":  200,
+                                             "duration_ms":  6.91,
+                                             "bytes":  83238
+                                         },
+                                         {
+                                             "iteration":  3,
+                                             "status":  200,
+                                             "duration_ms":  10.56,
+                                             "bytes":  83238
+                                         },
+                                         {
+                                             "iteration":  4,
+                                             "status":  200,
+                                             "duration_ms":  6.55,
+                                             "bytes":  83238
+                                         },
+                                         {
+                                             "iteration":  5,
+                                             "status":  200,
+                                             "duration_ms":  9.71,
+                                             "bytes":  83238
+                                         },
+                                         {
+                                             "iteration":  6,
+                                             "status":  200,
+                                             "duration_ms":  6.83,
+                                             "bytes":  83238
+                                         },
+                                         {
+                                             "iteration":  7,
+                                             "status":  200,
+                                             "duration_ms":  10.87,
+                                             "bytes":  83238
+                                         },
+                                         {
+                                             "iteration":  8,
+                                             "status":  200,
+                                             "duration_ms":  8.17,
+                                             "bytes":  83238
+                                         },
+                                         {
+                                             "iteration":  9,
+                                             "status":  200,
+                                             "duration_ms":  13.17,
+                                             "bytes":  83238
+                                         },
+                                         {
+                                             "iteration":  10,
+                                             "status":  200,
+                                             "duration_ms":  9.28,
+                                             "bytes":  83238
+                                         },
+                                         {
+                                             "iteration":  11,
+                                             "status":  200,
+                                             "duration_ms":  15.39,
+                                             "bytes":  83238
+                                         },
+                                         {
+                                             "iteration":  12,
+                                             "status":  200,
+                                             "duration_ms":  9.12,
+                                             "bytes":  83238
+                                         },
+                                         {
+                                             "iteration":  13,
+                                             "status":  200,
+                                             "duration_ms":  7.9,
+                                             "bytes":  83238
+                                         },
+                                         {
+                                             "iteration":  14,
+                                             "status":  200,
+                                             "duration_ms":  5.8,
+                                             "bytes":  83238
+                                         },
+                                         {
+                                             "iteration":  15,
+                                             "status":  200,
+                                             "duration_ms":  5.25,
+                                             "bytes":  83238
+                                         },
+                                         {
+                                             "iteration":  16,
+                                             "status":  200,
+                                             "duration_ms":  6.1,
+                                             "bytes":  83238
+                                         },
+                                         {
+                                             "iteration":  17,
+                                             "status":  200,
+                                             "duration_ms":  9.74,
+                                             "bytes":  83238
+                                         },
+                                         {
+                                             "iteration":  18,
+                                             "status":  200,
+                                             "duration_ms":  7.03,
+                                             "bytes":  83238
+                                         },
+                                         {
+                                             "iteration":  19,
+                                             "status":  200,
+                                             "duration_ms":  7.17,
+                                             "bytes":  83238
+                                         },
+                                         {
+                                             "iteration":  20,
+                                             "status":  200,
+                                             "duration_ms":  5.57,
+                                             "bytes":  83238
+                                         },
+                                         {
+                                             "iteration":  21,
+                                             "status":  200,
+                                             "duration_ms":  6.6,
+                                             "bytes":  83238
+                                         },
+                                         {
+                                             "iteration":  22,
+                                             "status":  200,
+                                             "duration_ms":  5.25,
+                                             "bytes":  83238
+                                         },
+                                         {
+                                             "iteration":  23,
+                                             "status":  200,
+                                             "duration_ms":  5.45,
+                                             "bytes":  83238
+                                         },
+                                         {
+                                             "iteration":  24,
+                                             "status":  200,
+                                             "duration_ms":  6.25,
+                                             "bytes":  83238
+                                         },
+                                         {
+                                             "iteration":  25,
+                                             "status":  200,
+                                             "duration_ms":  5.36,
+                                             "bytes":  83238
+                                         },
+                                         {
+                                             "iteration":  26,
+                                             "status":  200,
+                                             "duration_ms":  4.96,
+                                             "bytes":  83238
+                                         },
+                                         {
+                                             "iteration":  27,
+                                             "status":  200,
+                                             "duration_ms":  5.73,
+                                             "bytes":  83238
+                                         },
+                                         {
+                                             "iteration":  28,
+                                             "status":  200,
+                                             "duration_ms":  6.16,
+                                             "bytes":  83238
+                                         },
+                                         {
+                                             "iteration":  29,
+                                             "status":  200,
+                                             "duration_ms":  7.14,
+                                             "bytes":  83238
+                                         },
+                                         {
+                                             "iteration":  30,
+                                             "status":  200,
+                                             "duration_ms":  7.79,
+                                             "bytes":  83238
+                                         },
+                                         {
+                                             "iteration":  31,
+                                             "status":  200,
+                                             "duration_ms":  9.35,
+                                             "bytes":  83238
+                                         },
+                                         {
+                                             "iteration":  32,
+                                             "status":  200,
+                                             "duration_ms":  4.85,
+                                             "bytes":  83238
+                                         },
+                                         {
+                                             "iteration":  33,
+                                             "status":  200,
+                                             "duration_ms":  6.6,
+                                             "bytes":  83238
+                                         },
+                                         {
+                                             "iteration":  34,
+                                             "status":  200,
+                                             "duration_ms":  5.56,
+                                             "bytes":  83238
+                                         },
+                                         {
+                                             "iteration":  35,
+                                             "status":  200,
+                                             "duration_ms":  8.76,
+                                             "bytes":  83238
+                                         },
+                                         {
+                                             "iteration":  36,
+                                             "status":  200,
+                                             "duration_ms":  5.72,
+                                             "bytes":  83238
+                                         },
+                                         {
+                                             "iteration":  37,
+                                             "status":  200,
+                                             "duration_ms":  6.58,
+                                             "bytes":  83238
+                                         },
+                                         {
+                                             "iteration":  38,
+                                             "status":  200,
+                                             "duration_ms":  10.29,
+                                             "bytes":  83238
+                                         },
+                                         {
+                                             "iteration":  39,
+                                             "status":  200,
+                                             "duration_ms":  15.87,
+                                             "bytes":  83238
+                                         },
+                                         {
+                                             "iteration":  40,
+                                             "status":  200,
+                                             "duration_ms":  17.42,
+                                             "bytes":  83238
+                                         },
+                                         {
+                                             "iteration":  41,
+                                             "status":  200,
+                                             "duration_ms":  9.91,
+                                             "bytes":  83238
+                                         },
+                                         {
+                                             "iteration":  42,
+                                             "status":  200,
+                                             "duration_ms":  9.37,
+                                             "bytes":  83238
+                                         },
+                                         {
+                                             "iteration":  43,
+                                             "status":  200,
+                                             "duration_ms":  8.31,
+                                             "bytes":  83238
+                                         },
+                                         {
+                                             "iteration":  44,
+                                             "status":  200,
+                                             "duration_ms":  6.14,
+                                             "bytes":  83238
+                                         },
+                                         {
+                                             "iteration":  45,
+                                             "status":  200,
+                                             "duration_ms":  7.68,
+                                             "bytes":  83238
+                                         },
+                                         {
+                                             "iteration":  46,
+                                             "status":  200,
+                                             "duration_ms":  9.48,
+                                             "bytes":  83238
+                                         },
+                                         {
+                                             "iteration":  47,
+                                             "status":  200,
+                                             "duration_ms":  6.14,
+                                             "bytes":  83238
+                                         },
+                                         {
+                                             "iteration":  48,
+                                             "status":  200,
+                                             "duration_ms":  6.65,
+                                             "bytes":  83238
+                                         },
+                                         {
+                                             "iteration":  49,
+                                             "status":  200,
+                                             "duration_ms":  5.93,
+                                             "bytes":  83238
+                                         },
+                                         {
+                                             "iteration":  50,
+                                             "status":  200,
+                                             "duration_ms":  6.54,
+                                             "bytes":  83238
+                                         }
+                                     ]
+                     },
+                     {
+                         "alias":  "modulo_calculadora_he",
+                         "category":  "vite_module",
+                         "path":  "/src/pages/ServicePortal/pages/HORAS_EXTRAS/PreLiquidacionView.tsx",
+                         "summary_ms":  {
+                                            "count":  50,
+                                            "p50":  7.01,
+                                            "p95":  17.63,
+                                            "max":  27.81
+                                        },
+                         "samples":  [
+                                         {
+                                             "iteration":  1,
+                                             "status":  200,
+                                             "duration_ms":  8.09,
+                                             "bytes":  97986
+                                         },
+                                         {
+                                             "iteration":  2,
+                                             "status":  200,
+                                             "duration_ms":  9.42,
+                                             "bytes":  97986
+                                         },
+                                         {
+                                             "iteration":  3,
+                                             "status":  200,
+                                             "duration_ms":  6.77,
+                                             "bytes":  97986
+                                         },
+                                         {
+                                             "iteration":  4,
+                                             "status":  200,
+                                             "duration_ms":  6.64,
+                                             "bytes":  97986
+                                         },
+                                         {
+                                             "iteration":  5,
+                                             "status":  200,
+                                             "duration_ms":  6.18,
+                                             "bytes":  97986
+                                         },
+                                         {
+                                             "iteration":  6,
+                                             "status":  200,
+                                             "duration_ms":  5.72,
+                                             "bytes":  97986
+                                         },
+                                         {
+                                             "iteration":  7,
+                                             "status":  200,
+                                             "duration_ms":  7.67,
+                                             "bytes":  97986
+                                         },
+                                         {
+                                             "iteration":  8,
+                                             "status":  200,
+                                             "duration_ms":  5.5,
+                                             "bytes":  97986
+                                         },
+                                         {
+                                             "iteration":  9,
+                                             "status":  200,
+                                             "duration_ms":  5.46,
+                                             "bytes":  97986
+                                         },
+                                         {
+                                             "iteration":  10,
+                                             "status":  200,
+                                             "duration_ms":  5.75,
+                                             "bytes":  97986
+                                         },
+                                         {
+                                             "iteration":  11,
+                                             "status":  200,
+                                             "duration_ms":  6.71,
+                                             "bytes":  97986
+                                         },
+                                         {
+                                             "iteration":  12,
+                                             "status":  200,
+                                             "duration_ms":  8.89,
+                                             "bytes":  97986
+                                         },
+                                         {
+                                             "iteration":  13,
+                                             "status":  200,
+                                             "duration_ms":  6.48,
+                                             "bytes":  97986
+                                         },
+                                         {
+                                             "iteration":  14,
+                                             "status":  200,
+                                             "duration_ms":  5.89,
+                                             "bytes":  97986
+                                         },
+                                         {
+                                             "iteration":  15,
+                                             "status":  200,
+                                             "duration_ms":  27.81,
+                                             "bytes":  97986
+                                         },
+                                         {
+                                             "iteration":  16,
+                                             "status":  200,
+                                             "duration_ms":  7.71,
+                                             "bytes":  97986
+                                         },
+                                         {
+                                             "iteration":  17,
+                                             "status":  200,
+                                             "duration_ms":  10.11,
+                                             "bytes":  97986
+                                         },
+                                         {
+                                             "iteration":  18,
+                                             "status":  200,
+                                             "duration_ms":  5.74,
+                                             "bytes":  97986
+                                         },
+                                         {
+                                             "iteration":  19,
+                                             "status":  200,
+                                             "duration_ms":  5.99,
+                                             "bytes":  97986
+                                         },
+                                         {
+                                             "iteration":  20,
+                                             "status":  200,
+                                             "duration_ms":  5.71,
+                                             "bytes":  97986
+                                         },
+                                         {
+                                             "iteration":  21,
+                                             "status":  200,
+                                             "duration_ms":  7.01,
+                                             "bytes":  97986
+                                         },
+                                         {
+                                             "iteration":  22,
+                                             "status":  200,
+                                             "duration_ms":  8.85,
+                                             "bytes":  97986
+                                         },
+                                         {
+                                             "iteration":  23,
+                                             "status":  200,
+                                             "duration_ms":  4.93,
+                                             "bytes":  97986
+                                         },
+                                         {
+                                             "iteration":  24,
+                                             "status":  200,
+                                             "duration_ms":  5.41,
+                                             "bytes":  97986
+                                         },
+                                         {
+                                             "iteration":  25,
+                                             "status":  200,
+                                             "duration_ms":  5.9,
+                                             "bytes":  97986
+                                         },
+                                         {
+                                             "iteration":  26,
+                                             "status":  200,
+                                             "duration_ms":  6.01,
+                                             "bytes":  97986
+                                         },
+                                         {
+                                             "iteration":  27,
+                                             "status":  200,
+                                             "duration_ms":  7.94,
+                                             "bytes":  97986
+                                         },
+                                         {
+                                             "iteration":  28,
+                                             "status":  200,
+                                             "duration_ms":  4.76,
+                                             "bytes":  97986
+                                         },
+                                         {
+                                             "iteration":  29,
+                                             "status":  200,
+                                             "duration_ms":  5.06,
+                                             "bytes":  97986
+                                         },
+                                         {
+                                             "iteration":  30,
+                                             "status":  200,
+                                             "duration_ms":  8.7,
+                                             "bytes":  97986
+                                         },
+                                         {
+                                             "iteration":  31,
+                                             "status":  200,
+                                             "duration_ms":  8.59,
+                                             "bytes":  97986
+                                         },
+                                         {
+                                             "iteration":  32,
+                                             "status":  200,
+                                             "duration_ms":  9.55,
+                                             "bytes":  97986
+                                         },
+                                         {
+                                             "iteration":  33,
+                                             "status":  200,
+                                             "duration_ms":  7.26,
+                                             "bytes":  97986
+                                         },
+                                         {
+                                             "iteration":  34,
+                                             "status":  200,
+                                             "duration_ms":  4.88,
+                                             "bytes":  97986
+                                         },
+                                         {
+                                             "iteration":  35,
+                                             "status":  200,
+                                             "duration_ms":  6.63,
+                                             "bytes":  97986
+                                         },
+                                         {
+                                             "iteration":  36,
+                                             "status":  200,
+                                             "duration_ms":  5.34,
+                                             "bytes":  97986
+                                         },
+                                         {
+                                             "iteration":  37,
+                                             "status":  200,
+                                             "duration_ms":  14.45,
+                                             "bytes":  97986
+                                         },
+                                         {
+                                             "iteration":  38,
+                                             "status":  200,
+                                             "duration_ms":  11.02,
+                                             "bytes":  97986
+                                         },
+                                         {
+                                             "iteration":  39,
+                                             "status":  200,
+                                             "duration_ms":  19.9,
+                                             "bytes":  97986
+                                         },
+                                         {
+                                             "iteration":  40,
+                                             "status":  200,
+                                             "duration_ms":  12.08,
+                                             "bytes":  97986
+                                         },
+                                         {
+                                             "iteration":  41,
+                                             "status":  200,
+                                             "duration_ms":  12.02,
+                                             "bytes":  97986
+                                         },
+                                         {
+                                             "iteration":  42,
+                                             "status":  200,
+                                             "duration_ms":  17.63,
+                                             "bytes":  97986
+                                         },
+                                         {
+                                             "iteration":  43,
+                                             "status":  200,
+                                             "duration_ms":  8.66,
+                                             "bytes":  97986
+                                         },
+                                         {
+                                             "iteration":  44,
+                                             "status":  200,
+                                             "duration_ms":  7.91,
+                                             "bytes":  97986
+                                         },
+                                         {
+                                             "iteration":  45,
+                                             "status":  200,
+                                             "duration_ms":  5.21,
+                                             "bytes":  97986
+                                         },
+                                         {
+                                             "iteration":  46,
+                                             "status":  200,
+                                             "duration_ms":  5.18,
+                                             "bytes":  97986
+                                         },
+                                         {
+                                             "iteration":  47,
+                                             "status":  200,
+                                             "duration_ms":  10.52,
+                                             "bytes":  97986
+                                         },
+                                         {
+                                             "iteration":  48,
+                                             "status":  200,
+                                             "duration_ms":  7.6,
+                                             "bytes":  97986
+                                         },
+                                         {
+                                             "iteration":  49,
+                                             "status":  200,
+                                             "duration_ms":  8.73,
+                                             "bytes":  97986
+                                         },
+                                         {
+                                             "iteration":  50,
+                                             "status":  200,
+                                             "duration_ms":  8.78,
+                                             "bytes":  97986
+                                         }
+                                     ]
+                     },
+                     {
+                         "alias":  "modulo_alcance",
+                         "category":  "vite_module",
+                         "path":  "/src/pages/ServicePortal/pages/AlcanceEmpleados/index.tsx",
+                         "summary_ms":  {
+                                            "count":  50,
+                                            "p50":  3.97,
+                                            "p95":  4.86,
+                                            "max":  5.34
+                                        },
+                         "samples":  [
+                                         {
+                                             "iteration":  1,
+                                             "status":  200,
+                                             "duration_ms":  3.63,
+                                             "bytes":  57256
+                                         },
+                                         {
+                                             "iteration":  2,
+                                             "status":  200,
+                                             "duration_ms":  4.61,
+                                             "bytes":  57256
+                                         },
+                                         {
+                                             "iteration":  3,
+                                             "status":  200,
+                                             "duration_ms":  4.98,
+                                             "bytes":  57256
+                                         },
+                                         {
+                                             "iteration":  4,
+                                             "status":  200,
+                                             "duration_ms":  4.09,
+                                             "bytes":  57256
+                                         },
+                                         {
+                                             "iteration":  5,
+                                             "status":  200,
+                                             "duration_ms":  4.47,
+                                             "bytes":  57256
+                                         },
+                                         {
+                                             "iteration":  6,
+                                             "status":  200,
+                                             "duration_ms":  3.76,
+                                             "bytes":  57256
+                                         },
+                                         {
+                                             "iteration":  7,
+                                             "status":  200,
+                                             "duration_ms":  4,
+                                             "bytes":  57256
+                                         },
+                                         {
+                                             "iteration":  8,
+                                             "status":  200,
+                                             "duration_ms":  3.67,
+                                             "bytes":  57256
+                                         },
+                                         {
+                                             "iteration":  9,
+                                             "status":  200,
+                                             "duration_ms":  4.19,
+                                             "bytes":  57256
+                                         },
+                                         {
+                                             "iteration":  10,
+                                             "status":  200,
+                                             "duration_ms":  3.83,
+                                             "bytes":  57256
+                                         },
+                                         {
+                                             "iteration":  11,
+                                             "status":  200,
+                                             "duration_ms":  4.54,
+                                             "bytes":  57256
+                                         },
+                                         {
+                                             "iteration":  12,
+                                             "status":  200,
+                                             "duration_ms":  4.42,
+                                             "bytes":  57256
+                                         },
+                                         {
+                                             "iteration":  13,
+                                             "status":  200,
+                                             "duration_ms":  4.27,
+                                             "bytes":  57256
+                                         },
+                                         {
+                                             "iteration":  14,
+                                             "status":  200,
+                                             "duration_ms":  4.2,
+                                             "bytes":  57256
+                                         },
+                                         {
+                                             "iteration":  15,
+                                             "status":  200,
+                                             "duration_ms":  4.03,
+                                             "bytes":  57256
+                                         },
+                                         {
+                                             "iteration":  16,
+                                             "status":  200,
+                                             "duration_ms":  4.67,
+                                             "bytes":  57256
+                                         },
+                                         {
+                                             "iteration":  17,
+                                             "status":  200,
+                                             "duration_ms":  4.19,
+                                             "bytes":  57256
+                                         },
+                                         {
+                                             "iteration":  18,
+                                             "status":  200,
+                                             "duration_ms":  3.79,
+                                             "bytes":  57256
+                                         },
+                                         {
+                                             "iteration":  19,
+                                             "status":  200,
+                                             "duration_ms":  3.97,
+                                             "bytes":  57256
+                                         },
+                                         {
+                                             "iteration":  20,
+                                             "status":  200,
+                                             "duration_ms":  3.77,
+                                             "bytes":  57256
+                                         },
+                                         {
+                                             "iteration":  21,
+                                             "status":  200,
+                                             "duration_ms":  3.81,
+                                             "bytes":  57256
+                                         },
+                                         {
+                                             "iteration":  22,
+                                             "status":  200,
+                                             "duration_ms":  3.63,
+                                             "bytes":  57256
+                                         },
+                                         {
+                                             "iteration":  23,
+                                             "status":  200,
+                                             "duration_ms":  3.53,
+                                             "bytes":  57256
+                                         },
+                                         {
+                                             "iteration":  24,
+                                             "status":  200,
+                                             "duration_ms":  3.71,
+                                             "bytes":  57256
+                                         },
+                                         {
+                                             "iteration":  25,
+                                             "status":  200,
+                                             "duration_ms":  4.12,
+                                             "bytes":  57256
+                                         },
+                                         {
+                                             "iteration":  26,
+                                             "status":  200,
+                                             "duration_ms":  3.66,
+                                             "bytes":  57256
+                                         },
+                                         {
+                                             "iteration":  27,
+                                             "status":  200,
+                                             "duration_ms":  3.12,
+                                             "bytes":  57256
+                                         },
+                                         {
+                                             "iteration":  28,
+                                             "status":  200,
+                                             "duration_ms":  3.69,
+                                             "bytes":  57256
+                                         },
+                                         {
+                                             "iteration":  29,
+                                             "status":  200,
+                                             "duration_ms":  3.74,
+                                             "bytes":  57256
+                                         },
+                                         {
+                                             "iteration":  30,
+                                             "status":  200,
+                                             "duration_ms":  4.23,
+                                             "bytes":  57256
+                                         },
+                                         {
+                                             "iteration":  31,
+                                             "status":  200,
+                                             "duration_ms":  3.56,
+                                             "bytes":  57256
+                                         },
+                                         {
+                                             "iteration":  32,
+                                             "status":  200,
+                                             "duration_ms":  3.93,
+                                             "bytes":  57256
+                                         },
+                                         {
+                                             "iteration":  33,
+                                             "status":  200,
+                                             "duration_ms":  3.62,
+                                             "bytes":  57256
+                                         },
+                                         {
+                                             "iteration":  34,
+                                             "status":  200,
+                                             "duration_ms":  4,
+                                             "bytes":  57256
+                                         },
+                                         {
+                                             "iteration":  35,
+                                             "status":  200,
+                                             "duration_ms":  3.45,
+                                             "bytes":  57256
+                                         },
+                                         {
+                                             "iteration":  36,
+                                             "status":  200,
+                                             "duration_ms":  3.82,
+                                             "bytes":  57256
+                                         },
+                                         {
+                                             "iteration":  37,
+                                             "status":  200,
+                                             "duration_ms":  4.39,
+                                             "bytes":  57256
+                                         },
+                                         {
+                                             "iteration":  38,
+                                             "status":  200,
+                                             "duration_ms":  4.38,
+                                             "bytes":  57256
+                                         },
+                                         {
+                                             "iteration":  39,
+                                             "status":  200,
+                                             "duration_ms":  3.61,
+                                             "bytes":  57256
+                                         },
+                                         {
+                                             "iteration":  40,
+                                             "status":  200,
+                                             "duration_ms":  4.44,
+                                             "bytes":  57256
+                                         },
+                                         {
+                                             "iteration":  41,
+                                             "status":  200,
+                                             "duration_ms":  4.32,
+                                             "bytes":  57256
+                                         },
+                                         {
+                                             "iteration":  42,
+                                             "status":  200,
+                                             "duration_ms":  3.86,
+                                             "bytes":  57256
+                                         },
+                                         {
+                                             "iteration":  43,
+                                             "status":  200,
+                                             "duration_ms":  3.82,
+                                             "bytes":  57256
+                                         },
+                                         {
+                                             "iteration":  44,
+                                             "status":  200,
+                                             "duration_ms":  3.76,
+                                             "bytes":  57256
+                                         },
+                                         {
+                                             "iteration":  45,
+                                             "status":  200,
+                                             "duration_ms":  4.28,
+                                             "bytes":  57256
+                                         },
+                                         {
+                                             "iteration":  46,
+                                             "status":  200,
+                                             "duration_ms":  3.87,
+                                             "bytes":  57256
+                                         },
+                                         {
+                                             "iteration":  47,
+                                             "status":  200,
+                                             "duration_ms":  4.41,
+                                             "bytes":  57256
+                                         },
+                                         {
+                                             "iteration":  48,
+                                             "status":  200,
+                                             "duration_ms":  5.34,
+                                             "bytes":  57256
+                                         },
+                                         {
+                                             "iteration":  49,
+                                             "status":  200,
+                                             "duration_ms":  4.6,
+                                             "bytes":  57256
+                                         },
+                                         {
+                                             "iteration":  50,
+                                             "status":  200,
+                                             "duration_ms":  4.86,
+                                             "bytes":  57256
+                                         }
+                                     ]
+                     },
+                     {
+                         "alias":  "modulo_modal",
+                         "category":  "vite_module",
+                         "path":  "/src/components/molecules/Modal.tsx",
+                         "summary_ms":  {
+                                            "count":  50,
+                                            "p50":  3.52,
+                                            "p95":  4.42,
+                                            "max":  4.49
+                                        },
+                         "samples":  [
+                                         {
+                                             "iteration":  1,
+                                             "status":  200,
+                                             "duration_ms":  3.28,
+                                             "bytes":  25868
+                                         },
+                                         {
+                                             "iteration":  2,
+                                             "status":  200,
+                                             "duration_ms":  3.26,
+                                             "bytes":  25868
+                                         },
+                                         {
+                                             "iteration":  3,
+                                             "status":  200,
+                                             "duration_ms":  3.4,
+                                             "bytes":  25868
+                                         },
+                                         {
+                                             "iteration":  4,
+                                             "status":  200,
+                                             "duration_ms":  3.47,
+                                             "bytes":  25868
+                                         },
+                                         {
+                                             "iteration":  5,
+                                             "status":  200,
+                                             "duration_ms":  3.21,
+                                             "bytes":  25868
+                                         },
+                                         {
+                                             "iteration":  6,
+                                             "status":  200,
+                                             "duration_ms":  3.37,
+                                             "bytes":  25868
+                                         },
+                                         {
+                                             "iteration":  7,
+                                             "status":  200,
+                                             "duration_ms":  3.12,
+                                             "bytes":  25868
+                                         },
+                                         {
+                                             "iteration":  8,
+                                             "status":  200,
+                                             "duration_ms":  3.8,
+                                             "bytes":  25868
+                                         },
+                                         {
+                                             "iteration":  9,
+                                             "status":  200,
+                                             "duration_ms":  3.46,
+                                             "bytes":  25868
+                                         },
+                                         {
+                                             "iteration":  10,
+                                             "status":  200,
+                                             "duration_ms":  3.96,
+                                             "bytes":  25868
+                                         },
+                                         {
+                                             "iteration":  11,
+                                             "status":  200,
+                                             "duration_ms":  3.34,
+                                             "bytes":  25868
+                                         },
+                                         {
+                                             "iteration":  12,
+                                             "status":  200,
+                                             "duration_ms":  4.1,
+                                             "bytes":  25868
+                                         },
+                                         {
+                                             "iteration":  13,
+                                             "status":  200,
+                                             "duration_ms":  3.39,
+                                             "bytes":  25868
+                                         },
+                                         {
+                                             "iteration":  14,
+                                             "status":  200,
+                                             "duration_ms":  4.04,
+                                             "bytes":  25868
+                                         },
+                                         {
+                                             "iteration":  15,
+                                             "status":  200,
+                                             "duration_ms":  3.88,
+                                             "bytes":  25868
+                                         },
+                                         {
+                                             "iteration":  16,
+                                             "status":  200,
+                                             "duration_ms":  3.66,
+                                             "bytes":  25868
+                                         },
+                                         {
+                                             "iteration":  17,
+                                             "status":  200,
+                                             "duration_ms":  3.65,
+                                             "bytes":  25868
+                                         },
+                                         {
+                                             "iteration":  18,
+                                             "status":  200,
+                                             "duration_ms":  4.19,
+                                             "bytes":  25868
+                                         },
+                                         {
+                                             "iteration":  19,
+                                             "status":  200,
+                                             "duration_ms":  3.33,
+                                             "bytes":  25868
+                                         },
+                                         {
+                                             "iteration":  20,
+                                             "status":  200,
+                                             "duration_ms":  3.46,
+                                             "bytes":  25868
+                                         },
+                                         {
+                                             "iteration":  21,
+                                             "status":  200,
+                                             "duration_ms":  4.49,
+                                             "bytes":  25868
+                                         },
+                                         {
+                                             "iteration":  22,
+                                             "status":  200,
+                                             "duration_ms":  3.32,
+                                             "bytes":  25868
+                                         },
+                                         {
+                                             "iteration":  23,
+                                             "status":  200,
+                                             "duration_ms":  3.69,
+                                             "bytes":  25868
+                                         },
+                                         {
+                                             "iteration":  24,
+                                             "status":  200,
+                                             "duration_ms":  3.52,
+                                             "bytes":  25868
+                                         },
+                                         {
+                                             "iteration":  25,
+                                             "status":  200,
+                                             "duration_ms":  3.29,
+                                             "bytes":  25868
+                                         },
+                                         {
+                                             "iteration":  26,
+                                             "status":  200,
+                                             "duration_ms":  3.03,
+                                             "bytes":  25868
+                                         },
+                                         {
+                                             "iteration":  27,
+                                             "status":  200,
+                                             "duration_ms":  3.68,
+                                             "bytes":  25868
+                                         },
+                                         {
+                                             "iteration":  28,
+                                             "status":  200,
+                                             "duration_ms":  3.53,
+                                             "bytes":  25868
+                                         },
+                                         {
+                                             "iteration":  29,
+                                             "status":  200,
+                                             "duration_ms":  4.49,
+                                             "bytes":  25868
+                                         },
+                                         {
+                                             "iteration":  30,
+                                             "status":  200,
+                                             "duration_ms":  4.01,
+                                             "bytes":  25868
+                                         },
+                                         {
+                                             "iteration":  31,
+                                             "status":  200,
+                                             "duration_ms":  3.36,
+                                             "bytes":  25868
+                                         },
+                                         {
+                                             "iteration":  32,
+                                             "status":  200,
+                                             "duration_ms":  3.77,
+                                             "bytes":  25868
+                                         },
+                                         {
+                                             "iteration":  33,
+                                             "status":  200,
+                                             "duration_ms":  4.42,
+                                             "bytes":  25868
+                                         },
+                                         {
+                                             "iteration":  34,
+                                             "status":  200,
+                                             "duration_ms":  3.41,
+                                             "bytes":  25868
+                                         },
+                                         {
+                                             "iteration":  35,
+                                             "status":  200,
+                                             "duration_ms":  3.26,
+                                             "bytes":  25868
+                                         },
+                                         {
+                                             "iteration":  36,
+                                             "status":  200,
+                                             "duration_ms":  4.24,
+                                             "bytes":  25868
+                                         },
+                                         {
+                                             "iteration":  37,
+                                             "status":  200,
+                                             "duration_ms":  3.98,
+                                             "bytes":  25868
+                                         },
+                                         {
+                                             "iteration":  38,
+                                             "status":  200,
+                                             "duration_ms":  3.53,
+                                             "bytes":  25868
+                                         },
+                                         {
+                                             "iteration":  39,
+                                             "status":  200,
+                                             "duration_ms":  3.67,
+                                             "bytes":  25868
+                                         },
+                                         {
+                                             "iteration":  40,
+                                             "status":  200,
+                                             "duration_ms":  3.79,
+                                             "bytes":  25868
+                                         },
+                                         {
+                                             "iteration":  41,
+                                             "status":  200,
+                                             "duration_ms":  3.96,
+                                             "bytes":  25868
+                                         },
+                                         {
+                                             "iteration":  42,
+                                             "status":  200,
+                                             "duration_ms":  3.79,
+                                             "bytes":  25868
+                                         },
+                                         {
+                                             "iteration":  43,
+                                             "status":  200,
+                                             "duration_ms":  3.47,
+                                             "bytes":  25868
+                                         },
+                                         {
+                                             "iteration":  44,
+                                             "status":  200,
+                                             "duration_ms":  3.3,
+                                             "bytes":  25868
+                                         },
+                                         {
+                                             "iteration":  45,
+                                             "status":  200,
+                                             "duration_ms":  3.64,
+                                             "bytes":  25868
+                                         },
+                                         {
+                                             "iteration":  46,
+                                             "status":  200,
+                                             "duration_ms":  3.26,
+                                             "bytes":  25868
+                                         },
+                                         {
+                                             "iteration":  47,
+                                             "status":  200,
+                                             "duration_ms":  3.65,
+                                             "bytes":  25868
+                                         },
+                                         {
+                                             "iteration":  48,
+                                             "status":  200,
+                                             "duration_ms":  3.04,
+                                             "bytes":  25868
+                                         },
+                                         {
+                                             "iteration":  49,
+                                             "status":  200,
+                                             "duration_ms":  3.28,
+                                             "bytes":  25868
+                                         },
+                                         {
+                                             "iteration":  50,
+                                             "status":  200,
+                                             "duration_ms":  3.12,
+                                             "bytes":  25868
+                                         }
+                                     ]
+                     }
+                 ]
+}

@@ -1,5 +1,12 @@
 import { useEffect, useState } from 'react';
-import { Badge, Button, Checkbox, Input, MaterialCard, Select, Skeleton, Text } from '../../../../../../components/atoms';
+import Badge from '../../../../../../components/atoms/Badge';
+import Button from '../../../../../../components/atoms/Button';
+import Checkbox from '../../../../../../components/atoms/Checkbox';
+import Input from '../../../../../../components/atoms/Input';
+import MaterialCard from '../../../../../../components/atoms/MaterialCard';
+import Select from '../../../../../../components/atoms/Select';
+import Skeleton from '../../../../../../components/atoms/Skeleton';
+import { Text } from '../../../../../../components/atoms/Text';
 import Callout from '../../../../../../components/molecules/Callout';
 import Modal from '../../../../../../components/molecules/Modal';
 import { listarEmpleadosOperativos } from '../../../../../../services/horariosRelacionesService';

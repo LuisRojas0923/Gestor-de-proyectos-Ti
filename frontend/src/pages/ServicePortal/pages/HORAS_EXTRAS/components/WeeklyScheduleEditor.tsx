@@ -1,5 +1,10 @@
 import { Moon, Palmtree } from 'lucide-react';
-import { Badge, Button, Input, MaterialCard, Switch, Text } from '../../../../../components/atoms';
+import Badge from '../../../../../components/atoms/Badge';
+import Button from '../../../../../components/atoms/Button';
+import Input from '../../../../../components/atoms/Input';
+import MaterialCard from '../../../../../components/atoms/MaterialCard';
+import Switch from '../../../../../components/atoms/Switch';
+import { Text } from '../../../../../components/atoms/Text';
 import type { HorarioSemanalDia } from '../../../../../types/horariosRelaciones';
 import { labelDia } from '../utils/horarioUtils';
 import TimeClockPicker from './TimeClockPicker';
