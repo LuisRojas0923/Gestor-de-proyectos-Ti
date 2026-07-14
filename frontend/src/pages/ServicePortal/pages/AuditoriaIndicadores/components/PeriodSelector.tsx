@@ -53,8 +53,8 @@ const PeriodSelector: React.FC<PeriodSelectorProps> = ({
           variant={periodo === 'personalizado' ? 'primary' : 'ghost'} 
           size="sm" 
           onClick={() => setPeriodo('personalizado')}
+          icon={<Calendar className="w-4 h-4" />}
         >
-          <Calendar className="w-4 h-4 mr-2" />
           Personalizado
         </Button>
       </div>
