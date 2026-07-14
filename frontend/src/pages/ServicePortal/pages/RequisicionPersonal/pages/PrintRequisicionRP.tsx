@@ -16,25 +16,31 @@ const PrintRequisicionRP: React.FC = () => {
   useEffect(() => {
     if (!id) return;
     setLoading(true);
-    let timerId: ReturnType<typeof setTimeout>;
 
     getDetalleRequisicion(Number(id))
       .then(data => {
         setReq(data);
-        if (!printTriggered.current) {
-          printTriggered.current = true;
-          timerId = setTimeout(() => {
-            window.print();
-          }, 500); // Dar un poco de tiempo para renderizar
-        }
       })
       .catch(console.error)
       .finally(() => setLoading(false));
-
-    return () => {
-      if (timerId) clearTimeout(timerId);
-    };
   }, [id]);
+
+  // Ejecutar impresión SOLO cuando el componente ya no está cargando y los datos existen
+  useEffect(() => {
+    if (!loading && req && !printTriggered.current) {
+      printTriggered.current = true;
+      
+      // El doble requestAnimationFrame asegura que el navegador haya terminado
+      // de "pintar" el HTML y aplicar los estilos antes de abrir el diálogo
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          setTimeout(() => {
+            window.print();
+          }, 100); // Pequeño margen extra para garantizar la renderización de fuentes/imágenes
+        });
+      });
+    }
+  }, [loading, req]);
 
   if (loading) {
     return <div className="p-10 text-center font-mono">Preparando documento para impresión...</div>;
