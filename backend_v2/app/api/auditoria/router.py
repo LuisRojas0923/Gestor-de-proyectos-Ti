@@ -1,9 +1,8 @@
 """API de consulta de auditoría de acciones de usuario."""
-
 from datetime import datetime
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, WebSocket, WebSocketDisconnect
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.auth.profile_router import obtener_usuario_actual_db
@@ -29,9 +28,7 @@ async def requiere_permiso_auditoria(
 ) -> Usuario:
     permisos = await ServicioAuth.obtener_permisos_por_rol(db, usuario.rol)
     if MODULO_AUDITORIA not in permisos:
-        raise HTTPException(
-            status_code=403, detail="Sin permiso para consultar auditoría"
-        )
+        raise HTTPException(status_code=403, detail="Sin permiso para consultar auditoría")
     return usuario
 
 
@@ -103,11 +100,27 @@ async def obtener_estadisticas_auditoria(
     _: Usuario = Depends(requiere_permiso_auditoria),
 ):
     """Retorna las estadísticas, KPIs y agrupaciones para el dashboard de auditoría."""
+    return await ServicioAuditoriaEstadisticas.obtener_estadisticas(
+        db, 
+        fecha_desde=fecha_desde, 
+        fecha_hasta=fecha_hasta
+    )
+
+
+from app.services.auditoria.ws_manager import auditoria_ws_manager
+
+@router.websocket("/ws/dashboard")
+async def websocket_auditoria_dashboard(websocket: WebSocket):
+    """Canal WebSocket para notificar actualizaciones al Dashboard de Auditoría"""
+    await auditoria_ws_manager.connect(websocket)
     try:
-        return await ServicioAuditoriaEstadisticas.obtener_estadisticas(
-            db,
-            fecha_desde=fecha_desde,
-            fecha_hasta=fecha_hasta,
-        )
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+        while True:
+            # Mantener la conexión abierta
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        pass
+    except Exception:
+        pass
+    finally:
+        auditoria_ws_manager.disconnect(websocket)
+

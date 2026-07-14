@@ -1,11 +1,15 @@
 import React from 'react';
 import { MaterialCard as Card, Title, Text } from '../../../../../components/atoms';
-import { Activity, ShieldAlert, CheckCircle, UserX } from 'lucide-react';
+import { Activity, ShieldAlert, CheckCircle, AlertTriangle, UserX } from 'lucide-react';
 import type { AuditoriaEstadisticas } from '../../../../../types/auditoria';
 
-interface KpiCardsProps { stats: AuditoriaEstadisticas; }
+interface KpiCardsProps {
+  stats: AuditoriaEstadisticas;
+  onClickDenegados?: () => void;
+  onClickFallosAuth?: () => void;
+}
 
-const KpiCards: React.FC<KpiCardsProps> = ({ stats }) => {
+const KpiCards: React.FC<KpiCardsProps> = ({ stats, onClickDenegados, onClickFallosAuth }) => {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
       <Card className="p-4 bg-[var(--color-surface)] border border-[var(--color-border)] shadow-sm flex items-start gap-4">
@@ -49,7 +53,10 @@ const KpiCards: React.FC<KpiCardsProps> = ({ stats }) => {
         </div>
       </Card>
 
-      <Card className="p-4 bg-[var(--color-surface)] border border-[var(--color-border)] shadow-sm flex items-center gap-4">
+      <Card 
+        className={`p-4 bg-[var(--color-surface)] border border-[var(--color-border)] shadow-sm flex items-center gap-4 ${onClickDenegados ? 'cursor-pointer hover:bg-red-50/50 dark:hover:bg-red-900/10 transition-colors' : ''}`}
+        onClick={onClickDenegados}
+      >
         <div className="w-12 h-12 rounded-xl bg-red-50 dark:bg-red-950/30 flex items-center justify-center text-red-600 dark:text-red-400">
           <ShieldAlert className="w-6 h-6" />
         </div>
@@ -63,7 +70,10 @@ const KpiCards: React.FC<KpiCardsProps> = ({ stats }) => {
         </div>
       </Card>
 
-      <Card className="p-4 bg-[var(--color-surface)] border border-[var(--color-border)] shadow-sm flex items-center gap-4">
+      <Card 
+        className={`p-4 bg-[var(--color-surface)] border border-[var(--color-border)] shadow-sm flex items-center gap-4 ${onClickFallosAuth ? 'cursor-pointer hover:bg-orange-50/50 dark:hover:bg-orange-900/10 transition-colors' : ''}`}
+        onClick={onClickFallosAuth}
+      >
         <div className="w-12 h-12 rounded-xl bg-orange-50 dark:bg-orange-950/30 flex items-center justify-center text-orange-600 dark:text-orange-400">
           <UserX className="w-6 h-6" />
         </div>
