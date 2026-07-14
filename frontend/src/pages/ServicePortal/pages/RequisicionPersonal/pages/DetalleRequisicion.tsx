@@ -91,12 +91,13 @@ const DetalleRequisicion: React.FC<Props> = ({ requisicionId, onBack }) => {
           </div>
         </div>
         {/* Botón imprimir */}
-        <Button variant="custom"
+        <Button 
+          variant="primary"
           onClick={() => window.open(`/service-portal/requisicion-personal/print/${requisicionId}`, '_blank')}
-          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-300 border border-[var(--color-border)] bg-white dark:bg-neutral-900 hover:bg-slate-50 dark:hover:bg-neutral-800 hover:text-[var(--color-primary)] hover:border-[var(--color-primary)] transition-all duration-150 shadow-sm"
-          title="Imprimir Requisición"
+          className="font-bold rounded-xl shadow-md px-5"
+          title="Generar formato PDF / Imprimir"
+          icon={Printer}
         >
-          <Printer className="w-3.5 h-3.5" />
           Imprimir
         </Button>
       </div>
