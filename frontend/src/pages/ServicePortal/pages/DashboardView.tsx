@@ -112,16 +112,8 @@ const DashboardView: React.FC<DashboardViewProps> = ({ user, moduleStatus, onNav
         ['admin', 'director'].includes(userRole)
     );
 
-    const canSeeRequisicionPersonal = moduleStatus['requisicion_personal'] !== false;
-
-    const canSeeSeguimientoRPGH = moduleStatus['requisicion_personal'] !== false && (
-        permissions.includes('gestion_humana') ||
-        ['admin', 'director'].includes(userRole)
-    );
-
-    const canSeeAprobacionGerenciaRP = moduleStatus['requisicion_personal'] !== false && (
-        (user?.cedula || user?.id) === "66903320" ||
-        userRole === "admin"
+    const canSeeRequisicionesRP = moduleStatus['requisicion_personal'] !== false && (
+        true // Todo el mundo puede ver el grupo, la visibilidad interna se maneja en el sub-módulo
     );
 
     const canSeePerfilesCargo = moduleStatus['perfiles_cargo'] !== false && (
@@ -204,28 +196,12 @@ const DashboardView: React.FC<DashboardViewProps> = ({ user, moduleStatus, onNav
             onClick: () => onNavigate('gestion_actividades')
         },
         {
-            key: 'requisicion_personal',
-            canSee: canSeeRequisicionPersonal,
+            key: 'requisiciones_rp',
+            canSee: canSeeRequisicionesRP,
             title: "Requisición de Personal",
-            description: "Creación y seguimiento de solicitudes de contratación de personal.",
+            description: "Creación, seguimiento y aprobación gerencial de solicitudes de contratación.",
             icon: <Users className="w-8 h-8 text-[var(--color-primary)]" />,
-            onClick: () => onNavigate('requisicion_personal')
-        },
-        {
-            key: 'seguimiento_rp_gh',
-            canSee: canSeeSeguimientoRPGH,
-            title: "Seguimiento RP Gestión Humana",
-            description: "Gestión y seguimiento del proceso de selección y contratación de requisiciones aprobadas.",
-            icon: <UserCheck className="w-8 h-8 text-[var(--color-primary)]" />,
-            onClick: () => onNavigate('seguimiento_rp_gh')
-        },
-        {
-            key: 'aprobacion_rp_gerencia',
-            canSee: canSeeAprobacionGerenciaRP,
-            title: "Aprobación Gerencial RP",
-            description: "Firma y autorización definitiva de requisiciones de personal aprobadas por directores.",
-            icon: <PenTool className="w-8 h-8 text-[var(--color-primary)]" />,
-            onClick: () => onNavigate('aprobacion_rp_gerencia')
+            onClick: () => onNavigate('requisiciones_rp' as any)
         },
         {
             key: 'perfiles_cargo',

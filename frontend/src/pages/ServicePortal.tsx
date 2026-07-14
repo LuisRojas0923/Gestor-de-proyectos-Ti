@@ -32,6 +32,8 @@ import EmailUpdateModal from './ServicePortal/components/EmailUpdateModal';
 import VerificationBanner from './ServicePortal/components/VerificationBanner';
 import ComisionesView from './ServicePortal/pages/Comisiones';
 import { RequisicionPersonalRouter } from './ServicePortal/pages/RequisicionPersonal';
+import RequisicionPersonalView from './ServicePortal/pages/RequisicionPersonal';
+import RequisicionesManagement from './ServicePortal/pages/RequisicionesManagement';
 import PerfilesCargo from './ServicePortal/pages/PerfilesCargo/PerfilesCargo';
 import BandejaGestionHumana from './ServicePortal/pages/RequisicionPersonal/pages/BandejaGestionHumana';
 import BandejaGerenciaExpress from './ServicePortal/pages/RequisicionPersonal/pages/BandejaGerenciaExpress';
@@ -178,6 +180,7 @@ const ServicePortal: React.FC = () => {
                             else if (v === 'contabilidad') navigate('/service-portal/gestion-humana');
                             else if (v === 'gestion_actividades') navigate('/service-portal/gestion-actividades');
                             else if (v === 'comisiones') navigate('/service-portal/comisiones');
+                            else if (v === 'requisiciones_rp') navigate('/service-portal/requisiciones-rp-gestion');
                             else if (v === 'requisicion_personal') navigate('/service-portal/requisicion-personal');
                             else if (v === 'seguimiento_rp_gh') navigate('/service-portal/seguimiento-rp-gh');
                             else if (v === 'aprobacion_rp_gerencia') navigate('/service-portal/aprobacion-rp-gerencia');
@@ -348,6 +351,22 @@ const ServicePortal: React.FC = () => {
                     <SuccessView newTicketId={newTicketId} onHome={() => navigate('/service-portal/inicio')} />
                 } />
 
+                <Route path="requisiciones-rp-gestion" element={
+                    <ProtectedRoute moduleCode="requisicion_personal">
+                        <RequisicionesManagement 
+                            onNavigate={(v) => {
+                                if (v === 'requisicion_personal') navigate('/service-portal/requisicion-personal');
+                                else if (v === 'seguimiento_rp_gh') navigate('/service-portal/seguimiento-rp-gh');
+                                else if (v === 'aprobacion_rp_gerencia') navigate('/service-portal/aprobacion-rp-gerencia');
+                            }}
+                            moduleStatus={moduleStatus}
+                            onBack={() => navigate('/service-portal/inicio')}
+                        />
+                    </ProtectedRoute>
+                } />
+
+
+
                 <Route path="reserva-salas" element={
                     <ProtectedRoute moduleCode="reserva_salas">
                         <ReservaSalasView onBack={() => navigate('/service-portal/inicio')} />
@@ -372,7 +391,7 @@ const ServicePortal: React.FC = () => {
                     <ProtectedRoute moduleCode="gestion_humana">
                         <BandejaGestionHumana
                             onVer={(id) => navigate(`/service-portal/requisicion-personal/detalle/${id}`)}
-                            onVolver={() => navigate('/service-portal/inicio')}
+                            onVolver={() => navigate('/service-portal/requisiciones-rp-gestion')}
                         />
                     </ProtectedRoute>
                 } />
@@ -380,7 +399,7 @@ const ServicePortal: React.FC = () => {
                 <Route path="aprobacion-rp-gerencia" element={
                     <ProtectedRoute moduleCode="requisicion_personal">
                         <BandejaGerenciaExpress
-                            onVolver={() => navigate('/service-portal/inicio')}
+                            onVolver={() => navigate('/service-portal/requisiciones-rp-gestion')}
                         />
                     </ProtectedRoute>
                 } />

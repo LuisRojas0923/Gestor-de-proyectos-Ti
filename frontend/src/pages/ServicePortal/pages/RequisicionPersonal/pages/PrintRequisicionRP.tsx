@@ -122,21 +122,21 @@ const PrintRequisicionRP: React.FC = () => {
         </div>
       )}
 
-      <div className="max-w-[215.9mm] mx-auto px-2 sm:px-4 pt-6 pb-4 font-sans bg-white">
+      <div className="max-w-[215.9mm] mx-auto px-2 sm:px-4 pt-4 pb-2 font-sans bg-white">
         {/* Cabecera / Logo */}
-        <div className="flex justify-between items-start border-b-2 border-slate-800 pb-3 mb-4">
+        <div className="flex justify-between items-center border-b-[1.5px] border-slate-800 pb-1 mb-2">
           <div className="flex flex-col">
-            <h1 className="text-2xl font-black uppercase tracking-tight text-slate-900">
+            <h1 className="text-xl font-black uppercase tracking-tight text-slate-900 leading-none mb-1">
               Requisición de Personal
             </h1>
-            <span className="text-sm font-medium text-slate-600">
+            <span className="text-xs font-medium text-slate-600 leading-none">
               RECURSOS HUMANOS — RDX SOLUTIONS
             </span>
           </div>
-          <div className="text-right flex flex-col items-end">
+          <div className="text-right flex items-center gap-3">
              {/* Fallback en caso de que logo no cargue bien en print */}
-             <div className="font-bold text-xl text-blue-900 tracking-wider">RDX</div>
-             <span className="font-mono text-lg font-bold bg-slate-100 px-3 py-1 rounded-md mt-1 border border-slate-300">
+             <div className="font-bold text-lg text-blue-900 tracking-wider">RDX</div>
+             <span className="font-mono text-base font-bold bg-slate-100 px-2 py-0.5 rounded-md border border-slate-300">
                {req.rp || 'SIN NÚMERO'}
              </span>
           </div>
@@ -144,19 +144,19 @@ const PrintRequisicionRP: React.FC = () => {
 
         {/* Resumen Principal */}
         <div className="grid grid-cols-2 gap-3 mb-2 text-[10px]">
-          <div className="border border-slate-300 rounded-lg p-2.5">
-            <div className="text-[8px] uppercase font-bold text-slate-500 mb-0.5">Solicitante</div>
-            <div className="font-bold">{req.nombre_solicitante}</div>
-            <div className="text-[10px]">{req.correo_solicitante}</div>
+          <div className="border border-slate-300 rounded-lg p-1.5 px-2">
+            <div className="text-[8px] uppercase font-bold text-slate-500 leading-none mb-0.5">Solicitante</div>
+            <div className="font-bold leading-tight">{req.nombre_solicitante}</div>
+            <div className="text-[9px] leading-tight text-slate-600">{req.correo_solicitante}</div>
           </div>
-          <div className="border border-slate-300 rounded-lg p-2.5 flex flex-col justify-center">
-            <div className="text-[8px] uppercase font-bold text-slate-500 mb-0.5">Estado / Radicación</div>
-            <div className="font-bold">{req.estado.replace(/_/g, ' ')}</div>
-            <div className="text-[10px]">
+          <div className="border border-slate-300 rounded-lg p-1.5 px-2 flex flex-col justify-center">
+            <div className="text-[8px] uppercase font-bold text-slate-500 leading-none mb-0.5">Estado / Radicación</div>
+            <div className="font-bold leading-tight">{req.estado.replace(/_/g, ' ')}</div>
+            <div className="text-[9px] leading-tight text-slate-600">
               {formatDateCO(req.fecha_radicacion, false) || 'N/A'}
             </div>
             {req.modificada_por_gh && (
-              <div className="mt-1 text-[8px] bg-amber-100 text-amber-800 px-1 py-0.5 rounded font-bold self-start uppercase">
+              <div className="mt-0.5 text-[8px] bg-amber-100 text-amber-800 px-1 rounded font-bold self-start uppercase">
                 Modificada por solicitud de GH
               </div>
             )}
@@ -301,7 +301,7 @@ const PrintRequisicionRP: React.FC = () => {
         </div>
 
         {/* Firmas / Aprobaciones */}
-        <div className="grid grid-cols-3 gap-6 pt-6 mt-6 items-start">
+        <div className="grid grid-cols-3 gap-6 pt-10 mt-6 items-start">
           <div className="text-center">
              <div className="border-b border-black w-48 mx-auto mb-2"></div>
              <div className="font-bold text-[10px]">SOLICITADO POR</div>
@@ -338,7 +338,7 @@ const PrintRequisicionRP: React.FC = () => {
         </div>
 
         {req.fecha_recibido_gh && (
-          <div className="grid grid-cols-3 gap-6 pt-6 items-start">
+          <div className="grid grid-cols-3 gap-6 pt-12 mt-4 items-start">
             <div className="text-center">
                <div className="border-b border-black w-48 mx-auto mb-2 relative">
                  <div className="absolute bottom-2 right-4 rotate-[-15deg] border-2 border-purple-600 text-purple-600 text-[9px] font-black px-2 py-0.5 rounded opacity-70">
@@ -354,11 +354,6 @@ const PrintRequisicionRP: React.FC = () => {
           </div>
         )}
         
-        {/* Footer Documento */}
-        <div className="mt-4 text-center text-[8px] text-slate-400 border-t border-slate-200 pt-2 pb-2">
-           Documento generado automáticamente por el Sistema de Requisiciones de Personal | Gestor de Proyectos TI
-        </div>
-
       </div>
     </div>
   );

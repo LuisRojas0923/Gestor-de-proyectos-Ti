@@ -36,7 +36,7 @@ const RequisicionPersonalRouter: React.FC<RequisicionPersonalRouterProps> = ({ u
             onVer={(id) => goTo(`detalle/${id}`)}
             onEditar={(id) => goTo(`editar/${id}`)}
             onAprobaciones={() => goTo('aprobaciones')}
-            onVolver={() => navigate('/service-portal')}
+            onVolver={() => navigate('/service-portal/requisiciones-rp-gestion')}
           />
         } />
 
