@@ -27,7 +27,8 @@ const MODULOS_MAP: Record<string, string> = {
   'comisiones': 'Nómina: Comisiones',
   'nomina_novedades': 'Novedades de Nómina',
   'jerarquia_organizacional': 'Jerarquía Organizacional',
-  'inventario': 'Inventario Anual de TI'
+  'inventario': 'Inventario Anual de TI',
+  'lineas_corporativas': 'Líneas Corporativas'
 };
 
 const ACCIONES_MAP: Record<string, string> = {
@@ -324,6 +325,19 @@ export const humanizarAccionDetallada = (row: any): string => {
       return datos?.asunto ? `Creó ticket de soporte: ${datos.asunto}` : 'Creó un nuevo ticket de soporte';
     }
     if (row.accion === 'actualizar') return 'Actualizó el estado o respondió un ticket';
+  }
+
+  // 12. Líneas Corporativas
+  if (modulo === 'lineas_corporativas') {
+    if (ruta.includes('/importar-factura')) return 'Importó archivo de facturación mensual';
+    if (ruta.includes('/importar-inventario')) return 'Importó archivo de inventario/equipos';
+    if (ruta.includes('/cruce/exportar-nomina')) return 'Exportó novedades de nómina (Líneas Corporativas)';
+    if (ruta.includes('/cruce/exportar-contable')) return 'Exportó reporte contable (Líneas Corporativas)';
+    if (ruta.includes('/reporte-co')) return 'Consultó reporte por Centro de Costo';
+    if (ruta.includes('/equipos') && row.metodo_http === 'POST') return 'Registró nuevo equipo móvil';
+    if (ruta.includes('/personas') && row.metodo_http === 'POST') return 'Registró asignación de empleado a línea';
+    if (row.metodo_http === 'POST' && ruta.endsWith('/')) return 'Creó nueva línea corporativa';
+    if (row.metodo_http === 'PUT' || row.metodo_http === 'PATCH') return 'Actualizó datos de línea corporativa';
   }
 
   return humanizarAccion(row.accion);
