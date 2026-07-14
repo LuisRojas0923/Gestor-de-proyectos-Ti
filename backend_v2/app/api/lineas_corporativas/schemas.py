@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from typing import Optional
 from datetime import date, datetime
 
@@ -10,6 +10,13 @@ class EquipoMovilBase(BaseModel):
     serial: Optional[str] = None
     estado_fisico: str = "BUENO"
     observaciones: Optional[str] = None
+
+    @field_validator("imei", "serial", mode="before")
+    @classmethod
+    def nullify_empty_string(cls, v):
+        if v == "" or v is None:
+            return None
+        return v
 
 class EquipoMovilCreate(EquipoMovilBase):
     pass
