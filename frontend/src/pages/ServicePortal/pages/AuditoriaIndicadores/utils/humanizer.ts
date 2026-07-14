@@ -28,7 +28,8 @@ const MODULOS_MAP: Record<string, string> = {
   'nomina_novedades': 'Novedades de Nómina',
   'jerarquia_organizacional': 'Jerarquía Organizacional',
   'inventario': 'Inventario Anual de TI',
-  'lineas_corporativas': 'Líneas Corporativas'
+  'lineas_corporativas': 'Líneas Corporativas',
+  'lineas corporativas': 'Líneas Corporativas'
 };
 
 const ACCIONES_MAP: Record<string, string> = {
@@ -328,7 +329,7 @@ export const humanizarAccionDetallada = (row: any): string => {
   }
 
   // 12. Líneas Corporativas
-  if (modulo === 'lineas_corporativas') {
+  if (modulo === 'lineas_corporativas' || modulo === 'lineas corporativas') {
     if (ruta.includes('/importar-factura')) return 'Importó archivo de facturación mensual';
     if (ruta.includes('/importar-inventario')) return 'Importó archivo de inventario/equipos';
     if (ruta.includes('/cruce/exportar-nomina')) return 'Exportó novedades de nómina (Líneas Corporativas)';
