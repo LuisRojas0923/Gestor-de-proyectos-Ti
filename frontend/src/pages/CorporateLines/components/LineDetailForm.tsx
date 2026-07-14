@@ -1,7 +1,7 @@
-import React from 'react';
-import { Smartphone, User, CreditCard, Save, Trash2, ArrowLeft, AlertTriangle } from 'lucide-react';
+import React, { useState } from 'react';
+import { Smartphone, User, CreditCard, Save, Trash2, ArrowLeft, AlertTriangle, Search } from 'lucide-react';
 import { 
-  Button, Input, Select, Textarea, MaterialCard as Card, Title, Text
+  Button, Input, Select, Textarea, MaterialCard as Card, Title, Text, SearchableSelect
 } from '../../../components/atoms';
 import { CorporateLine, EquipoMovil } from '../useCorporateLines';
 
@@ -16,12 +16,13 @@ interface FormProps {
   onInputChange: (field: keyof CorporateLine, value: any) => void;
   activeSubTab: 'general' | 'tecnico' | 'finanzas';
   setActiveSubTab: (tab: 'general' | 'tecnico' | 'finanzas') => void;
+  companyOptions: { label: string; value: string }[];
 }
 
 export const LineDetailForm: React.FC<FormProps> = ({
   formData, equipos, employeeAlerts, isCreating,
   onBack, onSave, onDelete, onInputChange,
-  activeSubTab, setActiveSubTab
+  activeSubTab, setActiveSubTab, companyOptions
 }) => {
   const hasAlert = formData.documento_asignado && employeeAlerts[formData.documento_asignado];
 
@@ -110,17 +111,19 @@ export const LineDetailForm: React.FC<FormProps> = ({
                 placeholder="Ej. +57 311..."
                 className="!rounded-2xl"
               />
-              <Select
+              <Input
                 label="Empresa Responsable"
-                value={formData.empresa || 'RDC'}
+                value={formData.empresa || ''}
                 onChange={(e) => onInputChange('empresa', e.target.value)}
-                options={[
-                  { label: 'RDC', value: 'RDC' },
-                  { label: 'CRUZTOR', value: 'CRUZTOR' },
-                  { label: 'GTC', value: 'GTC' },
-                ]}
+                placeholder="Ej. RDC, CRUZTOR..."
+                list="empresas-list"
                 className="!rounded-2xl"
               />
+              <datalist id="empresas-list">
+                {companyOptions.map((opt) => (
+                  <option key={opt.value} value={opt.value} />
+                ))}
+              </datalist>
               <Select
                 label="Estado de la Línea"
                 value={formData.estatus || 'ACTIVA'}
@@ -139,14 +142,14 @@ export const LineDetailForm: React.FC<FormProps> = ({
               <Input 
                 label="Identificación Usuario (Cédula)" 
                 value={formData.documento_asignado || ''} 
-                onChange={(e) => onInputChange('documento_asignado', e.target.value)} 
+                onChange={(e) => onInputChange('documento_asignado', e.target.value === '' ? null : e.target.value)} 
                 icon={User}
                 className="!rounded-2xl"
               />
               <Input 
                 label="Responsable del Cobro" 
                 value={formData.documento_cobro || ''} 
-                onChange={(e) => onInputChange('documento_cobro', e.target.value)} 
+                onChange={(e) => onInputChange('documento_cobro', e.target.value === '' ? null : e.target.value)} 
                 icon={CreditCard}
                 className="!rounded-2xl"
               />
@@ -170,15 +173,14 @@ export const LineDetailForm: React.FC<FormProps> = ({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div className="space-y-4">
                 <Title variant="h6" weight="bold">Hardware Asignado</Title>
-                <Select
+                <SearchableSelect
                   label="Dispositivo del Inventario"
                   value={formData.equipo_id?.toString() || ''}
-                  onChange={(e) => onInputChange('equipo_id', e.target.value === '' ? null : parseInt(e.target.value))}
+                  onChange={(val) => onInputChange('equipo_id', val === '' ? null : parseInt(val))}
                   options={[
                     { label: 'Seleccionar del catálogo...', value: '' },
                     ...equipos.map(e => ({ label: `${e.modelo} - ${e.imei || 'Sin IMEI'}`, value: (e.id || '').toString() })),
                   ]}
-                  className="!rounded-2xl"
                 />
                 <Input 
                    label="Nombre del Plan Contratado"
@@ -205,7 +207,7 @@ export const LineDetailForm: React.FC<FormProps> = ({
         {activeSubTab === 'finanzas' && (
           <div className="space-y-8">
              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-               <div className="p-5 bg-primary-50 dark:bg-primary-900/10 rounded-3xl border border-primary-100 dark:border-primary-800/50 space-y-4">
+               <div className="p-5 bg-primary-50 dark:bg-primary-800/20 rounded-3xl border border-primary-100 dark:border-primary-800/50 space-y-4">
                   <Title variant="h6" weight="bold" color="text-primary">Parámetros de Dispersión (Motor IA)</Title>
                   <Text variant="caption" className="opacity-70 mb-4 block">Define qué porcentaje asume el empleado en la liquidación automática.</Text>
                   <div className="grid grid-cols-2 gap-4">

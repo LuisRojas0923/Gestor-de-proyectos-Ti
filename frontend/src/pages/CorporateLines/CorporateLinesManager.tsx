@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Search, Plus, Upload, LayoutGrid, ReceiptText, FileSpreadsheet } from 'lucide-react';
+import { Search, Plus, Upload, LayoutGrid, ReceiptText, FileSpreadsheet, Smartphone, Users } from 'lucide-react';
 import { useCorporateLines, CorporateLine } from './useCorporateLines';
 import { useNotifications } from '../../components/notifications/NotificationsContext';
 import { useAppContext } from '../../context/AppContext';
@@ -21,14 +21,18 @@ import { LinesTable } from './components/LinesTable';
 import { LineDetailForm } from './components/LineDetailForm';
 import { InvoiceDispersionView } from './components/InvoiceDispersionView';
 import { InvoiceRawDataView } from './components/InvoiceRawDataView';
+import { EquiposManager } from './components/EquiposManager';
+import { PersonasManager } from './components/PersonasManager';
 
 export const CorporateLinesManager: React.FC = () => {
   const { state } = useAppContext();
   const isAdmin = state.user?.role === 'admin';
   const ctx = useCorporateLines();
   const {
-    lines, equipos, employeeAlerts, isLoading, stats,
+    lines, equipos, personas, employeeAlerts, isLoading, stats,
     loadData, createLine, updateLine, deleteLine,
+    createEquipo, updateEquipo, deleteEquipo,
+    createPersona, updatePersona, deletePersona,
     importarFactura, obtenerReporteCO, obtenerAlertasFactura,
     importarMatrizLegacy, obtenerDetalleFactura
   } = ctx;
@@ -36,7 +40,7 @@ export const CorporateLinesManager: React.FC = () => {
   const { addNotification } = useNotifications();
 
   const [view, setView] = useState<'dashboard' | 'detail'>('dashboard');
-  const [mode, setMode] = useState<'inventory' | 'billing' | 'rawdata'>('inventory');
+  const [mode, setMode] = useState<'inventory' | 'billing' | 'rawdata' | 'equipos' | 'personas'>('inventory');
   const [selectedLineId, setSelectedLineId] = useState<number | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -60,7 +64,7 @@ export const CorporateLinesManager: React.FC = () => {
   }, [loadData]);
 
   const companyOptions = useMemo(() => {
-    const empresas = [...new Set(lines.map(l => l.empresa).filter(Boolean))];
+    const empresas = [...new Set(['RDC', 'CRUZTOR', 'GTC', ...lines.map(l => l.empresa).filter(Boolean)])];
     return [
       { label: 'Todas las Empresas', value: 'all' },
       ...empresas.sort().map(e => ({ label: e, value: e }))
@@ -101,7 +105,7 @@ export const CorporateLinesManager: React.FC = () => {
     } else if (isCreating) {
       setFormData({
         linea: '',
-        empresa: 'RDC',
+        empresa: '',
         estatus: 'ACTIVA',
         estado_asignacion: 'ASIGNADA',
         fecha_actualizacion: new Date().toISOString().split('T')[0],
@@ -115,6 +119,11 @@ export const CorporateLinesManager: React.FC = () => {
   }, [selectedLine, isCreating]);
 
   const handleSave = async () => {
+    if (!formData.linea?.trim() || !formData.empresa?.trim()) {
+      addNotification('warning', 'El número de línea y la empresa son campos obligatorios.');
+      return;
+    }
+
     try {
       if (isCreating) {
         await createLine(formData);
@@ -252,6 +261,37 @@ export const CorporateLinesManager: React.FC = () => {
                 <Text weight="bold" variant="subtitle2" className="text-sm">Detalle Factura</Text>
               </div>
             </Button>
+            {isAdmin && (
+              <>
+                <div className="w-px h-8 bg-neutral-200 dark:bg-neutral-700 mx-1 self-center"></div>
+                <Button
+                  variant={mode === 'equipos' ? 'primary' : 'ghost'}
+                  onClick={() => setMode('equipos')}
+                  className={`flex items-center gap-2 px-6 py-2.5 rounded-xl transition-all duration-300 ${mode === 'equipos'
+                    ? 'bg-white dark:bg-neutral-700 text-primary shadow-sm scale-100'
+                    : 'text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100 scale-95'
+                    }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <Icon name={Smartphone} size="sm" />
+                    <Text weight="bold" variant="subtitle2" className="text-sm">Equipos</Text>
+                  </div>
+                </Button>
+                <Button
+                  variant={mode === 'personas' ? 'primary' : 'ghost'}
+                  onClick={() => setMode('personas')}
+                  className={`flex items-center gap-2 px-6 py-2.5 rounded-xl transition-all duration-300 ${mode === 'personas'
+                    ? 'bg-white dark:bg-neutral-700 text-primary shadow-sm scale-100'
+                    : 'text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100 scale-95'
+                    }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <Icon name={Users} size="sm" />
+                    <Text weight="bold" variant="subtitle2" className="text-sm">Personas</Text>
+                  </div>
+                </Button>
+              </>
+            )}
           </div>
 
           {mode === 'inventory' ? (
@@ -293,6 +333,20 @@ export const CorporateLinesManager: React.FC = () => {
               onFetchAlerts={obtenerAlertasFactura}
               onSelectLine={(id) => setSelectedLineId(id)}
             />
+          ) : mode === 'equipos' ? (
+            <EquiposManager
+              equipos={equipos}
+              onCreate={createEquipo}
+              onUpdate={updateEquipo}
+              onDelete={deleteEquipo}
+            />
+          ) : mode === 'personas' ? (
+            <PersonasManager
+              personas={personas}
+              onCreate={createPersona}
+              onUpdate={updatePersona}
+              onDelete={deletePersona}
+            />
           ) : (
             <InvoiceRawDataView
               onFetchDetalle={obtenerDetalleFactura}
@@ -311,6 +365,7 @@ export const CorporateLinesManager: React.FC = () => {
           onInputChange={(field, value) => setFormData((prev: Partial<CorporateLine>) => ({ ...prev, [field]: value }))}
           activeSubTab={activeSubTab}
           setActiveSubTab={setActiveSubTab}
+          companyOptions={companyOptions.filter(c => c.value !== 'all')}
         />
       )}
     </main>

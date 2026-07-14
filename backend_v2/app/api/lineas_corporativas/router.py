@@ -10,9 +10,9 @@ from app.models.linea_corporativa import LineaCorporativa, EquipoMovil, Empleado
 from app.models.linea_corporativa.factura_model import FacturaLinea
 from app.models.linea_corporativa.factura_detalle_model import FacturaLineaDetalle
 from .schemas import (
-    LineaCorporativaCreate, LineaCorporativaUpdate, LineaCorporativaOut,
-    EquipoMovilCreate, EquipoMovilOut,
-    EmpleadoLineaCreate, EmpleadoLineaOut,
+    EquipoMovilCreate, EquipoMovilOut, EquipoMovilUpdate,
+    EmpleadoLineaCreate, EmpleadoLineaOut, EmpleadoLineaUpdate,
+    LineaCorporativaCreate, LineaCorporativaOut, LineaCorporativaUpdate,
     ResumenCORow, FacturaDetalleRow
 )
 from datetime import datetime
@@ -34,13 +34,46 @@ async def listar_equipos(db: AsyncSession = Depends(obtener_db)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al listar equipos: {str(e)}")
 
-@router.post("/equipos", response_model=EquipoMovilOut)
+@router.post("/equipos", response_model=EquipoMovilOut, status_code=status.HTTP_201_CREATED)
 async def crear_equipo(equipo_in: EquipoMovilCreate, db: AsyncSession = Depends(obtener_db)):
-    db_obj = EquipoMovil(**equipo_in.model_dump())
-    db.add(db_obj)
+    db_equipo = EquipoMovil(**equipo_in.model_dump())
+    db.add(db_equipo)
     await db.commit()
-    await db.refresh(db_obj)
-    return db_obj
+    await db.refresh(db_equipo)
+    return db_equipo
+
+@router.put("/equipos/{equipo_id}", response_model=EquipoMovilOut)
+async def actualizar_equipo(equipo_id: int, equipo_in: EquipoMovilUpdate, db: AsyncSession = Depends(obtener_db)):
+    result = await db.execute(select(EquipoMovil).where(EquipoMovil.id == equipo_id))
+    db_equipo = result.scalar_one_or_none()
+    if not db_equipo:
+        raise HTTPException(status_code=404, detail="Equipo no encontrado")
+    
+    update_data = equipo_in.model_dump(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(db_equipo, key, value)
+        
+    db.add(db_equipo)
+    await db.commit()
+    await db.refresh(db_equipo)
+    return db_equipo
+
+@router.delete("/equipos/{equipo_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def eliminar_equipo(equipo_id: int, db: AsyncSession = Depends(obtener_db)):
+    result = await db.execute(select(EquipoMovil).where(EquipoMovil.id == equipo_id))
+    db_equipo = result.scalar_one_or_none()
+    if not db_equipo:
+        raise HTTPException(status_code=404, detail="Equipo no encontrado")
+    
+    try:
+        await db.delete(db_equipo)
+        await db.commit()
+    except Exception as e:
+        await db.rollback()
+        if "Foreign key violation" in str(e) or "violates foreign key constraint" in str(e):
+            raise HTTPException(status_code=400, detail="No se puede eliminar el equipo porque está asignado a una línea corporativa.")
+        raise HTTPException(status_code=500, detail=str(e))
+    return None
 
 # --- ENDPOINTS PERSONAS ---
 @router.get("/personas", response_model=List[EmpleadoLineaOut])
@@ -51,13 +84,46 @@ async def listar_personas(db: AsyncSession = Depends(obtener_db)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al listar personas: {str(e)}")
 
-@router.post("/personas", response_model=EmpleadoLineaOut)
+@router.post("/personas", response_model=EmpleadoLineaOut, status_code=status.HTTP_201_CREATED)
 async def crear_persona(persona_in: EmpleadoLineaCreate, db: AsyncSession = Depends(obtener_db)):
-    db_obj = EmpleadoLinea(**persona_in.model_dump())
-    db.add(db_obj)
+    db_persona = EmpleadoLinea(**persona_in.model_dump())
+    db.add(db_persona)
     await db.commit()
-    await db.refresh(db_obj)
-    return db_obj
+    await db.refresh(db_persona)
+    return db_persona
+
+@router.put("/personas/{documento}", response_model=EmpleadoLineaOut)
+async def actualizar_persona(documento: str, persona_in: EmpleadoLineaUpdate, db: AsyncSession = Depends(obtener_db)):
+    result = await db.execute(select(EmpleadoLinea).where(EmpleadoLinea.documento == documento))
+    db_persona = result.scalar_one_or_none()
+    if not db_persona:
+        raise HTTPException(status_code=404, detail="Persona no encontrada")
+    
+    update_data = persona_in.model_dump(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(db_persona, key, value)
+        
+    db.add(db_persona)
+    await db.commit()
+    await db.refresh(db_persona)
+    return db_persona
+
+@router.delete("/personas/{documento}", status_code=status.HTTP_204_NO_CONTENT)
+async def eliminar_persona(documento: str, db: AsyncSession = Depends(obtener_db)):
+    result = await db.execute(select(EmpleadoLinea).where(EmpleadoLinea.documento == documento))
+    db_persona = result.scalar_one_or_none()
+    if not db_persona:
+        raise HTTPException(status_code=404, detail="Persona no encontrada")
+    
+    try:
+        await db.delete(db_persona)
+        await db.commit()
+    except Exception as e:
+        await db.rollback()
+        if "Foreign key violation" in str(e) or "violates foreign key constraint" in str(e):
+            raise HTTPException(status_code=400, detail="No se puede eliminar la persona porque tiene líneas o responsabilidades de cobro asignadas.")
+        raise HTTPException(status_code=500, detail=str(e))
+    return None
 
 # --- ENDPOINTS LINEAS ---
 @router.get("/", response_model=List[LineaCorporativaOut])
@@ -138,10 +204,24 @@ async def crear_linea(linea_in: LineaCorporativaCreate, db: AsyncSession = Depen
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al verificar duplicados: {str(e)}")
         
+    from sqlalchemy.exc import IntegrityError
+    
     db_linea = LineaCorporativa(**linea_in.model_dump())
     db.add(db_linea)
-    await db.commit()
-    await db.refresh(db_linea)
+    try:
+        await db.commit()
+        await db.refresh(db_linea)
+    except IntegrityError as e:
+        await db.rollback()
+        error_msg = str(e.orig) if e.orig else str(e)
+        if "documento_asignado" in error_msg:
+            raise HTTPException(status_code=400, detail="La cédula asignada no existe en la base de datos de empleados.")
+        elif "documento_cobro" in error_msg:
+            raise HTTPException(status_code=400, detail="La cédula de cobro no existe en la base de datos de empleados.")
+        elif "equipo_id" in error_msg:
+            raise HTTPException(status_code=400, detail="El equipo seleccionado no existe.")
+        else:
+            raise HTTPException(status_code=400, detail="Error de integridad de datos. Verifique que la información relacionada exista.")
     
     # Reload with relationships
     query = select(LineaCorporativa).options(
@@ -232,7 +312,21 @@ async def actualizar_linea(id: int, linea_in: LineaCorporativaUpdate, db: AsyncS
         
     db_linea.updated_at = datetime.utcnow()
     db.add(db_linea)
-    await db.commit()
+    
+    from sqlalchemy.exc import IntegrityError
+    try:
+        await db.commit()
+    except IntegrityError as e:
+        await db.rollback()
+        error_msg = str(e.orig) if e.orig else str(e)
+        if "documento_asignado" in error_msg:
+            raise HTTPException(status_code=400, detail="La cédula asignada no existe en la base de datos de empleados.")
+        elif "documento_cobro" in error_msg:
+            raise HTTPException(status_code=400, detail="La cédula de cobro no existe en la base de datos de empleados.")
+        elif "equipo_id" in error_msg:
+            raise HTTPException(status_code=400, detail="El equipo seleccionado no existe.")
+        else:
+            raise HTTPException(status_code=400, detail="Error de integridad de datos. Verifique que la información relacionada exista.")
     
     # Reload with relationships
     query = select(LineaCorporativa).options(
@@ -253,7 +347,12 @@ async def eliminar_linea(id: int, db: AsyncSession = Depends(obtener_db)):
     if not db_linea:
         raise HTTPException(status_code=404, detail="Linea no encontrada")
     
-    await db.commit()
+    try:
+        await db.delete(db_linea)
+        await db.commit()
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error al eliminar la línea: {str(e)}")
 
 # --- ENDPOINTS FACTURACIÓN Y REPORTES ---
 

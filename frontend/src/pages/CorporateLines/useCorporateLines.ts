@@ -137,10 +137,32 @@ export const useCorporateLines = () => {
     return res as EquipoMovil;
   };
 
+  const updateEquipo = async (id: number, data: Partial<EquipoMovil>) => {
+    const res = await put(`/lineas-corporativas/equipos/${id}`, data);
+    setEquipos(prev => prev.map(e => e.id === id ? res as EquipoMovil : e));
+    return res as EquipoMovil;
+  };
+
+  const deleteEquipo = async (id: number) => {
+    await del(`/lineas-corporativas/equipos/${id}`);
+    setEquipos(prev => prev.filter(e => e.id !== id));
+  };
+
   const createPersona = async (data: Partial<PersonaLinea>) => {
     const res = await post('/lineas-corporativas/personas', data);
     setPersonas(prev => [...prev, res as PersonaLinea]);
     return res as PersonaLinea;
+  };
+
+  const updatePersona = async (documento: string, data: Partial<PersonaLinea>) => {
+    const res = await put(`/lineas-corporativas/personas/${documento}`, data);
+    setPersonas(prev => prev.map(p => p.documento === documento ? res as PersonaLinea : p));
+    return res as PersonaLinea;
+  };
+
+  const deletePersona = async (documento: string) => {
+    await del(`/lineas-corporativas/personas/${documento}`);
+    setPersonas(prev => prev.filter(p => p.documento !== documento));
   };
 
   const importarFactura = async (periodo: string, file: File) => {
@@ -201,7 +223,11 @@ export const useCorporateLines = () => {
     updateLine,
     deleteLine,
     createEquipo,
+    updateEquipo,
+    deleteEquipo,
     createPersona,
+    updatePersona,
+    deletePersona,
     importarFactura,
     importarMatrizLegacy,
     obtenerReporteCO,

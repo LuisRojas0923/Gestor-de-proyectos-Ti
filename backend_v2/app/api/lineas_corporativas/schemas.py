@@ -14,6 +14,14 @@ class EquipoMovilBase(BaseModel):
 class EquipoMovilCreate(EquipoMovilBase):
     pass
 
+class EquipoMovilUpdate(BaseModel):
+    marca: Optional[str] = None
+    modelo: Optional[str] = None
+    imei: Optional[str] = None
+    serial: Optional[str] = None
+    estado_fisico: Optional[str] = None
+    observaciones: Optional[str] = None
+
 class EquipoMovilOut(EquipoMovilBase):
     id: int
     class Config:
@@ -30,6 +38,13 @@ class EmpleadoLineaBase(BaseModel):
 
 class EmpleadoLineaCreate(EmpleadoLineaBase):
     pass
+
+class EmpleadoLineaUpdate(BaseModel):
+    nombre: Optional[str] = None
+    tipo: Optional[str] = None
+    cargo: Optional[str] = None
+    area: Optional[str] = None
+    centro_costo: Optional[str] = None
 
 class EmpleadoLineaOut(EmpleadoLineaBase):
     class Config:

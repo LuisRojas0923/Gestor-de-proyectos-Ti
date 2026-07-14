@@ -19,6 +19,7 @@ export { Icon } from './Icon';
 export { default as ThemeToggle } from './ThemeToggle';
 export { ProgressBar } from './ProgressBar';
 export { MultiSelect } from './MultiSelect';
+export { SearchableSelect } from './SearchableSelect';
 export { AdobePdfIcon } from './AdobePdfIcon';
 export { default as Tooltip } from './Tooltip';
 

@@ -10,6 +10,8 @@ import {
 } from '../../../components/atoms';
 import { AlertCircle, ArrowRight } from 'lucide-react';
 import { useNotifications } from '../../../components/notifications/NotificationsContext';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 interface ReportRow {
   co: string;
@@ -91,6 +93,37 @@ export const InvoiceDispersionView: React.FC<Props> = ({
     } finally {
       setIsProcessing(false);
     }
+  };
+
+  const exportToPdf = () => {
+    if (report.length === 0) {
+      addNotification('warning', 'No hay datos para exportar.');
+      return;
+    }
+    
+    const doc = new jsPDF();
+    doc.text(`Resumen Contable - Periodo ${periodo}`, 14, 15);
+    
+    const tableColumn = ["C.O", "Cargo Mes", "Desc. Mes", "Impoconsumo", "Desc. IVA", "IVA 19%", "Total"];
+    const tableRows = report.map(row => [
+      row.co,
+      `$${row.cargo_mes?.toLocaleString()}`,
+      `$${row.descuento_mes?.toLocaleString()}`,
+      `$${row.impoconsumo?.toLocaleString()}`,
+      `$${row.descuento_iva?.toLocaleString()}`,
+      `$${row.iva_19?.toLocaleString()}`,
+      `$${row.total?.toLocaleString()}`
+    ]);
+
+    autoTable(doc, {
+      head: [tableColumn],
+      body: tableRows,
+      startY: 25,
+      theme: 'grid',
+      headStyles: { fillColor: [59, 130, 246] } // Color primary de Tailwind
+    });
+
+    doc.save(`Resumen_Contable_${periodo}.pdf`);
   };
 
   return (
@@ -188,7 +221,7 @@ export const InvoiceDispersionView: React.FC<Props> = ({
         <div className="overflow-hidden rounded-3xl">
           <div className="p-6 border-b border-neutral-100 dark:border-neutral-700 flex justify-between items-center">
              <Title variant="h4">Resumen Contable por Centro de Costo (C.O)</Title>
-             <Button variant="outline" size="sm" icon={Download} className="rounded-xl">Exportar PDF</Button>
+             <Button variant="outline" size="sm" icon={Download} onClick={exportToPdf} className="rounded-xl">Exportar PDF</Button>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-left">
