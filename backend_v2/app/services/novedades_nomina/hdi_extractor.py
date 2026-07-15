@@ -1,93 +1,30 @@
 """
-Extractor especializado para PDFs de SEGUROS HDI.
-Implementa los 7 pasos de normalización solicitados por el usuario.
+Extractor especializado para planillas Excel de SEGUROS HDI.
 """
-
 import io
 import re
-import logging
 import collections
+import logging
 from typing import List, Dict, Any, Tuple
-import pdfplumber
 import pandas as pd
 
 logger = logging.getLogger(__name__)
 
-def _formatear_nombre(nombre: str) -> str:
-    """Invierte el nombre de 'Nombres Apellidos' a 'Apellidos Nombres'."""
-    if not nombre: return ""
-    palabras = nombre.upper().strip().split()
-    if len(palabras) == 3:
-        # Ejemplo: EIMAR BECERRA ALVAREZ -> BECERRA ALVAREZ EIMAR
-        return f"{palabras[1]} {palabras[2]} {palabras[0]}"
-    elif len(palabras) >= 4:
-        # Ejemplo: ROBERTO ANTONIO AGUDELO QUINONES -> AGUDELO QUINONES ROBERTO ANTONIO
-        apellidos = " ".join(palabras[-2:])
-        nombres = " ".join(palabras[:-2])
-        return f"{apellidos} {nombres}"
-    return nombre.upper()
-
-def _limpiar_numero(valor: Any) -> float:
-    """Limpia strings con $, comas y otros caracteres para convertir a float."""
-    if valor is None or valor == "":
+def _limpiar_numero(val: Any) -> float:
+    """Limpia caracteres de moneda y separadores."""
+    if pd.isna(val):
         return 0.0
-    s = str(valor).replace("$", "").replace(",", "").replace("\u00A0", " ").strip()
-    s = re.sub(r"[^0-9\.\-]", "", s)
-    try:
-        if not s: return 0.0
-        return float(s)
-    except ValueError:
-        return 0.0
-
-
-def _find_column(columns: List[str], keywords: List[str]) -> str:
-    """Busca una columna que contenga alguna de las palabras clave."""
-    for col in columns:
-        col_up = str(col).upper().strip()
-        for k in keywords:
-            if k in col_up:
-                return col
-    return ""
-
-
-def _extraer_por_regex(text: str) -> List[Dict[str, Any]]:
-    """Fallback por texto puro buscando el patrón de HDI."""
-    rows = []
-    # Patrón: [CERT] [NOV] [TIPO P/D] [ID] [NAME...] [EDAD] [PLAN] [$ VALOR_ASEGURADO] [$ PRIMA_ANUAL] [$ EXTRAPRIMA] [$ PRIMA_COBRO]
-    pattern = re.compile(
-        r"(\d+)\s+[A-Z]+\s+([PD])\s+(\d{5,12})\s+(.*?)\s+\d+\s+\d+\s+.*?\$?\s*[\d,.]+\s+.*?\$?\s*([\d,.]+)\s+.*?\$?\s*[\d,.]+\s+.*?\$?\s*([\d,.]+)\s*$",
-        re.MULTILINE
-    )
+    if isinstance(val, (int, float)):
+        return float(val)
     
-    if not text:
-        return []
-
-    for line in text.split("\n"):
-        m = pattern.search(line.strip())
-        if m:
-            cert_val = m.group(1)
-            tipo = m.group(2)
-            cedula_raw = m.group(3)
-            nombre_raw = m.group(4).strip()
-            prima_anual = _limpiar_numero(m.group(5))
-            
-            # Aplicar reemplazos específicos
-            cedula, nombre = _aplicar_reemplazos(cedula_raw, nombre_raw)
-            
-            rows.append({
-                "cert": cert_val,
-                "tipo": tipo,
-                "cedula": cedula,
-                "nombre_asociado": _formatear_nombre(nombre),
-                "empresa": "REFRIDCOL",
-                "prima_anual": prima_anual,
-                "concepto": "SEGURO DE VIDA",
-            })
-    return rows
-
+    s = str(val).replace("$", "").replace(" ", "").replace(",", "")
+    try:
+        return float(s)
+    except:
+        return 0.0
 
 def _aplicar_reemplazos(cedula: str, nombre: str) -> Tuple[str, str]:
-    """Aplica las reglas del Paso 3 de normalización."""
+    """Aplica las reglas específicas de reemplazo de HDI."""
     # IDs
     if cedula == "1116235786": cedula = "66903320"
     if cedula == "31282865": cedula = "31231202"
@@ -99,123 +36,88 @@ def _aplicar_reemplazos(cedula: str, nombre: str) -> Tuple[str, str]:
     
     return cedula, nombre
 
-
-def normalizar_df(df: pd.DataFrame) -> pd.DataFrame:
-    """Normaliza el DataFrame siguiendo los 7 pasos."""
-    df = df.copy()
-    df = df.dropna(axis=1, how='all')
-    if len(df.columns) < 5: return pd.DataFrame()
-
-    # Paso 1: Encontrar encabezados
-    # Buscamos la columna de IDENTIFICACION por contenido
-    id_col_idx = -1
-    for i in range(min(6, len(df.columns))):
-        col_vals = df.iloc[:, i].astype(str).str.strip().tolist()
-        if any(re.match(r"^\d{7,12}(\.0)?$", v) for v in col_vals):
-            id_col_idx = i
-            break
-    
-    if id_col_idx == -1: return pd.DataFrame()
-
-    tipo_col_idx = id_col_idx - 1 if id_col_idx > 0 else -1
-    nombre_col_idx = id_col_idx + 1 if id_col_idx < len(df.columns) -1 else -1
-    
-    cert_col_idx = 0
-    prima_anual_col_idx = -1
-    for i, col in enumerate(df.columns):
-        col_up = str(col).upper()
-        if "ANUAL" in col_up:
-            prima_anual_col_idx = i
-            break
-    if prima_anual_col_idx == -1:
-        prima_anual_col_idx = id_col_idx + 5
-
-    valid_rows = []
-    for _, row in df.iterrows():
-        # Extraer Tipo
-        tipo = ""
-        if tipo_col_idx != -1:
-            tipo = str(row.iloc[tipo_col_idx]).strip().upper()
-        # Permitir tanto P como D
-        if tipo not in ["P", "D"]: continue
-
-        # Identificación
-        raw_id = str(row.iloc[id_col_idx]).strip().split(".")[0]
-        id_val = re.sub(r"[^0-9]", "", raw_id)
-        if not id_val or len(id_val) < 5: continue
-
-        # Nombre
-        nombre = ""
-        if nombre_col_idx != -1:
-            nombre = str(row.iloc[nombre_col_idx]).strip().split("  ")[0]
-
-        # Prima Anual
-        prima_anual = _limpiar_numero(row.iloc[prima_anual_col_idx])
-        if prima_anual <= 0: continue
-
-        # Certificado
-        cert_raw = str(row.iloc[cert_col_idx]).strip().split(".")[0]
-        cert_val = re.sub(r"[^0-9]", "", cert_raw)
-
-        # Aplicar reemplazos
-        id_val, nombre = _aplicar_reemplazos(id_val, nombre)
-        nombre = _formatear_nombre(nombre)
-
-        valid_rows.append({
-            "cert": cert_val,
-            "tipo": tipo,
-            "cedula": id_val,
-            "nombre_asociado": nombre,
-            "empresa": "REFRIDCOL",
-            "prima_anual": prima_anual,
-            "concepto": "SEGURO DE VIDA"
-        })
-
-    return pd.DataFrame(valid_rows)
-
+def _formatear_nombre(n: str) -> str:
+    # Eliminar dobles espacios y capitalizar
+    return " ".join(n.split()).title()
 
 def extraer_hdi(
     archivos_binarios: List[bytes]
 ) -> Tuple[List[Dict[str, Any]], Dict[str, Any], List[str]]:
-    """Procesa PDFs de HDI con la lógica de 7 pasos y redundancia."""
+    """Procesa planillas Excel de HDI (en lugar del PDF antiguo)."""
     all_raw_rows: List[Dict[str, Any]] = []
     warnings: List[str] = []
 
     for contenido in archivos_binarios:
         try:
-            with pdfplumber.open(io.BytesIO(contenido)) as pdf:
-                for page in pdf.pages:
-                    page_table_rows = []
+            # Leer el Excel omitiendo la primera fila de título "RELACION DE ASEGURADOS"
+            df = pd.read_excel(io.BytesIO(contenido), skiprows=1)
+            
+            # Eliminar la primera columna si viene vacía (Unnamed: 0)
+            if df.columns[0].startswith("Unnamed:"):
+                df = df.drop(columns=[df.columns[0]])
+                
+            # Identificar la columna de PRIMA COBRO (que tiene celdas combinadas) y hacer forward fill
+            # Aunque no se use en la lógica matemática interna (porque se recalcula), es bueno normalizarla
+            col_cobro = None
+            for col in df.columns:
+                if "COBRO" in str(col).upper():
+                    col_cobro = col
+                    break
+            
+            if col_cobro:
+                df[col_cobro] = df[col_cobro].ffill()
+                
+            # Procesar las filas
+            for _, row in df.iterrows():
+                # Encontrar dinámicamente el nombre de la columna TIPO, IDENTIFICACION, NOMBRES, PRIMA ANUAL, CERT
+                col_cert = col_tipo = col_id = col_nombre = col_prima = None
+                for col in df.columns:
+                    cu = str(col).upper()
+                    if "CERT" in cu: col_cert = col
+                    elif "TIPO" in cu: col_tipo = col
+                    elif "IDENTIFICACION" in cu: col_id = col
+                    elif "NOMBRE" in cu: col_nombre = col
+                    elif "PRIMA ANUAL" in cu: col_prima = col
+                
+                # Fallback por índice si los nombres de columna fallan
+                if not col_cert: col_cert = df.columns[0]
+                if not col_tipo: col_tipo = df.columns[1] if len(df.columns) > 1 else None
+                if not col_id: col_id = df.columns[2] if len(df.columns) > 2 else None
+                if not col_nombre: col_nombre = df.columns[3] if len(df.columns) > 3 else None
+                if not col_prima: col_prima = df.columns[-3] if len(df.columns) >= 3 else None
+                
+                # Extraer datos de la fila
+                tipo = str(row.get(col_tipo, "")).strip().upper()
+                if tipo not in ["P", "D"]:
+                    continue # Saltar filas inválidas o totales
                     
-                    # 1. TABLAS
-                    tables = page.extract_tables()
-                    if not tables:
-                        tables = page.extract_tables(table_settings={
-                            "vertical_strategy": "text", "horizontal_strategy": "text"
-                        })
+                raw_id = str(row.get(col_id, "")).strip().split(".")[0]
+                id_val = re.sub(r"[^0-9]", "", raw_id)
+                if not id_val or len(id_val) < 5:
+                    continue
                     
-                    for table in tables:
-                        df_norm = normalizar_df(pd.DataFrame(table))
-                        for _, row in df_norm.iterrows():
-                            page_table_rows.append(dict(row))
-                    
-                    all_raw_rows.extend(page_table_rows)
-
-                    # 2. REGEX (Sellar lo que las tablas pierden)
-                    text = page.extract_text()
-                    if text:
-                        # Contamos qué extrajeron las tablas para no duplicar en el regex
-                        table_counts = collections.Counter((r["cedula"], r["prima_anual"]) for r in page_table_rows)
-                        regex_counts = collections.Counter()
-                        
-                        for row in _extraer_por_regex(text):
-                            key = (row["cedula"], row["prima_anual"])
-                            if regex_counts[key] >= table_counts[key]:
-                                all_raw_rows.append(row)
-                            regex_counts[key] += 1
+                nombre = str(row.get(col_nombre, "")).strip()
+                prima_anual = _limpiar_numero(row.get(col_prima, 0))
+                
+                cert_raw = str(row.get(col_cert, "")).strip().split(".")[0]
+                cert_val = re.sub(r"[^0-9]", "", cert_raw)
+                
+                id_val, nombre = _aplicar_reemplazos(id_val, nombre)
+                nombre = _formatear_nombre(nombre)
+                
+                if prima_anual > 0:
+                    all_raw_rows.append({
+                        "cert": cert_val,
+                        "tipo": tipo,
+                        "cedula": id_val,
+                        "nombre_asociado": nombre,
+                        "empresa": "REFRIDCOL",
+                        "prima_anual": prima_anual,
+                        "concepto": "SEGURO DE VIDA"
+                    })
 
         except Exception as e:
-            logger.error(f"Error procesando HDI: {e}")
+            logger.error(f"Error procesando HDI Excel: {e}")
             warnings.append(str(e))
 
     # Agrupar por CERT
@@ -278,35 +180,32 @@ def extraer_hdi(
 
     # CONSOLIDACIÓN FINAL: Agrupar por cédula (si un Titular tiene más de un CERT)
     consolidated_dict: Dict[str, Dict[str, Any]] = {}
-    for row in consolidated_rows:
-        cedula = row["cedula"]
-        if cedula in consolidated_dict:
-            consolidated_dict[cedula]["valor"] += row["valor"]
-            consolidated_dict[cedula]["valor_rdc"] += row["valor_rdc"]
-            consolidated_dict[cedula]["valor_colaborador"] += row["valor_colaborador"]
-            if row["observaciones"]:
-                obs_prev = consolidated_dict[cedula].get("observaciones")
-                if obs_prev:
-                    consolidated_dict[cedula]["observaciones"] = f"{obs_prev} || {row['observaciones']}"
-                else:
-                    consolidated_dict[cedula]["observaciones"] = row["observaciones"]
+    for r in consolidated_rows:
+        ced = r["cedula"]
+        if ced not in consolidated_dict:
+            consolidated_dict[ced] = r
         else:
-            consolidated_dict[cedula] = row.copy()
+            consolidated_dict[ced]["valor"] += r["valor"]
+            consolidated_dict[ced]["valor_rdc"] += r["valor_rdc"]
+            consolidated_dict[ced]["valor_colaborador"] += r["valor_colaborador"]
+            consolidated_dict[ced]["observaciones"] += f" | {r['observaciones']}"
             
+            # Redondeos para evitar muchos decimales
+            consolidated_dict[ced]["valor"] = round(consolidated_dict[ced]["valor"], 2)
+            consolidated_dict[ced]["valor_rdc"] = round(consolidated_dict[ced]["valor_rdc"], 2)
+            consolidated_dict[ced]["valor_colaborador"] = round(consolidated_dict[ced]["valor_colaborador"], 2)
+
     final_rows = list(consolidated_dict.values())
-
-    # Redondear valores finales
-    for r in final_rows:
-        r["valor"] = round(r["valor"], 2)
-        r["valor_rdc"] = round(r["valor_rdc"], 2)
-        r["valor_colaborador"] = round(r["valor_colaborador"], 2)
-
-    total_valor = sum(r["valor"] for r in final_rows)
-    summary = {
-        "total_asociados": len(final_rows),
-        "total_filas_consolidadas": len(final_rows),
-        "total_valor": round(total_valor, 2),
-        "archivos_procesados": len(archivos_binarios),
-    }
     
+    # Prevenir que haya filas sin valor_colaborador (debería venir del consolidation final, pero por si acaso)
+    for r in final_rows:
+        if "valor_colaborador" not in r:
+            r["valor_colaborador"] = r["valor"]
+
+    total_descuentos = sum(r["valor"] for r in final_rows)
+    summary = {
+        "total_registros": len(final_rows),
+        "total_descuentos": total_descuentos
+    }
+
     return final_rows, summary, warnings

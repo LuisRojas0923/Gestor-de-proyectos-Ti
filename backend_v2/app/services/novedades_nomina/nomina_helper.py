@@ -57,20 +57,29 @@ class NominaHelper:
             cedulas_procesadas.add(cedula_original)
             
             info_original = mapa_erp.get(cedula_original)
+            ex = mapa_ex.get(cedula_original)
             
-            # Lógica para Seguros HDI: el descuento de la empresa (24%) solo aplica para colaboradores activos
+            # Lógica para Seguros HDI:
+            # 1. El descuento de la empresa (24%) solo aplica para colaboradores activos
+            # 2. Si el colaborador es contratista o tiene excepción de contratista, la empresa asume 0%
             valor_rdc_final = row.get("valor_rdc", 0.0)
             valor_colaborador_final = row.get("valor_colaborador", 0.0)
-            if subcategoria == "SEGUROS HDI" and info_original:
-                if str(info_original.get("estado", "")).strip().upper() != "ACTIVO":
+            
+            if subcategoria == "SEGUROS HDI":
+                es_contratista_erp = False
+                if info_original and info_original.get("empresa") and "CONTRATISTA" in str(info_original["empresa"]).upper():
+                    es_contratista_erp = True
+                
+                tiene_excepcion_penalizada = ex and ex.tipo != 'PAGO_TERCERO'
+                no_activo = info_original and str(info_original.get("estado", "")).strip().upper() != "ACTIVO"
+                
+                if es_contratista_erp or tiene_excepcion_penalizada or no_activo:
                     valor_rdc_final = 0.0
                     valor_colaborador_final = row["valor"]
 
             valor_final = row["valor"]
             concepto_final = row["concepto"]
             cedula_final = cedula_original
-            # Buscar excepción vigente para este colaborador y subcategoría
-            ex = mapa_ex.get(cedula_original)
             
             # Fallback de nombre: ERP -> Excepción (Manual) -> Archivo
             nombre_final = info_original["nombre"] if info_original else (ex.nombre_asociado if ex and ex.nombre_asociado else row.get("nombre_asociado", ""))
