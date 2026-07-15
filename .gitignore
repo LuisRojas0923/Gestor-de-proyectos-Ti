@@ -3,6 +3,7 @@
 /backend/venv
 /backend_v2/venv
 /frontend/node_modules
+/movil/node_modules/
 
 # Build artifacts
 /dist
@@ -25,6 +26,8 @@
 .opencode/bun.lock
 .opencode/.gitignore
 .opencode/tmp/
+# Los adaptadores .codex/agents/ se versionan; su memoria local no
+.codex/agent-memory/
 .claude/settings.local.json
 .claude/agent-memory/
 

@@ -2,14 +2,20 @@ import * as dagre from 'dagre';
 import { Edge, Position } from '@xyflow/react';
 import type { Node as FlowNode } from '@xyflow/react';
 
-// Configurador del auto-layout con Dagre
-const dagreGraph = new dagre.graphlib.Graph();
-dagreGraph.setDefaultEdgeLabel(() => ({}));
+export const nodeWidth = 230;
+export const nodeHeight = 65;
 
-export const nodeWidth = 175;
-export const nodeHeight = 60;
+export const isNodeExpanded = (
+  toggledNodes: Record<string, boolean>,
+  nodeId: string,
+  level: number,
+) => toggledNodes[nodeId] ?? level <= 1;
+
+export const getCenterZoom = (viewportWidth: number) => viewportWidth < 640 ? 0.7 : 1;
 
 export const getLayoutedElements = (nodes: FlowNode[], edges: Edge[], direction = 'TB') => {
+  const dagreGraph = new dagre.graphlib.Graph();
+  dagreGraph.setDefaultEdgeLabel(() => ({}));
   const isHorizontal = direction === 'LR';
   dagreGraph.setGraph({ 
     rankdir: direction,
