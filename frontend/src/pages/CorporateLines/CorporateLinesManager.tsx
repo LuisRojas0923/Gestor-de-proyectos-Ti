@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Search, Plus, Upload, LayoutGrid, ReceiptText, FileSpreadsheet, Smartphone, Users } from 'lucide-react';
+import { Search, Plus, Upload, LayoutGrid, ReceiptText, FileSpreadsheet, Smartphone, Users, Download } from 'lucide-react';
 import { useCorporateLines, CorporateLine } from './useCorporateLines';
 import { useNotifications } from '../../components/notifications/NotificationsContext';
 import { useAppContext } from '../../context/AppContext';
@@ -14,6 +14,8 @@ import {
   Badge,
   Select,
 } from '../../components/atoms';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 // Sub-componentes modulares
 import { StatsCards } from './components/StatsCards';
@@ -176,6 +178,40 @@ export const CorporateLinesManager: React.FC = () => {
       e.target.value = '';
     }
   };
+
+  const exportCatalogToPDF = () => {
+    if (filteredLines.length === 0) {
+      addNotification('warning', 'No hay datos para exportar.');
+      return;
+    }
+    
+    const doc = new jsPDF('landscape');
+    doc.text(`Catálogo de Líneas Corporativas`, 14, 15);
+    doc.setFontSize(10);
+    doc.text(`Filtros: Empresa: ${companyFilter} | Estado: ${statusFilter}`, 14, 22);
+    
+    const tableColumn = ["Línea", "Empresa", "Asignado A", "C.C / C.O", "Equipo", "Estado", "Pago Empleado"];
+    const tableRows = filteredLines.map(line => [
+      line.linea,
+      line.empresa,
+      line.asignado?.nombre || 'No asignada',
+      line.asignado?.centro_costo || 'N/A',
+      line.equipo?.modelo || 'Sin equipo',
+      line.estatus,
+      `$${(line.pago_empleado || 0).toLocaleString('es-CO')}`
+    ]);
+
+    autoTable(doc, {
+      head: [tableColumn],
+      body: tableRows,
+      startY: 28,
+      theme: 'grid',
+      headStyles: { fillColor: [0, 0, 128] } // Azul corporativo (Navy)
+    });
+
+    doc.save(`Catalogo_Lineas_${new Date().toISOString().split('T')[0]}.pdf`);
+  };
+
   return (
     <main className="flex-1 overflow-y-auto p-6 custom-scrollbar">
       {view === 'dashboard' ? (
@@ -296,27 +332,37 @@ export const CorporateLinesManager: React.FC = () => {
 
           {mode === 'inventory' ? (
             <>
-              {/* FILTROS INTEGRADOS */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                <Input
-                  placeholder="Buscar línea, nombre o ID..."
-                  icon={Search}
-                  value={searchTerm}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
-                  className="!rounded-xl border-none bg-neutral-100 dark:bg-neutral-700"
-                />
-                <Select
-                  value={companyFilter}
-                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setCompanyFilter(e.target.value)}
-                  options={companyOptions}
-                  className="!rounded-xl"
-                />
-                <Select
-                  value={statusFilter}
-                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setStatusFilter(e.target.value)}
-                  options={statusOptions}
-                  className="!rounded-xl"
-                />
+              {/* FILTROS INTEGRADOS Y ACCIONES */}
+              <div className="flex flex-col xl:flex-row gap-4 mb-6 justify-between items-start xl:items-center">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 flex-1 w-full">
+                  <Input
+                    placeholder="Buscar línea, nombre o ID..."
+                    icon={Search}
+                    value={searchTerm}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
+                    className="!rounded-xl border-none bg-neutral-100 dark:bg-neutral-700"
+                  />
+                  <Select
+                    value={companyFilter}
+                    onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setCompanyFilter(e.target.value)}
+                    options={companyOptions}
+                    className="!rounded-xl"
+                  />
+                  <Select
+                    value={statusFilter}
+                    onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setStatusFilter(e.target.value)}
+                    options={statusOptions}
+                    className="!rounded-xl"
+                  />
+                </div>
+                <Button 
+                  variant="outline" 
+                  icon={Download} 
+                  onClick={exportCatalogToPDF}
+                  className="rounded-xl h-12 px-6 shadow-sm whitespace-nowrap"
+                >
+                  Exportar PDF
+                </Button>
               </div>
 
               <LinesTable
