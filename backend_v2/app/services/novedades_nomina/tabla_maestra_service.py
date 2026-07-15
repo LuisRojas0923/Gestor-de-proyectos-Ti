@@ -167,8 +167,8 @@ class TablaMaestraService:
                     if quincena == "Q2" and not es_q2:
                         continue
 
-                # Calcular valor quincenal
-                valor_mensual = r.valor or 0
+                # Calcular valor quincenal (Se exporta ÚNICAMENTE la porción que paga el colaborador)
+                valor_mensual = r.valor_colaborador if r.valor_colaborador is not None else (r.valor or 0)
                 if subcat in ["OTROS GERENCIA", "RETENCIONES"]:
                     valor_quincenal = round(valor_mensual, 2)
                 else:
