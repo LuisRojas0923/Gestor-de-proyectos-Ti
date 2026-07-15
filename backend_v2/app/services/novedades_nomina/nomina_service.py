@@ -98,17 +98,43 @@ class NominaService:
         ruta_almacenamiento = "memory"
         nombre_archivo = f"{subcategoria.lower().replace(' ', '_')}_{mes}_{anio}.{extension}"
         
+        import zipfile
+        import io
+        
         if archivos_binarios:
-            contenido = archivos_binarios[0]
-            hash_str = hashlib.md5(contenido).hexdigest()
-            nombre_archivo = original_filenames[0]
-            ext_real = nombre_archivo.split('.')[-1].lower() if '.' in nombre_archivo else extension
-            
-            ruta_almacenamiento = os.path.join(STORAGE_DIR, f"{hash_str}.{ext_real}")
-            
-            # Guardamos el archivo original intacto para descargas y auditoría
-            with open(ruta_almacenamiento, "wb") as f_out:
-                f_out.write(contenido)
+            if len(archivos_binarios) == 1:
+                contenido = archivos_binarios[0]
+                hash_str = hashlib.md5(contenido).hexdigest()
+                nombre_archivo = original_filenames[0]
+                ext_real = nombre_archivo.split('.')[-1].lower() if '.' in nombre_archivo else extension
+                
+                ruta_almacenamiento = os.path.join(STORAGE_DIR, f"{hash_str}.{ext_real}")
+                
+                # Guardamos el archivo original intacto para descargas y auditoría
+                with open(ruta_almacenamiento, "wb") as f_out:
+                    f_out.write(contenido)
+                    
+                archivo_preview = archivos_binarios[0][:1024]
+                tamaño_total = len(contenido)
+            else:
+                # Empaquetar múltiples archivos en un ZIP
+                zip_buffer = io.BytesIO()
+                with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zf:
+                    for filename, content in zip(original_filenames, archivos_binarios):
+                        zf.writestr(filename, content)
+                
+                contenido_zip = zip_buffer.getvalue()
+                hash_str = hashlib.md5(contenido_zip).hexdigest()
+                nombre_archivo = f"{subcategoria.replace(' ', '_')}_{mes}_{anio}.zip"
+                extension = "zip"
+                ext_real = "zip"
+                
+                ruta_almacenamiento = os.path.join(STORAGE_DIR, f"{hash_str}.zip")
+                with open(ruta_almacenamiento, "wb") as f_out:
+                    f_out.write(contenido_zip)
+                    
+                archivo_preview = contenido_zip[:1024]
+                tamaño_total = len(contenido_zip)
         
         # 2. Extraer datos usando la función específica en un hilo separado para no bloquear el event loop
         import asyncio
@@ -132,8 +158,8 @@ class NominaService:
             
             # 6. Crear entrada de archivo
             archivo = await NominaService.crear_archivo_procesado(
-                session, nombre_archivo, archivos_binarios[0][:1024] if archivos_binarios else b"", 
-                sum(len(b) for b in archivos_binarios), extension, mes, anio, categoria, subcategoria, ruta_almacenamiento
+                session, nombre_archivo, archivo_preview if archivos_binarios else b"", 
+                tamaño_total if archivos_binarios else 0, extension, mes, anio, categoria, subcategoria, ruta_almacenamiento
             )
 
             # 7. Persistir registros (con excepciones)
