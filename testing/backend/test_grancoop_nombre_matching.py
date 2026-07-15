@@ -78,11 +78,10 @@ def test_grancoop_extractor_sin_cedula(mock_open):
     assert any("Cédula no detectada" in w for w in warnings)
 
 @patch("pdfplumber.open")
-def test_grancoop_ignorar_crediprima_y_recalcular(mock_open):
+def test_grancoop_separa_crediprima_y_recalcula(mock_open):
     """
-    Valida que las líneas con la palabra 'CREDIPRIMA' sean ignoradas,
-    y que los totales del asociado se recalculen a partir de las líneas
-    de detalle no excluidas (evitando errores de parseo por asteriscos).
+    Valida que CREDIPRIMA se separe de adicionales y que el total del PDF
+    no se sume dos veces.
     """
     mock_pdf = MagicMock()
     mock_page = MagicMock()
@@ -101,11 +100,92 @@ def test_grancoop_ignorar_crediprima_y_recalcular(mock_open):
 
     rows, summary, warnings = extraer_grancoop([b"fake pdf content"])
 
-    # Sólo debería haber una fila normalizada: FONDO MUTUAL (GRANCOOP ADICIONALES = 58200)
-    # CREDIPRIMA (1937 de Vida y 1174879 de Otros) debe ser totalmente omitido
     rows_bobadilla = [r for r in rows if r["nombre_asociado"] == "BOBADILLA PRADA KAROL VIVIAM"]
-    assert len(rows_bobadilla) == 1
-    
-    row = rows_bobadilla[0]
-    assert row["concepto"] == "GRANCOOP ADICIONALES"
-    assert row["valor"] == 58200
+    conceptos = {row["concepto"]: row["valor"] for row in rows_bobadilla}
+
+    assert conceptos == {
+        "GRANCOOP ADICIONALES": 58200,
+        "GRANCOOP PRIMA": 1176816,
+    }
+    assert summary["total_valor"] == 1235016
+
+
+@patch("pdfplumber.open")
+def test_grancoop_nompri_clasifica_fondo_mutual_como_prima(mock_open):
+    mock_pdf = MagicMock()
+    mock_page = MagicMock()
+    mock_page.extract_text.return_value = (
+        "Asociado : BOBADILLA PRADA KAROL VIVIAM\n"
+        "Documento\n"
+        "206 12345678 OBLIGACION ESTATUTARIA 0 0 0 0 0 0 0 0 0 0\n"
+        "10 261000092 CREDIPRIMA 0 0 0 1,937 0 0 1,174,879 0 0 1,176,816\n"
+        "38 261002174 FONDO MUTUAL 0 0 0 0 0 0 58,200 0 0 58,200\n"
+        "Totales : 0 0 0 1,937 0 0 1,233,079 0 0 1,235,016\n"
+    )
+    mock_pdf.pages = [mock_page]
+    mock_open.return_value.__enter__.return_value = mock_pdf
+
+    rows, summary, warnings = extraer_grancoop(
+        [b"fake pdf content"], ["nompri_junio.pdf"]
+    )
+
+    assert warnings == []
+    assert [(row["concepto"], row["valor"]) for row in rows] == [
+        ("GRANCOOP PRIMA", 1235016)
+    ]
+    assert summary["total_valor"] == 1235016
+
+
+@pytest.mark.parametrize(
+    "nombres",
+    [[None], [""], ["uno.pdf", "dos.pdf"]],
+)
+def test_grancoop_rechaza_nombres_ausentes_o_desalineados(nombres):
+    with pytest.raises(ValueError, match="nombres"):
+        extraer_grancoop([b"fake pdf content"], nombres)
+
+
+@patch("pdfplumber.open")
+def test_grancoop_nompri_debe_ser_token_del_nombre(mock_open):
+    mock_pdf = MagicMock()
+    mock_page = MagicMock()
+    mock_page.extract_text.return_value = (
+        "Asociado : PERSONA PRUEBA\n"
+        "Documento\n"
+        "38 261002174 FONDO MUTUAL 0 0 0 0 0 0 58,200 0 0 58,200\n"
+        "Totales : 0 0 0 0 0 0 58,200 0 0 58,200\n"
+    )
+    mock_pdf.pages = [mock_page]
+    mock_open.return_value.__enter__.return_value = mock_pdf
+
+    rows, _, _ = extraer_grancoop([b"fake"], ["archivo_XNOMPRIX.pdf"])
+
+    assert [(row["concepto"], row["valor"]) for row in rows] == [
+        ("GRANCOOP ADICIONALES", 58200)
+    ]
+
+
+@patch("pdfplumber.open")
+def test_grancoop_rechaza_pdf_con_demasiadas_paginas(mock_open):
+    mock_pdf = MagicMock()
+    mock_pdf.pages = [MagicMock() for _ in range(501)]
+    mock_open.return_value.__enter__.return_value = mock_pdf
+
+    with pytest.raises(ValueError, match="páginas"):
+        extraer_grancoop([b"fake"], ["archivo.pdf"])
+
+
+@patch("pdfplumber.open")
+@patch(
+    "app.services.novedades_nomina.grancoop_extractor.MAX_CARACTERES_PDF",
+    10,
+)
+def test_grancoop_rechaza_pdf_con_demasiado_texto(mock_open):
+    mock_pdf = MagicMock()
+    mock_page = MagicMock()
+    mock_page.extract_text.return_value = "x" * 11
+    mock_pdf.pages = [mock_page]
+    mock_open.return_value.__enter__.return_value = mock_pdf
+
+    with pytest.raises(ValueError, match="texto"):
+        extraer_grancoop([b"fake"], ["archivo.pdf"])

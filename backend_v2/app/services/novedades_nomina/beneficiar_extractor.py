@@ -108,11 +108,13 @@ def extraer_beneficiar(archivos_binarios: List[bytes]) -> Tuple[List[Dict[str, A
                             "valor": prima
                         })
 
-                except Exception as e:
-                    warnings_txt.append(f"Archivo {archivo_idx + 1}, fila {index + 4}: Error al procesar ({str(e)})")
+                except Exception:
+                    warnings_txt.append(
+                        f"Archivo {archivo_idx + 1}, fila {index + 4}: Error al procesar"
+                    )
 
-        except Exception as e:
-            warnings_txt.append(f"Error general evaluando archivo {archivo_idx + 1}: {str(e)}")
+        except Exception:
+            warnings_txt.append(f"Archivo {archivo_idx + 1}: formato no legible")
 
     summary = {
         "archivos_procesados": archivos_validos,

@@ -58,3 +58,35 @@ def test_extraer_beneficiar_con_prima():
     assert "BENEFICIAR PRIMA" not in conceptos_asoc2
     assert conceptos_asoc2["BENEFICIAR CREDITO"] == 150000.0
     assert conceptos_asoc2["BENEFICIAR OTROS DESCUENTOS"] == 20000.0
+
+
+def test_extraer_beneficiar_sin_columna_prima():
+    data = {
+        "CEDULA": [1107068093],
+        "DCTO_APORTE": [50000],
+        "DCTO_AHORRO": [10000],
+        "DCTO_OBLIGACIONES": [150000],
+        "DCTO_SERVICIOS": [5000],
+        "DCTO_GES": [2000],
+        "DCTO_ROTATIVO": [0],
+    }
+    output = io.BytesIO()
+    pd.DataFrame(data).to_excel(output, startrow=3, index=False)
+
+    filas, resumen, warnings = extraer_beneficiar([output.getvalue()])
+
+    assert warnings == []
+    assert resumen["archivos_procesados"] == 1
+    assert "BENEFICIAR PRIMA" not in {fila["concepto"] for fila in filas}
+    assert sum(fila["valor"] for fila in filas) == 217000
+
+
+def test_extraer_beneficiar_rechaza_columna_obligatoria_ausente():
+    output = io.BytesIO()
+    pd.DataFrame({"CEDULA": [1107068093]}).to_excel(output, startrow=3, index=False)
+
+    filas, resumen, warnings = extraer_beneficiar([output.getvalue()])
+
+    assert filas == []
+    assert resumen["archivos_procesados"] == 0
+    assert any("Faltan columnas" in warning for warning in warnings)
