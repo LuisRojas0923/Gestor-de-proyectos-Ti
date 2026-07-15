@@ -35,6 +35,7 @@ export interface DataTableProps<T> {
 
     onMouseEnterRow?: (row: T, event: React.MouseEvent) => void;
     onMouseLeaveRow?: () => void;
+    getRowClassName?: (row: T) => string;
     bodyRef?: React.RefObject<HTMLDivElement>;
     isRowDraggable?: boolean;
     onRowsReorder?: (fromIndex: number, toIndex: number) => void;
@@ -70,6 +71,7 @@ export function DataTable<T>({
     actionsMinWidth = '100px',
     onMouseEnterRow,
     onMouseLeaveRow,
+    getRowClassName,
     bodyRef,
     isRowDraggable = false,
     onRowsReorder,
@@ -335,7 +337,7 @@ export function DataTable<T>({
                                 (bodyGridRef as React.MutableRefObject<HTMLDivElement | null>).current = el;
                                 if (bodyRef) (bodyRef as React.MutableRefObject<HTMLDivElement | null>).current = el;
                             }}
-                            className="overflow-y-auto custom-scrollbar flex-1 min-h-0"
+                            className="overflow-y-auto custom-scrollbar"
                         >
                             {data.map((row, rowIndex) => (
                                 <div
@@ -354,7 +356,7 @@ export function DataTable<T>({
                                         setDraggedRowIndex(null);
                                         setDragOverRowIndex(null);
                                     }}
-                                    className={`group relative grid col-span-full grid-cols-subgrid border-b border-[var(--color-border)] hover:bg-[var(--color-surface-variant)] transition-all duration-200 cursor-pointer ${dragOverRowIndex === rowIndex ? 'my-1 bg-[var(--color-primary)]/8 ring-1 ring-inset ring-[var(--color-primary)]/25 before:absolute before:-top-1 before:left-3 before:right-3 before:h-0.5 before:rounded-full before:bg-[var(--color-primary)] before:shadow-sm before:content-[""]' : ''} ${draggedRowIndex === rowIndex ? 'scale-[0.985] border-dashed bg-[var(--color-surface-variant)]/50 opacity-35 ring-1 ring-inset ring-[var(--color-primary)]/25' : ''}`}
+                                    className={`group relative grid col-span-full grid-cols-subgrid border-b border-[var(--color-border)] hover:bg-[var(--color-surface-variant)] transition-all duration-200 cursor-pointer ${getRowClassName?.(row) ?? ''} ${dragOverRowIndex === rowIndex ? 'my-1 bg-[var(--color-primary)]/8 ring-1 ring-inset ring-[var(--color-primary)]/25 before:absolute before:-top-1 before:left-3 before:right-3 before:h-0.5 before:rounded-full before:bg-[var(--color-primary)] before:shadow-sm before:content-[""]' : ''} ${draggedRowIndex === rowIndex ? 'scale-[0.985] border-dashed bg-[var(--color-surface-variant)]/50 opacity-35 ring-1 ring-inset ring-[var(--color-primary)]/25' : ''}`}
                                     onMouseEnter={(e) => onMouseEnterRow?.(row, e)}
                                     onMouseLeave={onMouseLeaveRow}
                                 >

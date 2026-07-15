@@ -101,7 +101,6 @@ export const WbsNodeModal: React.FC<WbsNodeModalProps> = ({
                     porcentaje_avance: parseFloat(avance.toString()),
                     responsable_id: responsableId || undefined,
                     asignado_a_id: asignadoAId || undefined,
-                    delegado_por_id: state.user?.id || undefined,
                     seguimiento,
                     compromiso,
                     compromiso_fecha: compromisoFecha || undefined,

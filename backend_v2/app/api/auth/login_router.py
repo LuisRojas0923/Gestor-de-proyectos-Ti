@@ -74,7 +74,6 @@ async def login(
     db_erp=Depends(obtener_erp_db_opcional),
 ):
     """Endpoint para inicio de sesion (OAuth2 compatible)"""
-    settings = obtener_configuracion()
     try:
         cedula_normalizada = normalizar_cedula(form_data.username)
         password_normalizada = (form_data.password or "").strip()
@@ -94,13 +93,13 @@ async def login(
         if not usuario:
             jit_creado = False
             if db_erp:
-                try:
-                    from app.services.erp.empleados_service import EmpleadosService
-                    empleado = await EmpleadosService.obtener_empleado_por_cedula(db_erp, cedula_normalizada)
-                except HTTPException:
-                    raise
-                except Exception:
-                    empleado = None
+                from app.services.erp.empleados_service import (
+                    EmpleadosService,
+                    normalizar_bool_erp,
+                )
+                empleado = await EmpleadosService.validar_empleado_activo_autogestion(
+                    db_erp, cedula_normalizada
+                )
                 if empleado:
                     if password_normalizada.lower() == cedula_normalizada:
                         raise HTTPException(
@@ -109,14 +108,14 @@ async def login(
                         )
                     hash_pendiente = ServicioAuth.obtener_hash_contrasena(config.portal_pending_pwd)
                     id_usuario = f"USR-P-{cedula_normalizada}"
-                    viaticante_val = bool(empleado.get("viaticante"))
+                    viaticante_val = normalizar_bool_erp(empleado.get("viaticante"))
                     nuevo_usuario = Usuario(
                         id=id_usuario,
                         cedula=cedula_normalizada,
                         nombre=empleado["nombre"],
                         hash_contrasena=hash_pendiente,
                         rol="viaticante" if viaticante_val else "usuario",
-                        esta_activo=settings.jit_auto_aprobar,
+                        esta_activo=True,
                         area=empleado.get("area"),
                         cargo=empleado.get("cargo"),
                         sede=empleado.get("ciudadcontratacion"),
@@ -142,30 +141,32 @@ async def login(
                                 detail="No se pudo crear ni recuperar el usuario JIT",
                             )
             if jit_creado:
-                if settings.jit_auto_aprobar:
-                    raise HTTPException(
-                        status_code=status.HTTP_400_BAD_REQUEST,
-                        detail="Contraseña no configurada",
-                        headers={"X-Password-Not-Set": "true"},
-                    )
                 raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    detail="Tu cuenta está pendiente de aprobación por un administrador. Recibirás un correo cuando sea activada.",
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Contraseña no configurada",
+                    headers={"X-Password-Not-Set": "true"},
                 )
-            # Cedula no existe: contar como fallo para lockout per-cuenta.
-            _registrar_fallo_cedula(cedula_normalizada)
-            await _auditar_login(
-                usuario_id=f"desconocido:{cedula_normalizada}",
-                usuario_nombre=None,
-                rol=None,
-                exitoso=False,
-                motivo="usuario_no_encontrado",
-                request=request,
-            )
+            if not usuario:
+                # Cedula no existe: contar como fallo para lockout per-cuenta.
+                _registrar_fallo_cedula(cedula_normalizada)
+                await _auditar_login(
+                    usuario_id="desconocido",
+                    usuario_nombre=None,
+                    rol=None,
+                    exitoso=False,
+                    motivo="usuario_no_encontrado",
+                    request=request,
+                )
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Credenciales incorrectas",
+                    headers={"WWW-Authenticate": "Bearer"},
+                )
+
+        if not usuario.esta_activo:
             raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Credenciales incorrectas",
-                headers={"WWW-Authenticate": "Bearer"},
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="La cuenta está desactivada. Por favor, contacte al administrador.",
             )
 
         if not ServicioAuth.es_password_configurado(usuario.hash_contrasena, usuario.cedula):
@@ -192,12 +193,6 @@ async def login(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Credenciales incorrectas",
                 headers={"WWW-Authenticate": "Bearer"},
-            )
-
-        if not usuario.esta_activo:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="La cuenta está desactivada. Por favor, contacte al administrador.",
             )
 
         if db_erp and (not usuario.area or not usuario.sede):

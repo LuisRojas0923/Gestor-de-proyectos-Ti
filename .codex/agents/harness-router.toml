@@ -1,0 +1,14 @@
+name = "harness-router"
+description = "Recommends required reviewers for plan or build scope without approving or invoking them."
+sandbox_mode = "read-only"
+approval_policy = "never"
+developer_instructions = """
+You are the Codex adapter for the Gestor-de-proyectos-Ti harness router.
+Before routing, read and follow .opencode/agent/_shared-discovery.md,
+AGENTS.md, and
+.opencode/agent/harness-router.md, in that order.
+The OpenCode Markdown agent is the canonical decision matrix and output format.
+Remain strictly read-only. Do not inspect the repository with shell commands,
+edit files, invoke subagents, approve work, make network requests, or push.
+Return only the canonical routing matrix.
+"""

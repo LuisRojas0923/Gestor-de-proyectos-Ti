@@ -54,7 +54,7 @@ class Settings(BaseSettings):
     trusted_proxy_ips: str = ""
 
     # Límites por endpoint. Documentados en docs/GUIA_DESARROLLO.md.
-    rate_limit_login: str = "50minute;200/hour"    # 5 minute y 20 hour
+    rate_limit_login: str = "5/minute;20/hour"
     rate_limit_setup_password: str = "30/hour"
     rate_limit_forgot_password: str = "3/hour"
     rate_limit_reset_password: str = "5/hour"
@@ -66,7 +66,7 @@ class Settings(BaseSettings):
     rate_limit_mcp_tokens_revoke: str = "10/minute"
     # /auth/refresh: el usuario ya esta autenticado, pero limitamos por IP
     # para evitar que un atacante con un token robado haga refresh infinito.
-    rate_limit_refresh: str = "120/hour"  #20 hour
+    rate_limit_refresh: str = "20/hour"
 
     # Lockout por cuenta: tras N fallos de login consecutivos en una ventana
     # corta, se bloquea el acceso a esa cuenta (no por IP) durante

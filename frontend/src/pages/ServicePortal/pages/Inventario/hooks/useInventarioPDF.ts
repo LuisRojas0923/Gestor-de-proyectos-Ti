@@ -1,7 +1,5 @@
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import axios from 'axios';
-import { API_CONFIG } from '../../../../../config/api';
 
 interface InventarioPDFProps {
     filteredItems: any[];
@@ -163,15 +161,6 @@ export const useInventarioPDF = ({ filteredItems, ronda, addNotification, numero
             }
 
             doc.save(`Planilla_Conteo_C${ronda}_${userCedula}.pdf`);
-            
-            // Registrar en auditoría la descarga silenciosamente
-            const token = localStorage.getItem('token');
-            if (token) {
-                axios.post(`${API_CONFIG.BASE_URL}/inventario/auditar-descarga-pdf-asignado`, {}, {
-                    headers: { Authorization: `Bearer ${token}` }
-                }).catch(() => {});
-            }
-
             addNotification('info', "Planilla de conteo generada con éxito.");
 
         } catch (error) {

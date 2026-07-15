@@ -85,9 +85,9 @@ const ActividadEnTiempo: React.FC<ActividadEnTiempoProps> = ({ datos }) => {
     if (datos.length > 3 && porcentajeTop2 >= 70 && total > 5) {
       const f1Str = formatearFechaAmigable(ordenados[0].fecha, { day: 'numeric', month: 'short' });
       const f2Str = ordenados[1] ? formatearFechaAmigable(ordenados[1].fecha, { day: 'numeric', month: 'short' }) : '';
-      
+
       const fechasTexto = f2Str ? `${f1Str} y ${f2Str}` : f1Str;
-      
+
       alertaConcentracion = {
         titulo: 'Concentración inusual de actividad',
         mensaje: `El ${Math.round(porcentajeTop2)}% de los eventos del período se concentraron el ${fechasTexto}.`
@@ -154,28 +154,28 @@ const ActividadEnTiempo: React.FC<ActividadEnTiempoProps> = ({ datos }) => {
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={formattedData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" opacity={0.5} />
-              <XAxis 
-                dataKey="fechaFormateada" 
-                stroke="var(--color-text-secondary)" 
-                fontSize={12} 
-                tickMargin={10} 
+              <XAxis
+                dataKey="fechaFormateada"
+                stroke="var(--color-text-secondary)"
+                fontSize={12}
+                tickMargin={10}
               />
-              <YAxis 
-                stroke="var(--color-text-secondary)" 
-                fontSize={12} 
+              <YAxis
+                stroke="var(--color-text-secondary)"
+                fontSize={12}
                 tickFormatter={(val) => val.toLocaleString()}
               />
-              <Tooltip 
+              <Tooltip
                 cursor={{ stroke: 'var(--color-border)', strokeWidth: 1, strokeDasharray: '3 3' }}
                 contentStyle={{ borderRadius: '12px', border: '1px solid var(--color-border)', backgroundColor: 'var(--color-surface)', color: 'var(--color-text-primary)' }}
                 labelStyle={{ color: 'var(--color-text-secondary)', marginBottom: '4px' }}
                 itemStyle={{ color: 'var(--color-text-primary)' }}
               />
-              <Line 
-                type="monotone" 
-                dataKey="total" 
+              <Line
+                type="monotone"
+                dataKey="total"
                 name="Eventos"
-                stroke="var(--color-primary)" 
+                stroke="var(--color-primary)"
                 strokeWidth={3}
                 dot={{ r: 4, strokeWidth: 2, fill: 'var(--color-surface)' }}
                 activeDot={{ r: 6, strokeWidth: 0, fill: 'var(--color-primary)' }}

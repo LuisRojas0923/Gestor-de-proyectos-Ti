@@ -66,8 +66,8 @@ export const WbsDetailModal: React.FC<WbsDetailModalProps> = ({
 
     if (!activity) return null;
 
-    const status = activity.estado_validacion;
-    const isPending = status?.toLowerCase() === 'pendiente';
+    const status = activity.anulada ? 'anulada' : activity.estado_validacion;
+    const isPending = !activity.anulada && status?.toLowerCase() === 'pendiente';
     const isResolving = resolvingIds?.has(activity.validacion_id ?? -1);
 
     return (
@@ -81,7 +81,7 @@ export const WbsDetailModal: React.FC<WbsDetailModalProps> = ({
             className="max-w-2xl"
         >
             <div className="relative">
-                {onEdit && (
+                {onEdit && !activity.anulada && (
                     <Button
                         variant="ghost"
                         size="sm"
@@ -106,8 +106,8 @@ export const WbsDetailModal: React.FC<WbsDetailModalProps> = ({
                             {/* ESTADO */}
                             <Section label="Estado">
                                 <div className="flex items-center gap-2 flex-wrap">
-                                    <Badge variant={getStatusVariant(activity.estado)} size="sm">
-                                        {activity.estado}
+                                    <Badge variant={getStatusVariant(activity.anulada ? 'Anulada' : activity.estado)} size="sm">
+                                        {activity.anulada ? 'Anulada' : activity.estado}
                                     </Badge>
                                     <Text variant="caption" weight="bold">
                                         {activity.porcentaje_avance}%

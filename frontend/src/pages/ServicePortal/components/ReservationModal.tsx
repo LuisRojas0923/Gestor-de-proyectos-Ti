@@ -65,8 +65,7 @@ const ReservationModal: React.FC<ReservationModalProps> = ({ room, initialDate, 
         start_datetime: new Date(startDatetime).toISOString(),
         end_datetime: new Date(endDatetime).toISOString(),
         title: formData.title.trim(),
-        room_name: room.name, // Agregado para que el middleware de auditoría lo capture
-      } as any);
+      });
       addNotification('success', 'Reserva creada correctamente');
       onSuccess();
     } catch (e) {

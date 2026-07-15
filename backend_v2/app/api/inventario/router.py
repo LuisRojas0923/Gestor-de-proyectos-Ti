@@ -465,24 +465,6 @@ async def descargar_plantilla_transito():
     )
 
 
-@router.post("/auditar-exportacion")
-async def auditar_exportacion(db: AsyncSession = Depends(obtener_db)):
-    """Endpoint fantasma para registrar en auditoría la descarga de XLSX de asignaciones."""
-    return {"exito": True, "mensaje": "Exportación registrada en auditoría"}
-
-
-@router.post("/auditar-impresion-pdf")
-async def auditar_impresion_pdf(db: AsyncSession = Depends(obtener_db)):
-    """Endpoint fantasma para registrar en auditoría la impresión del PDF Planilla 0."""
-    return {"exito": True, "mensaje": "Impresión registrada en auditoría"}
-
-
-@router.post("/auditar-descarga-pdf-asignado")
-async def auditar_descarga_pdf_asignado(db: AsyncSession = Depends(obtener_db)):
-    """Endpoint fantasma para registrar la descarga del PDF de inventario asignado al usuario."""
-    return {"exito": True, "mensaje": "Descarga de PDF registrada en auditoría"}
-
-
 @router.get("/health")
 async def health_check():
     return {"status": "ok", "module": "inventario_2026"}

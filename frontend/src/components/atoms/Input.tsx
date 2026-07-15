@@ -39,6 +39,7 @@ interface InputProps {
   onPaste?: (e: React.ClipboardEvent<HTMLInputElement>) => void;
   readOnly?: boolean;
   list?: string;
+  'aria-label'?: string;
 }
 
 const Input = React.forwardRef<HTMLInputElement, InputProps>(({
@@ -76,6 +77,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(({
   onPaste,
   readOnly = false,
   list,
+  'aria-label': ariaLabel,
 }, ref) => {
   const [showPassword, setShowPassword] = useState(false); // [CONTROLADO]
   const isPasswordType = type === 'password'; // [CONTROLADO]
@@ -175,6 +177,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(({
           onPaste={onPaste}
           readOnly={readOnly}
           list={list}
+          aria-label={ariaLabel}
           className={`${baseClasses} ${sizeClasses[size]} ${stateClasses} ${backgroundClasses} ${iconPaddingClasses[size]} ${className}`}
           style={style}
         />

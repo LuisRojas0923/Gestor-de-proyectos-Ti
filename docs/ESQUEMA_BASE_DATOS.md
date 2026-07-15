@@ -344,6 +344,9 @@ erDiagram
         character varying delegado_por_id
         character varying estado_validacion
         integer validacion_id
+        boolean anulada
+        timestamp without time zone anulada_en
+        character varying anulada_por_id
     }
     ACTIVIDADES_PROXIMAS {
         integer id
@@ -1315,6 +1318,9 @@ erDiagram
 | delegado_por_id | character varying | YES | - |
 | estado_validacion | character varying | YES | 'aprobada'::character varying |
 | validacion_id | integer | YES | - |
+| anulada | boolean | NO | false |
+| anulada_en | timestamp without time zone | YES | - |
+| anulada_por_id | character varying | YES | - |
 
 #### Tabla: `actividades_proximas`
 | Columna | Tipo | Nulable | Defecto |

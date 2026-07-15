@@ -118,13 +118,6 @@ class ServicioAuditoria:
             )
             await db.execute(stmt)
             await db.commit()
-            
-            # Notificar al dashboard de auditoría en tiempo real
-            try:
-                from app.services.auditoria.ws_manager import auditoria_ws_manager
-                await auditoria_ws_manager.broadcast_update()
-            except Exception as ws_exc:
-                logger.warning("Error enviando actualización WS: %s", ws_exc)
         except Exception as exc:
             logger.error("Error registrando auditoría de acción: %s", exc)
             try:

@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  postgres_db:
+    image: postgres:15-alpine
+    container_name: biometria_postgres_test
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres_default_password}
+      POSTGRES_DB: ${POSTGRES_DB:-biometria_db}
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_test_data:/var/lib/postgresql/data
+
+  face_api:
+    build: .
+    container_name: biometria_fastapi_test
+    ports:
+      - "5005:5005"
+    environment:
+      - DATABASE_URL=${DATABASE_URL:-postgresql://postgres:postgres_default_password@postgres_db:5432/biometria_db}
+      - DEEPFACE_MODEL=Facenet512
+      - DEEPFACE_DETECTOR=retinaface
+      - MATCH_THRESHOLD=0.35
+      - ANTI_SPOOFING=1
+      - PORT=5005
+    volumes:
+      # Mapear el código para ver cambios en tiempo real sin rebuild
+      - .:/app
+      # Mapear los pesos de DeepFace para no re-descargar
+      - deepface_weights:/root/.deepface
+    depends_on:
+      - postgres_db
+
+volumes:
+  postgres_test_data:
+  deepface_weights:

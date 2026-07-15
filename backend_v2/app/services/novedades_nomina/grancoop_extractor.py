@@ -8,7 +8,7 @@ CEDULA | NOMBRE ASOCIADO | EMPRESA | VALOR | CONCEPTO
 import io
 import re
 import logging
-from typing import List, Dict, Any, Tuple
+from typing import List, Dict, Any, Optional, Tuple
 
 import pdfplumber
 
@@ -25,6 +25,18 @@ IDX_CAPZ = 5
 IDX_OTROS = 6
 IDX_GASTOS = 7
 IDX_APORTE = 8
+MAX_PAGINAS_PDF = 500
+MAX_CARACTERES_PDF = 5_000_000
+
+
+class LimiteExtraccionGrancoopError(ValueError):
+    pass
+
+
+def _es_nombre_archivo_prima(nombre_archivo: str) -> bool:
+    """Reconoce NOMPRI como token del nombre, no como subcadena arbitraria."""
+    nombre_base = nombre_archivo.replace("\\", "/").rsplit("/", 1)[-1]
+    return re.search(r"(?:^|[\s_.-])NOMPRI(?:[\s_.-]|$)", nombre_base, re.IGNORECASE) is not None
 
 
 def _es_numero(tok: str) -> bool:
@@ -83,8 +95,26 @@ def _parsear_totales(linea: str) -> List[int]:
     return nums[:10]
 
 
+def _parsear_valores_linea(linea: str) -> List[int]:
+    """
+    Extrae los últimos 10 tokens numéricos de una línea de detalle.
+    Retorna lista de 10 enteros.
+    """
+    partes = linea.split()
+    nums = [p for p in partes if _es_numero(p)]
+    # Tomamos los últimos 10
+    nums_10 = nums[-10:]
+    # Convertir a int
+    vals = [_parse_numero(x) for x in nums_10]
+    # Rellenar al inicio con 0s si faltan
+    while len(vals) < 10:
+        vals.insert(0, 0)
+    return vals
+
+
 def extraer_grancoop(
     archivos_binarios: List[bytes],
+    archivos_nombres: Optional[List[Optional[str]]] = None,
 ) -> Tuple[List[Dict[str, Any]], Dict[str, Any], List[str]]:
     """
     Procesa 1..N archivos PDF de GRANCOOP.
@@ -99,7 +129,18 @@ def extraer_grancoop(
     warnings: List[str] = []
     asociados_procesados = 0
 
+    if archivos_nombres is not None:
+        nombres_validos = (
+            len(archivos_nombres) == len(archivos_binarios)
+            and all(isinstance(nombre, str) and nombre.strip() for nombre in archivos_nombres)
+        )
+        if not nombres_validos:
+            raise ValueError("La lista de nombres debe corresponder a todos los archivos")
+
     for file_idx, contenido in enumerate(archivos_binarios):
+        nombre_archivo = archivos_nombres[file_idx] if archivos_nombres else ""
+        es_archivo_prima = _es_nombre_archivo_prima(nombre_archivo or "")
+
         nombre_actual = ""
         lineas_detalle: List[str] = []
         linea_totales: str = ""
@@ -107,8 +148,18 @@ def extraer_grancoop(
 
         todas_lineas: List[str] = []
         with pdfplumber.open(io.BytesIO(contenido)) as pdf:
+            if len(pdf.pages) > MAX_PAGINAS_PDF:
+                raise LimiteExtraccionGrancoopError(
+                    f"El PDF supera el límite de {MAX_PAGINAS_PDF} páginas"
+                )
+            caracteres_extraidos = 0
             for page in pdf.pages:
                 texto = page.extract_text() or ""
+                caracteres_extraidos += len(texto)
+                if caracteres_extraidos > MAX_CARACTERES_PDF:
+                    raise LimiteExtraccionGrancoopError(
+                        "El PDF supera el límite de texto permitido"
+                    )
                 for linea in texto.splitlines():
                     l = linea.strip()
                     if l:
@@ -136,6 +187,7 @@ def extraer_grancoop(
                     _procesar_bloque(
                         nombre_actual, lineas_detalle,
                         linea_totales, rows, warnings,
+                        es_archivo_prima
                     )
                     asociados_procesados += 1
 
@@ -174,6 +226,7 @@ def extraer_grancoop(
             _procesar_bloque(
                 nombre_actual, lineas_detalle,
                 linea_totales, rows, warnings,
+                es_archivo_prima
             )
             asociados_procesados += 1
 
@@ -195,6 +248,7 @@ def _procesar_bloque(
     linea_totales: str,
     rows: List[Dict[str, Any]],
     warnings: List[str],
+    es_archivo_prima: bool = False,
 ) -> None:
     """Procesa un bloque de asociado y genera las filas long."""
     cedula = _extraer_cedula(lineas_detalle)
@@ -202,7 +256,44 @@ def _procesar_bloque(
         warnings.append(f"Cédula no detectada en PDF para '{nombre}'. Se intentará resolver por nombre en ERP.")
         cedula = ""
 
-    totales = _parsear_totales(linea_totales)
+    # Recalculamos los totales sumando las líneas de detalle válidas
+    # y separando CREDIPRIMA y FONDO MUTUAL en totales_prima
+    totales = [0] * 10
+    totales_prima = [0] * 10
+    tiene_detalles_validos = False
+
+    for linea_det in lineas_detalle:
+        vals = _parsear_valores_linea(linea_det)
+
+        # CREDIPRIMA siempre es prima
+        if "crediprima" in linea_det.lower():
+            for i in range(10):
+                totales_prima[i] += vals[i]
+            tiene_detalles_validos = True
+            continue
+
+        # FONDO MUTUAL depende del tipo de archivo
+        if "fondo mutual" in linea_det.lower():
+            if es_archivo_prima:
+                for i in range(10):
+                    totales_prima[i] += vals[i]
+                tiene_detalles_validos = True
+                continue
+            else:
+                # Si no es archivo prima, cae en el bloque normal (adicionales)
+                for i in range(10):
+                    totales[i] += vals[i]
+                tiene_detalles_validos = True
+                continue
+
+        # Líneas normales
+        for i in range(10):
+            totales[i] += vals[i]
+        tiene_detalles_validos = True
+
+    # Fallback por si no hay detalles pero sí totales en el PDF
+    if not tiene_detalles_validos and linea_totales:
+        totales = _parsear_totales(linea_totales)
 
     valor_aporte = totales[IDX_APORTE]
     valor_prestamos = (
@@ -218,10 +309,14 @@ def _procesar_bloque(
         + totales[IDX_GASTOS]
     )
 
+    # Suma de todos los rubros para las líneas de Prima (se excluye la columna 9 porque es el "Total" y duplicaría el valor)
+    valor_prima = sum(totales_prima[:9])
+
     conceptos = [
         ("GRANCOOP APORTES", valor_aporte),
         ("GRANCOOP PRESTAMOS", valor_prestamos),
         ("GRANCOOP ADICIONALES", valor_adicionales),
+        ("GRANCOOP PRIMA", valor_prima),
     ]
 
     for concepto, valor in conceptos:

@@ -1,7 +1,7 @@
 export interface WbsActivityBase {
     titulo: string;
     descripcion?: string;
-    estado: 'Pendiente' | 'En Proceso' | 'Bloqueado' | 'Completada';
+    estado: 'Pendiente' | 'En Proceso' | 'Bloqueado' | 'Completada' | 'Anulada';
     responsable_id?: string;
     asignado_a_id?: string;
     delegado_por_id?: string;
@@ -16,6 +16,9 @@ export interface WbsActivityBase {
     compromiso_fecha?: string;
     compromiso_cumplido?: boolean;
     archivo_url?: string;
+    anulada?: boolean;
+    anulada_en?: string;
+    anulada_por_id?: string;
 }
 
 export interface WbsActivity extends WbsActivityBase {

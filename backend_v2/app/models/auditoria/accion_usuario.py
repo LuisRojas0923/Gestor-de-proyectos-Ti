@@ -1,4 +1,5 @@
 """Modelo y schemas para auditoría transversal de acciones de usuario."""
+
 from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List, Optional
@@ -90,19 +91,33 @@ class AuditoriaEventosPaginados(SQLModel):
     page: int
     page_size: int
 
+
+class AuditoriaEventoResumen(SQLModel):
+    id: int
+    timestamp: Optional[datetime] = None
+    usuario_id: str
+    usuario_nombre: Optional[str] = None
+    modulo: str
+    accion: str
+    resultado: str
+
+
 class StatsPorModulo(SQLModel):
     modulo: str
     total: int
     usuarios_unicos: int = 0
-    ultimos_eventos: List[AuditoriaAccionPublica] = []
+    ultimos_eventos: List[AuditoriaEventoResumen] = Field(default_factory=list)
+
 
 class StatsPorResultado(SQLModel):
     resultado: str
     total: int
 
+
 class StatsPorDia(SQLModel):
     fecha: str
     total: int
+
 
 class TopUsuario(SQLModel):
     usuario_nombre: Optional[str] = None
@@ -110,10 +125,12 @@ class TopUsuario(SQLModel):
     total: int
     ultimo_evento: Optional[datetime] = None
 
+
 class TipoFallo(SQLModel):
     tipo: str
     total: int
-    detalles: Dict[str, int] = {}
+    detalles: Dict[str, int] = Field(default_factory=dict)
+
 
 class TopRuta(SQLModel):
     ruta: str
@@ -121,13 +138,16 @@ class TopRuta(SQLModel):
     total: int
     fallos: int
 
+
 class StatsPorHora(SQLModel):
     rango: str
     total: int
 
+
 class StatsPorDispositivo(SQLModel):
     dispositivo: str
     total: int
+
 
 class AuditoriaEstadisticas(SQLModel):
     total_eventos: int
@@ -143,5 +163,5 @@ class AuditoriaEstadisticas(SQLModel):
     por_dia: List[StatsPorDia]
     top_usuarios: List[TopUsuario]
     top_rutas: List[TopRuta]
-    por_hora: List[StatsPorHora] = []
-    por_dispositivo: List[StatsPorDispositivo] = []
+    por_hora: List[StatsPorHora] = Field(default_factory=list)
+    por_dispositivo: List[StatsPorDispositivo] = Field(default_factory=list)
