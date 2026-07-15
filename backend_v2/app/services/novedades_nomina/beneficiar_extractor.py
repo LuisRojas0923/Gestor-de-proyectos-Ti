@@ -20,8 +20,7 @@ def extraer_beneficiar(archivos_binarios: List[bytes]) -> Tuple[List[Dict[str, A
         "DCTO_OBLIGACIONES", 
         "DCTO_SERVICIOS", 
         "DCTO_GES", 
-        "DCTO_ROTATIVO",
-        "DCTO_PRIMA"
+        "DCTO_ROTATIVO"
     ]
 
     for archivo_idx, contenido in enumerate(archivos_binarios):

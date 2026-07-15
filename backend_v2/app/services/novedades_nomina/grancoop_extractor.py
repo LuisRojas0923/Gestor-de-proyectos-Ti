@@ -219,15 +219,20 @@ def _procesar_bloque(
         warnings.append(f"Cédula no detectada en PDF para '{nombre}'. Se intentará resolver por nombre en ERP.")
         cedula = ""
 
-    # Recalculamos los totales sumando las líneas de detalle válidas (ignorando CREDIPRIMA)
+    # Recalculamos los totales sumando las líneas de detalle válidas 
+    # y separando CREDIPRIMA y FONDO MUTUAL en totales_prima
     totales = [0] * 10
+    totales_prima = [0] * 10
     tiene_detalles_validos = False
 
     for linea_det in lineas_detalle:
-        if "crediprima" in linea_det.lower():
+        vals = _parsear_valores_linea(linea_det)
+        if "crediprima" in linea_det.lower() or "fondo mutual" in linea_det.lower():
+            for i in range(10):
+                totales_prima[i] += vals[i]
+            tiene_detalles_validos = True
             continue
         
-        vals = _parsear_valores_linea(linea_det)
         for i in range(10):
             totales[i] += vals[i]
         tiene_detalles_validos = True
@@ -250,10 +255,14 @@ def _procesar_bloque(
         + totales[IDX_GASTOS]
     )
 
+    # Suma de todos los rubros para las líneas de Prima
+    valor_prima = sum(totales_prima)
+
     conceptos = [
         ("GRANCOOP APORTES", valor_aporte),
         ("GRANCOOP PRESTAMOS", valor_prestamos),
         ("GRANCOOP ADICIONALES", valor_adicionales),
+        ("GRANCOOP PRIMA", valor_prima),
     ]
 
     for concepto, valor in conceptos:
