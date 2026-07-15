@@ -123,6 +123,20 @@ export const API_ENDPOINTS = {
   ERP_EMPLEADO: (id: string) => `/erp/empleado/${id}`,
   ERP_SINCRONIZAR: '/erp/sincronizar',
 
+  // Líneas corporativas
+  CORPORATE_LINES: '/lineas-corporativas/',
+  CORPORATE_LINE_BY_ID: (id: number) => `/lineas-corporativas/${id}`,
+  CORPORATE_EQUIPMENT: '/lineas-corporativas/equipos',
+  CORPORATE_EQUIPMENT_BY_ID: (id: number) => `/lineas-corporativas/equipos/${id}`,
+  CORPORATE_PEOPLE: '/lineas-corporativas/personas',
+  CORPORATE_PERSON_BY_ID: (documento: string) => `/lineas-corporativas/personas/${encodeURIComponent(documento)}`,
+  CORPORATE_EMPLOYEE_ALERTS: '/lineas-corporativas/alertas-empleados',
+  CORPORATE_INVOICE_IMPORT: (periodo: string) => `/lineas-corporativas/importar-factura?periodo=${encodeURIComponent(periodo)}`,
+  CORPORATE_LEGACY_MIGRATION: '/lineas-corporativas/migracion-legacy',
+  CORPORATE_REPORT: (periodo: string) => `/lineas-corporativas/reporte-co?periodo=${encodeURIComponent(periodo)}`,
+  CORPORATE_INVOICE_ALERTS: (periodo: string) => `/lineas-corporativas/alertas-factura/${encodeURIComponent(periodo)}`,
+  CORPORATE_INVOICE_DETAIL: (periodo: string) => `/lineas-corporativas/detalle-factura/${encodeURIComponent(periodo)}`,
+
   // Reserva de Salas
   RESERVA_SALAS_ROOMS: '/reserva-salas/rooms',
   RESERVA_SALAS_ROOM_BY_ID: (id: string) => `/reserva-salas/rooms/${id}`,

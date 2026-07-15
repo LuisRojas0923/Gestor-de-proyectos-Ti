@@ -10,26 +10,16 @@ import {
   Select,
 } from '../../../components/atoms';
 import { useNotifications } from '../../../components/notifications/NotificationsContext';
-
-interface DetalleRow {
-  id: number;
-  min: string;
-  nombre: string;
-  descripcion: string;
-  valor: number;
-  iva: number;
-  ciclo: string;
-  criterio: string;
-}
+import { FacturaDetalleRow } from '../useCorporateLines';
 
 interface Props {
-  onFetchDetalle: (periodo: string) => Promise<any>;
+  onFetchDetalle: (periodo: string) => Promise<FacturaDetalleRow[]>;
 }
 
 const formatCurrency = (value: number) =>
   `$ ${value.toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-const criterioColor: Record<string, string> = {
+const criterioColor: Record<string, 'primary' | 'warning' | 'default'> = {
   'CARGO FIJO': 'primary',
   'ESPECIALES': 'warning',
   'OTROS': 'default',
@@ -37,7 +27,7 @@ const criterioColor: Record<string, string> = {
 
 export const InvoiceRawDataView: React.FC<Props> = ({ onFetchDetalle }) => {
   const [periodo, setPeriodo] = useState(new Date().toISOString().slice(0, 7).replace('-', ''));
-  const [data, setData] = useState<DetalleRow[]>([]);
+  const [data, setData] = useState<FacturaDetalleRow[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [criterioFilter, setCriterioFilter] = useState('all');
@@ -51,12 +41,12 @@ export const InvoiceRawDataView: React.FC<Props> = ({ onFetchDetalle }) => {
     setIsLoading(true);
     try {
       const res = await onFetchDetalle(periodo);
-      setData(res as DetalleRow[]);
-      if ((res as DetalleRow[]).length === 0) {
+      setData(res);
+      if (res.length === 0) {
         addNotification('info', 'No hay datos importados para este periodo.');
       }
-    } catch (err: any) {
-      addNotification('error', err.message || 'Error al cargar detalle');
+    } catch (err: unknown) {
+      addNotification('error', err instanceof Error ? err.message : 'Error al cargar detalle');
     } finally {
       setIsLoading(false);
     }
@@ -192,7 +182,7 @@ export const InvoiceRawDataView: React.FC<Props> = ({ onFetchDetalle }) => {
                     </td>
                     <td className="px-4 py-3 text-center">
                       <Badge
-                        variant={criterioColor[row.criterio] as any || 'default'}
+                        variant={criterioColor[row.criterio] || 'default'}
                         className="text-[10px] px-2 py-0.5 rounded-lg"
                       >
                         {row.criterio}

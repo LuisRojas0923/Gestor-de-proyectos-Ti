@@ -1,7 +1,9 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useLayoutEffect, useMemo, useId } from 'react';
+import { createPortal } from 'react-dom';
 import { ChevronDown, Search, Check } from 'lucide-react';
 import { Text } from './Text';
 import Input from './Input';
+import Button from './Button';
 
 interface SelectOption {
     value: string;
@@ -38,17 +40,63 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
     const [isOpen, setIsOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
     const wrapperRef = useRef<HTMLDivElement>(null);
+    const popoverRef = useRef<HTMLDivElement>(null);
+    const triggerRef = useRef<HTMLButtonElement>(null);
+    const searchRef = useRef<HTMLInputElement>(null);
+    const listboxRef = useRef<HTMLDivElement>(null);
+    const optionRefs = useRef<Array<HTMLButtonElement | null>>([]);
+    const listboxId = useId();
+    const [position, setPosition] = useState({ top: 0, left: 0, width: 240, maxHeight: 240 });
 
     // Close on click outside
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
-            if (wrapperRef.current && !wrapperRef.current.contains(event.target as Node)) {
+            const target = event.target as Node;
+            if (
+                wrapperRef.current &&
+                !wrapperRef.current.contains(target) &&
+                !popoverRef.current?.contains(target)
+            ) {
                 setIsOpen(false);
             }
         };
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
+
+    useEffect(() => {
+        if (!isOpen) return;
+        const updatePosition = () => {
+            const rect = triggerRef.current?.getBoundingClientRect();
+            if (!rect) return;
+            const width = Math.max(rect.width, 240);
+            const left = Math.min(rect.left, window.innerWidth - width - 8);
+            const spaceBelow = window.innerHeight - rect.bottom - 8;
+            const spaceAbove = rect.top - 8;
+            const opensUp = spaceBelow < 240 && spaceAbove > spaceBelow;
+            const availableSpace = opensUp ? spaceAbove : spaceBelow;
+            const maxHeight = Math.max(80, Math.min(240, availableSpace - 64));
+            const top = opensUp ? Math.max(8, rect.top - maxHeight - 60) : rect.bottom + 4;
+            setPosition({ top, left: Math.max(8, left), width, maxHeight });
+        };
+        updatePosition();
+        window.addEventListener('resize', updatePosition);
+        window.addEventListener('scroll', updatePosition, true);
+        requestAnimationFrame(() => searchRef.current?.focus());
+        return () => {
+            window.removeEventListener('resize', updatePosition);
+            window.removeEventListener('scroll', updatePosition, true);
+        };
+    }, [isOpen]);
+
+    useLayoutEffect(() => {
+        if (!isOpen || !popoverRef.current || !listboxRef.current) return;
+        popoverRef.current.style.top = `${position.top}px`;
+        popoverRef.current.style.left = `${position.left}px`;
+        popoverRef.current.style.width = `${position.width}px`;
+        popoverRef.current.style.maxHeight = `${position.maxHeight + 60}px`;
+        listboxRef.current.style.maxHeight = `${position.maxHeight}px`;
+    }, [isOpen, position]);
 
     const filteredOptions = useMemo(() => {
         if (!searchTerm) return options;
@@ -62,14 +110,74 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
 
     const handleSelect = (val: string) => {
         onChange(val);
-        setIsOpen(false);
         setSearchTerm('');
+        closeAndFocus();
     };
 
     const toggleOpen = () => {
         if (disabled) return;
         setIsOpen(!isOpen);
         if (!isOpen) setSearchTerm('');
+    };
+
+    const closeAndFocus = () => {
+        setIsOpen(false);
+        requestAnimationFrame(() => triggerRef.current?.focus());
+    };
+
+    const closeAndMoveFocus = (backwards: boolean) => {
+        setIsOpen(false);
+        requestAnimationFrame(() => {
+            const focusable = Array.from(document.querySelectorAll<HTMLElement>(
+                'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])'
+            ));
+            const triggerIndex = triggerRef.current ? focusable.indexOf(triggerRef.current) : -1;
+            focusable[triggerIndex + (backwards ? -1 : 1)]?.focus();
+        });
+    };
+
+    const handleTriggerKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>) => {
+        if (['Enter', ' ', 'ArrowDown'].includes(event.key)) {
+            event.preventDefault();
+            if (!disabled) setIsOpen(true);
+        } else if (event.key === 'Escape') {
+            closeAndFocus();
+        }
+    };
+
+    const handleSearchKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+        if (event.key === 'ArrowDown') {
+            event.preventDefault();
+            optionRefs.current[0]?.focus();
+        } else if (event.key === 'Escape') {
+            event.preventDefault();
+            closeAndFocus();
+        } else if (event.key === 'Tab') {
+            event.preventDefault();
+            closeAndMoveFocus(event.shiftKey);
+        }
+    };
+
+    const handleOptionKeyDown = (
+        event: React.KeyboardEvent<HTMLButtonElement>,
+        index: number,
+        optionValue: string,
+    ) => {
+        if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+            event.preventDefault();
+            const offset = event.key === 'ArrowDown' ? 1 : -1;
+            const next = (index + offset + filteredOptions.length) % filteredOptions.length;
+            optionRefs.current[next]?.focus();
+        } else if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            handleSelect(optionValue);
+        } else if (event.key === 'Escape') {
+            event.preventDefault();
+            closeAndFocus();
+        } else if (event.key === 'Tab') {
+            event.preventDefault();
+            closeAndMoveFocus(event.shiftKey);
+        }
     };
 
     const stateClasses = error
@@ -85,11 +193,18 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
                 </Text>
             )}
 
-            <div
+            <Button
+                ref={triggerRef}
+                type="button"
+                variant="custom"
                 role="combobox"
+                aria-label={label || placeholder}
                 aria-expanded={isOpen}
-                aria-haspopup="listbox"
+                aria-controls={listboxId}
                 onClick={toggleOpen}
+                onKeyDown={handleTriggerKeyDown}
+                disabled={disabled}
+                fullWidth
                 className={`
                     flex items-center justify-between w-full px-4 py-2 text-sm text-left
                     bg-[var(--color-surface)] text-[var(--color-text-primary)]
@@ -98,50 +213,63 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
                     ${disabled ? 'opacity-50 cursor-not-allowed' : ''}
                 `}
             >
-                <span className={`truncate ${!selectedOption ? 'text-[var(--color-text-secondary)] opacity-50' : ''}`}>
+                <Text as="span" variant="body2" className={`truncate ${!selectedOption ? 'text-[var(--color-text-secondary)] opacity-50' : ''}`}>
                     {selectedOption ? selectedOption.label : placeholder}
-                </span>
+                </Text>
                 <ChevronDown size={16} className={`transition-transform duration-200 text-[var(--color-text-secondary)] ${isOpen ? 'rotate-180' : ''}`} />
-            </div>
+            </Button>
 
-            {isOpen && (
-                <div className="absolute z-[9999] w-full mt-1 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl shadow-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-                    <div className="p-2 border-b border-neutral-100 dark:border-neutral-700">
+            {isOpen && createPortal(
+                <div
+                    ref={popoverRef}
+                    className="fixed z-[9999] bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl shadow-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200"
+                >
+                    <div className="p-2 border-b border-[var(--color-border)]">
                         <Input
+                            ref={searchRef}
+                            type="search"
+                            aria-label={`Buscar opciones de ${label || placeholder}`}
                             placeholder="Buscar..."
                             icon={Search}
                             value={searchTerm}
                             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
+                            onKeyDown={handleSearchKeyDown}
                             autoFocus
-                            className="!rounded-lg !border-none !bg-neutral-50 dark:!bg-neutral-900/50"
+                            className="!rounded-lg !border-none !bg-[var(--color-surface-variant)]"
                         />
                     </div>
-                    <ul className="max-h-60 overflow-y-auto custom-scrollbar p-1" role="listbox">
+                    <div ref={listboxRef} id={listboxId} className="overflow-y-auto custom-scrollbar p-1" role="listbox">
                         {filteredOptions.length === 0 ? (
-                            <li className="px-4 py-3 text-sm text-center text-neutral-500">No se encontraron resultados</li>
+                            <Text variant="body2" align="center" color="text-secondary" className="px-4 py-3">No se encontraron resultados</Text>
                         ) : (
-                            filteredOptions.map((opt) => {
+                            filteredOptions.map((opt, index) => {
                                 const isSelected = opt.value === value;
                                 return (
-                                    <li
+                                    <Button
                                         key={opt.value}
+                                        ref={(node) => { optionRefs.current[index] = node; }}
+                                        type="button"
+                                        variant="custom"
                                         role="option"
+                                        aria-label={opt.label}
                                         aria-selected={isSelected}
                                         onClick={() => handleSelect(opt.value)}
+                                        onKeyDown={(event) => handleOptionKeyDown(event, index, opt.value)}
+                                        fullWidth
                                         className={`
                                             flex items-center justify-between px-3 py-2 text-sm rounded-lg cursor-pointer transition-colors
-                                            ${isSelected ? 'bg-primary-50 dark:bg-slate-800 text-primary-600 dark:text-primary-400 font-medium' : 'hover:bg-neutral-50 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-300'}
+                                            ${isSelected ? 'bg-[var(--color-primary)]/10 text-[var(--color-primary)] font-medium' : 'hover:bg-[var(--color-surface-variant)] text-[var(--color-text-primary)]'}
                                         `}
                                     >
-                                        <span className="truncate">{opt.label}</span>
+                                        <Text as="span" variant="body2" className="truncate">{opt.label}</Text>
                                         {isSelected && <Check size={14} />}
-                                    </li>
+                                    </Button>
                                 );
                             })
                         )}
-                    </ul>
+                    </div>
                 </div>
-            )}
+            , document.body)}
 
             {error && errorMessage && (
                 <Text variant="caption" color="error" className="mt-1">{errorMessage}</Text>

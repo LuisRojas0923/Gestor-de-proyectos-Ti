@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useId, useRef } from 'react';
 import { X } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { Button, Title, MaterialCard } from '../atoms';
@@ -14,6 +14,9 @@ export interface ModalProps {
     className?: string; // Para clases adicionales en el contenedor
     contentClassName?: string;
     headerClassName?: string;
+    ariaLabel?: string;
+    ariaDescribedBy?: string;
+    closeOnEscape?: boolean;
 }
 
 const Modal: React.FC<ModalProps> = ({
@@ -27,7 +30,18 @@ const Modal: React.FC<ModalProps> = ({
     className = '',
     contentClassName = '',
     headerClassName = '',
+    ariaLabel,
+    ariaDescribedBy,
+    closeOnEscape = true,
 }) => {
+    const modalRef = useRef<HTMLDivElement>(null);
+    const onCloseRef = useRef(onClose);
+    const titleId = useId();
+
+    useEffect(() => {
+        onCloseRef.current = onClose;
+    }, [onClose]);
+
     // Prevenir scroll en el body cuando el modal está abierto
     useEffect(() => {
         if (isOpen) {
@@ -39,6 +53,48 @@ const Modal: React.FC<ModalProps> = ({
             document.body.style.overflow = 'unset';
         };
     }, [isOpen]);
+
+    useEffect(() => {
+        if (!isOpen) return;
+        const previousFocus = document.activeElement as HTMLElement | null;
+        const getFocusable = () => Array.from(
+            modalRef.current?.querySelectorAll<HTMLElement>(
+                'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [href], [tabindex]:not([tabindex="-1"])'
+            ) || []
+        );
+        const focusFrame = requestAnimationFrame(() => {
+            (getFocusable()[0] || modalRef.current)?.focus();
+        });
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (event.key === 'Escape' && closeOnEscape) {
+                event.preventDefault();
+                onCloseRef.current();
+                return;
+            }
+            if (event.key !== 'Tab') return;
+            const focusable = getFocusable();
+            if (focusable.length === 0) {
+                event.preventDefault();
+                modalRef.current?.focus();
+                return;
+            }
+            const first = focusable[0];
+            const last = focusable[focusable.length - 1];
+            if (event.shiftKey && document.activeElement === first) {
+                event.preventDefault();
+                last.focus();
+            } else if (!event.shiftKey && document.activeElement === last) {
+                event.preventDefault();
+                first.focus();
+            }
+        };
+        document.addEventListener('keydown', handleKeyDown);
+        return () => {
+            cancelAnimationFrame(focusFrame);
+            document.removeEventListener('keydown', handleKeyDown);
+            previousFocus?.focus();
+        };
+    }, [closeOnEscape, isOpen]);
 
     if (!isOpen) return null;
 
@@ -61,6 +117,7 @@ const Modal: React.FC<ModalProps> = ({
 
             {/* Modal Container */}
             <MaterialCard
+                ref={modalRef}
                 elevation={4}
                 className={`
           relative w-full ${sizeClasses[size]} 
@@ -70,17 +127,21 @@ const Modal: React.FC<ModalProps> = ({
         `}
                 role="dialog"
                 aria-modal="true"
+                aria-label={ariaLabel}
+                aria-labelledby={!ariaLabel && title ? titleId : undefined}
+                aria-describedby={ariaDescribedBy}
+                tabIndex={-1}
             >
                 {/* Header (Optional) */}
                 {(title || showCloseButton) && (
                     <MaterialCard.Header className={`flex items-center justify-between !py-3 !px-4 ${headerClassName}`}>
                         {title && (
                             typeof title === 'string' ? (
-                                <Title variant="h4" weight="semibold">
+                                <Title id={titleId} variant="h4" weight="semibold">
                                     {title}
                                 </Title>
                             ) : (
-                                <div className="min-w-0 flex-1">{title}</div>
+                                <div id={titleId} className="min-w-0 flex-1">{title}</div>
                             )
                         )}
                         {showCloseButton && (

@@ -23,13 +23,14 @@ import { InvoiceDispersionView } from './components/InvoiceDispersionView';
 import { InvoiceRawDataView } from './components/InvoiceRawDataView';
 import { EquiposManager } from './components/EquiposManager';
 import { PersonasManager } from './components/PersonasManager';
+import { CorporateDeleteConfirmModal } from './components/CorporateDeleteConfirmModal';
 
 export const CorporateLinesManager: React.FC = () => {
   const { state } = useAppContext();
   const isAdmin = state.user?.role === 'admin';
   const ctx = useCorporateLines();
   const {
-    lines, equipos, personas, employeeAlerts, isLoading, stats,
+    lines, equipos, personas, employeeAlerts, isLoading, error, stats,
     loadData, createLine, updateLine, deleteLine,
     createEquipo, updateEquipo, deleteEquipo,
     createPersona, updatePersona, deletePersona,
@@ -44,6 +45,9 @@ export const CorporateLinesManager: React.FC = () => {
   const [selectedLineId, setSelectedLineId] = useState<number | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [isLegacyImporting, setIsLegacyImporting] = useState(false);
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
 
   // Filtros adicionales
   const [companyFilter, setCompanyFilter] = useState('all');
@@ -124,6 +128,7 @@ export const CorporateLinesManager: React.FC = () => {
       return;
     }
 
+    setIsProcessing(true);
     try {
       if (isCreating) {
         await createLine(formData);
@@ -134,20 +139,26 @@ export const CorporateLinesManager: React.FC = () => {
         await updateLine(selectedLineId, formData);
         addNotification('success', 'Línea actualizada correctamente');
       }
-    } catch (err: any) {
-      addNotification('error', err.message || 'Error al guardar');
+    } catch (err: unknown) {
+      addNotification('error', err instanceof Error ? err.message : 'Error al guardar');
+    } finally {
+      setIsProcessing(false);
     }
   };
 
   const handleDelete = async () => {
-    if (!selectedLineId || !window.confirm('¿Eliminar esta línea? Esta acción es irreversible.')) return;
+    if (!selectedLineId) return;
+    setIsProcessing(true);
     try {
       await deleteLine(selectedLineId);
       addNotification('success', 'Línea eliminada del inventario');
       setSelectedLineId(null);
       setView('dashboard');
-    } catch (err: any) {
+      setIsDeleteOpen(false);
+    } catch {
       addNotification('error', 'Error al eliminar la línea');
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -158,6 +169,7 @@ export const CorporateLinesManager: React.FC = () => {
   };
 
   const onLegacyImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (isLegacyImporting) return;
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -167,12 +179,15 @@ export const CorporateLinesManager: React.FC = () => {
     }
 
     try {
+      setIsLegacyImporting(true);
       addNotification('info', 'Iniciando migración masiva... esto puede tardar unos segundos.');
-      const res: any = await importarMatrizLegacy(file);
+      const res = await importarMatrizLegacy(file);
       addNotification('success', `${res.mensaje || 'Migración exitosa'}: ${res.lineas_procesadas} líneas procesadas.`);
-    } catch (err: any) {
-      addNotification('error', `Error en migración: ${err.message}`);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Error desconocido';
+      addNotification('error', `Error en migración: ${message}`);
     } finally {
+      setIsLegacyImporting(false);
       e.target.value = '';
     }
   };
@@ -195,32 +210,35 @@ export const CorporateLinesManager: React.FC = () => {
                     className="hidden"
                     accept=".xlsx, .xls, .xlsm"
                     onChange={onLegacyImport}
+                    disabled={isLegacyImporting}
                   />
                   <Button
                     variant="outline"
                     onClick={() => document.getElementById('legacy-import-input')?.click()}
                     icon={Upload}
+                    disabled={isLegacyImporting}
+                    loading={isLegacyImporting}
                     className="px-6 rounded-2xl h-12 border-dashed border-2 hover:border-primary hover:text-primary transition-all"
                   >
                     Importar Matriz
                   </Button>
                 </div>
               )}
-              <Button
+              {isAdmin && <Button
                 variant="primary"
                 onClick={() => setIsCreating(true)}
                 icon={Plus}
                 className="px-8 shadow-lg shadow-primary-500/20 rounded-2xl h-12"
               >
                 Nueva Línea
-              </Button>
+              </Button>}
             </div>
           </div>
 
           <StatsCards stats={stats} isLoading={isLoading} />
 
           {/* TABS DE MODO */}
-          <div className="flex bg-neutral-100 dark:bg-neutral-800 p-1.5 rounded-2xl w-fit mb-8 shadow-inner border border-neutral-200/50 dark:border-neutral-700/50">
+          <div className="flex w-full overflow-x-auto p-1.5 rounded-2xl mb-8 shadow-inner border border-[var(--color-border)] bg-[var(--color-surface)] md:w-fit">
             <Button
               variant={mode === 'inventory' ? 'primary' : 'ghost'}
               onClick={() => setMode('inventory')}
@@ -332,10 +350,14 @@ export const CorporateLinesManager: React.FC = () => {
               onFetchReport={obtenerReporteCO}
               onFetchAlerts={obtenerAlertasFactura}
               onSelectLine={(id) => setSelectedLineId(id)}
+              canImport={isAdmin}
             />
           ) : mode === 'equipos' ? (
             <EquiposManager
               equipos={equipos}
+              isLoading={isLoading}
+              error={error}
+              onRetry={loadData}
               onCreate={createEquipo}
               onUpdate={updateEquipo}
               onDelete={deleteEquipo}
@@ -343,6 +365,9 @@ export const CorporateLinesManager: React.FC = () => {
           ) : mode === 'personas' ? (
             <PersonasManager
               personas={personas}
+              isLoading={isLoading}
+              error={error}
+              onRetry={loadData}
               onCreate={createPersona}
               onUpdate={updatePersona}
               onDelete={deletePersona}
@@ -361,13 +386,23 @@ export const CorporateLinesManager: React.FC = () => {
           isCreating={isCreating}
           onBack={handleBack}
           onSave={handleSave}
-          onDelete={handleDelete}
+          onDelete={() => setIsDeleteOpen(true)}
+          canEdit={isAdmin}
+          isProcessing={isProcessing}
           onInputChange={(field, value) => setFormData((prev: Partial<CorporateLine>) => ({ ...prev, [field]: value }))}
           activeSubTab={activeSubTab}
           setActiveSubTab={setActiveSubTab}
           companyOptions={companyOptions.filter(c => c.value !== 'all')}
         />
       )}
+      <CorporateDeleteConfirmModal
+        isOpen={isDeleteOpen}
+        title="¿Dar de baja la línea?"
+        description={selectedLine ? `Se eliminará la línea ${selectedLine.linea}. La operación se bloqueará si tiene facturación.` : ''}
+        isProcessing={isProcessing}
+        onCancel={() => setIsDeleteOpen(false)}
+        onConfirm={handleDelete}
+      />
     </main>
   );
 };

@@ -1,33 +1,54 @@
-from pydantic import BaseModel, field_validator
-from typing import Optional
+from pydantic import BaseModel, Field, field_validator
+from typing import Literal, Optional
 from datetime import date, datetime
 
 # --- EQUIPOS ---
 class EquipoMovilBase(BaseModel):
-    marca: Optional[str] = None
-    modelo: str
-    imei: Optional[str] = None
-    serial: Optional[str] = None
-    estado_fisico: str = "BUENO"
-    observaciones: Optional[str] = None
+    marca: Optional[str] = Field(default=None, max_length=100)
+    modelo: str = Field(min_length=1, max_length=150)
+    imei: Optional[str] = Field(default=None, max_length=50)
+    serial: Optional[str] = Field(default=None, max_length=100)
+    estado_fisico: Literal["NUEVO", "BUENO", "REGULAR", "MALO", "DAÑADO"] = "BUENO"
+    observaciones: Optional[str] = Field(default=None, max_length=1000)
 
     @field_validator("imei", "serial", mode="before")
     @classmethod
     def nullify_empty_string(cls, v):
-        if v == "" or v is None:
+        if v is None or (isinstance(v, str) and not v.strip()):
             return None
-        return v
+        return v.strip() if isinstance(v, str) else v
+
+    @field_validator("modelo", mode="before")
+    @classmethod
+    def validar_modelo(cls, value):
+        if value is None or not str(value).strip():
+            raise ValueError("El modelo es obligatorio")
+        return str(value).strip()
 
 class EquipoMovilCreate(EquipoMovilBase):
     pass
 
 class EquipoMovilUpdate(BaseModel):
-    marca: Optional[str] = None
-    modelo: Optional[str] = None
-    imei: Optional[str] = None
-    serial: Optional[str] = None
-    estado_fisico: Optional[str] = None
-    observaciones: Optional[str] = None
+    marca: Optional[str] = Field(default=None, max_length=100)
+    modelo: Optional[str] = Field(default=None, max_length=150)
+    imei: Optional[str] = Field(default=None, max_length=50)
+    serial: Optional[str] = Field(default=None, max_length=100)
+    estado_fisico: Optional[Literal["NUEVO", "BUENO", "REGULAR", "MALO", "DAÑADO"]] = None
+    observaciones: Optional[str] = Field(default=None, max_length=1000)
+
+    @field_validator("imei", "serial", mode="before")
+    @classmethod
+    def normalizar_identificador(cls, value):
+        if value is None or (isinstance(value, str) and not value.strip()):
+            return None
+        return value.strip() if isinstance(value, str) else value
+
+    @field_validator("modelo", mode="before")
+    @classmethod
+    def validar_modelo_actualizado(cls, value):
+        if value is None or not str(value).strip():
+            raise ValueError("El modelo no puede quedar vacío")
+        return str(value).strip()
 
 class EquipoMovilOut(EquipoMovilBase):
     id: int
@@ -36,22 +57,36 @@ class EquipoMovilOut(EquipoMovilBase):
 
 # --- PERSONAS / EMPLEADOS ---
 class EmpleadoLineaBase(BaseModel):
-    documento: str
-    nombre: str
-    tipo: str = "INTERNO"
-    cargo: Optional[str] = None
-    area: Optional[str] = None
-    centro_costo: Optional[str] = None
+    documento: str = Field(min_length=3, max_length=50, pattern=r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
+    nombre: str = Field(min_length=1, max_length=200)
+    tipo: Literal["INTERNO", "EXTERNO", "PROVEEDOR", "BENEFICIARIO"] = "INTERNO"
+    cargo: Optional[str] = Field(default=None, max_length=150)
+    area: Optional[str] = Field(default=None, max_length=150)
+    centro_costo: Optional[str] = Field(default=None, max_length=100)
+
+    @field_validator("documento", "nombre", mode="before")
+    @classmethod
+    def normalizar_requerido(cls, value):
+        if value is None or not str(value).strip():
+            raise ValueError("El campo es obligatorio")
+        return str(value).strip()
 
 class EmpleadoLineaCreate(EmpleadoLineaBase):
     pass
 
 class EmpleadoLineaUpdate(BaseModel):
-    nombre: Optional[str] = None
-    tipo: Optional[str] = None
-    cargo: Optional[str] = None
-    area: Optional[str] = None
-    centro_costo: Optional[str] = None
+    nombre: Optional[str] = Field(default=None, max_length=200)
+    tipo: Optional[Literal["INTERNO", "EXTERNO", "PROVEEDOR", "BENEFICIARIO"]] = None
+    cargo: Optional[str] = Field(default=None, max_length=150)
+    area: Optional[str] = Field(default=None, max_length=150)
+    centro_costo: Optional[str] = Field(default=None, max_length=100)
+
+    @field_validator("nombre", mode="before")
+    @classmethod
+    def validar_nombre_actualizado(cls, value):
+        if value is None or not str(value).strip():
+            raise ValueError("El nombre no puede quedar vacío")
+        return str(value).strip()
 
 class EmpleadoLineaOut(EmpleadoLineaBase):
     class Config:

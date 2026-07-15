@@ -1,23 +1,70 @@
-import React, { useState } from 'react';
+import React, { useDeferredValue, useMemo, useState } from 'react';
 import { Plus, Edit2, Trash2, Smartphone, Check, X, Search } from 'lucide-react';
-import { Button, Input, Title, Text, Icon, Badge, Select } from '../../../components/atoms';
+import { Button, Input, Title, Text, Icon, Badge, Select, MaterialCard } from '../../../components/atoms';
+import { Callout, DataTable } from '../../../components/molecules';
+import { DataTableColumn } from '../../../components/molecules/DataTable';
 import { useNotifications } from '../../../components/notifications/NotificationsContext';
+import { useColumnFilters } from '../../../hooks/useColumnFilters';
 import { EquipoMovil } from '../useCorporateLines';
+import { CorporateDeleteConfirmModal } from './CorporateDeleteConfirmModal';
 
 interface Props {
   equipos: EquipoMovil[];
+  isLoading: boolean;
+  error: string | null;
+  onRetry: () => void;
   onCreate: (data: Partial<EquipoMovil>) => Promise<EquipoMovil>;
   onUpdate: (id: number, data: Partial<EquipoMovil>) => Promise<EquipoMovil>;
   onDelete: (id: number) => Promise<void>;
 }
 
-export const EquiposManager: React.FC<Props> = ({ equipos, onCreate, onUpdate, onDelete }) => {
+const EQUIPO_ACCESSORS = {
+  id: (equipo: EquipoMovil) => equipo.id,
+  marca: (equipo: EquipoMovil) => equipo.marca || '(Vacío)',
+  modelo: (equipo: EquipoMovil) => equipo.modelo,
+  imei: (equipo: EquipoMovil) => equipo.imei || '(Vacío)',
+  estado: (equipo: EquipoMovil) => equipo.estado_fisico,
+};
+
+export const EquiposManager: React.FC<Props> = ({
+  equipos,
+  isLoading,
+  error,
+  onRetry,
+  onCreate,
+  onUpdate,
+  onDelete,
+}) => {
   const { addNotification } = useNotifications();
   const [isEditing, setIsEditing] = useState<number | null>(null);
   const [formData, setFormData] = useState<Partial<EquipoMovil>>({});
   const [isCreating, setIsCreating] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [deleteTarget, setDeleteTarget] = useState<EquipoMovil | null>(null);
+  const deferredSearch = useDeferredValue(searchTerm.trim().toLowerCase());
+  const {
+    filteredData,
+    filters,
+    cascadingOptions,
+    setColumnFilter,
+    sortState,
+    setSort,
+    activeFilterCount,
+    clearAllFilters,
+  } = useColumnFilters(equipos, EQUIPO_ACCESSORS, 'lineas_equipos');
+
+  const columns = useMemo<DataTableColumn<EquipoMovil>[]>(() => [
+    { key: 'id', label: 'ID', minWidth: '70px', filterable: true, render: (equipo) => <Text weight="bold">#{equipo.id}</Text> },
+    { key: 'marca', label: 'Marca', minWidth: '120px', filterable: true, render: (equipo) => equipo.marca || 'Sin marca' },
+    { key: 'modelo', label: 'Modelo', minWidth: '160px', flex: true, filterable: true },
+    { key: 'imei', label: 'IMEI / Serial', minWidth: '180px', filterable: true, render: (equipo) => (
+      <div><Text variant="body2">{equipo.imei || 'Sin IMEI'}</Text><Text variant="caption" color="text-secondary">{equipo.serial || 'Sin serial'}</Text></div>
+    ) },
+    { key: 'estado', label: 'Estado', minWidth: '110px', centered: true, filterable: true, render: (equipo) => (
+      <Badge variant={equipo.estado_fisico === 'NUEVO' ? 'info' : equipo.estado_fisico === 'BUENO' ? 'success' : equipo.estado_fisico === 'DAÑADO' ? 'error' : 'warning'}>{equipo.estado_fisico}</Badge>
+    ) },
+  ], []);
 
   const startCreate = () => {
     setIsCreating(true);
@@ -53,36 +100,38 @@ export const EquiposManager: React.FC<Props> = ({ equipos, onCreate, onUpdate, o
         addNotification('success', 'Equipo actualizado');
       }
       cancelForm();
-    } catch (err: any) {
-      addNotification('error', err.message || 'Error al guardar el equipo');
+    } catch (err: unknown) {
+      addNotification('error', err instanceof Error ? err.message : 'Error al guardar el equipo');
     } finally {
       setIsProcessing(false);
     }
   };
 
-  const handleDelete = async (id: number) => {
-    if (!window.confirm('¿Está seguro de eliminar este equipo?')) return;
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
     setIsProcessing(true);
     try {
-      await onDelete(id);
+      await onDelete(deleteTarget.id);
       addNotification('success', 'Equipo eliminado');
-    } catch (err: any) {
-      addNotification('error', err.message || 'Error al eliminar el equipo');
+      setDeleteTarget(null);
+    } catch (err: unknown) {
+      addNotification('error', err instanceof Error ? err.message : 'Error al eliminar el equipo');
     } finally {
       setIsProcessing(false);
     }
   };
 
-  const filteredEquipos = equipos.filter(e => 
-    e.modelo.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    (e.marca && e.marca.toLowerCase().includes(searchTerm.toLowerCase())) ||
-    (e.imei && e.imei.includes(searchTerm)) ||
-    (e.serial && e.serial.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+  const filteredEquipos = filteredData.filter((equipo) => !deferredSearch || [
+    equipo.modelo,
+    equipo.marca,
+    equipo.imei,
+    equipo.serial,
+  ].some((value) => value?.toLowerCase().includes(deferredSearch)));
+  const visibleEquipos = filteredEquipos.slice(0, 200);
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="flex justify-between items-center bg-white dark:bg-neutral-800 p-6 rounded-3xl shadow-sm">
+      <MaterialCard className="flex flex-col justify-between gap-4 p-6 sm:flex-row sm:items-center">
         <div>
           <Title variant="h4" className="flex items-center gap-2">
             <Icon name={Smartphone} className="text-primary" />
@@ -95,10 +144,10 @@ export const EquiposManager: React.FC<Props> = ({ equipos, onCreate, onUpdate, o
             Nuevo Equipo
           </Button>
         )}
-      </div>
+      </MaterialCard>
 
       {(isCreating || isEditing) && (
-        <div className="bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 p-6 rounded-3xl space-y-4">
+        <MaterialCard className="p-6 space-y-4">
           <Title variant="h5">{isCreating ? 'Añadir Nuevo Equipo' : 'Editar Equipo'}</Title>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <Input
@@ -153,64 +202,68 @@ export const EquiposManager: React.FC<Props> = ({ equipos, onCreate, onUpdate, o
               Guardar
             </Button>
           </div>
-        </div>
+        </MaterialCard>
       )}
 
-      <div className="bg-white dark:bg-neutral-800 rounded-3xl overflow-hidden shadow-sm">
-        <div className="p-6 border-b border-neutral-100 dark:border-neutral-700">
+      <MaterialCard className="overflow-hidden">
+        <div className="flex flex-col gap-3 p-6 border-b border-[var(--color-border)] sm:flex-row sm:items-center sm:justify-between">
           <Input
+            aria-label="Buscar equipos"
             placeholder="Buscar por marca, modelo, IMEI o serial..."
             icon={Search}
             value={searchTerm}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
-            className="!rounded-xl border-none bg-neutral-100 dark:bg-neutral-900 max-w-md"
+            className="max-w-md !rounded-xl"
           />
+          <div className="flex items-center gap-3">
+            <Text variant="caption" color="text-secondary">
+              Mostrando {visibleEquipos.length} de {filteredEquipos.length}
+            </Text>
+            {activeFilterCount > 0 && (
+              <Button variant="ghost" size="sm" onClick={clearAllFilters}>
+                Limpiar filtros ({activeFilterCount})
+              </Button>
+            )}
+          </div>
         </div>
-        <div className="overflow-x-auto max-h-[400px] overflow-y-auto custom-scrollbar">
-          <table className="w-full text-left">
-            <thead className="bg-neutral-50 dark:bg-neutral-900/50 sticky top-0 z-10 shadow-sm">
-              <tr>
-                <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider">ID / Marca</th>
-                <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider">Modelo</th>
-                <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider">IMEI / Serial</th>
-                <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-center">Estado</th>
-                <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-right">Acciones</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-neutral-100 dark:divide-neutral-700">
-              {filteredEquipos.map((equipo) => (
-                <tr key={equipo.id} className="hover:bg-neutral-50/50 dark:hover:bg-neutral-900/20 transition-colors">
-                  <td className="px-6 py-4">
-                    <Text weight="bold" className="text-primary">#{equipo.id}</Text>
-                    <Text variant="caption">{equipo.marca || 'Sin marca'}</Text>
-                  </td>
-                  <td className="px-6 py-4 font-medium">{equipo.modelo}</td>
-                  <td className="px-6 py-4">
-                    <Text variant="body2">{equipo.imei || 'Sin IMEI'}</Text>
-                    <Text variant="caption" className="opacity-60">{equipo.serial}</Text>
-                  </td>
-                  <td className="px-6 py-4 text-center">
-                    <Badge variant={equipo.estado_fisico === 'NUEVO' ? 'info' : equipo.estado_fisico === 'BUENO' ? 'success' : equipo.estado_fisico === 'DAÑADO' ? 'danger' : 'warning'}>
-                      {equipo.estado_fisico}
-                    </Badge>
-                  </td>
-                  <td className="px-6 py-4 flex justify-end gap-2">
-                    <Button variant="ghost" size="sm" icon={Edit2} onClick={() => startEdit(equipo)} />
-                    <Button variant="ghost" size="sm" icon={Trash2} onClick={() => handleDelete(equipo.id)} className="text-red-500 hover:bg-red-50" />
-                  </td>
-                </tr>
-              ))}
-              {filteredEquipos.length === 0 && (
-                <tr>
-                  <td colSpan={5} className="text-center py-12 opacity-50">
-                    {equipos.length === 0 ? 'No hay equipos registrados' : 'No se encontraron resultados para la búsqueda'}
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+        {error ? (
+          <Callout variant="error" title="No fue posible cargar los equipos" className="m-6">
+            <Text variant="body2">{error}</Text>
+            <Button variant="outline" size="sm" onClick={onRetry} className="mt-3">Reintentar</Button>
+          </Callout>
+        ) : (
+          <DataTable
+            columns={columns}
+            data={visibleEquipos}
+            keyExtractor={(equipo) => String(equipo.id)}
+            isLoading={isLoading}
+            loadingMessage="Cargando equipos..."
+            emptyMessage={equipos.length === 0 ? 'No hay equipos registrados' : 'No se encontraron resultados'}
+            maxHeight="max-h-[420px]"
+            columnFilters={filters}
+            columnOptions={cascadingOptions}
+            onFilterChange={setColumnFilter}
+            activeSortKey={sortState?.key}
+            activeSortDir={sortState?.dir}
+            onSort={setSort}
+            renderRowActions={(equipo) => (
+              <div className="flex justify-end gap-1">
+                <Button variant="ghost" size="sm" icon={Edit2} aria-label={`Editar equipo ${equipo.modelo}`} disabled={isProcessing} onClick={() => startEdit(equipo)} />
+                <Button variant="ghost" size="sm" icon={Trash2} aria-label={`Eliminar equipo ${equipo.modelo}`} disabled={isProcessing} onClick={() => setDeleteTarget(equipo)} />
+              </div>
+            )}
+          />
+        )}
+      </MaterialCard>
+
+      <CorporateDeleteConfirmModal
+        isOpen={deleteTarget !== null}
+        title="¿Eliminar equipo?"
+        description={deleteTarget ? `Se eliminará ${deleteTarget.modelo}. La operación se bloqueará si está asignado.` : ''}
+        isProcessing={isProcessing}
+        onCancel={() => setDeleteTarget(null)}
+        onConfirm={confirmDelete}
+      />
     </div>
   );
 };

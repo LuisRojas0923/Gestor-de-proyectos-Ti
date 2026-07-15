@@ -9,14 +9,14 @@ interface MaterialCardProps extends React.HTMLAttributes<HTMLDivElement> {
   hoverable?: boolean;
 }
 
-const MaterialCard: React.FC<MaterialCardProps> = ({
+const MaterialCard = React.forwardRef<HTMLDivElement, MaterialCardProps>(({
   children,
   elevation = 1,
   className = '',
   onClick,
   hoverable = false,
   ...props
-}) => {
+}, ref) => {
 
   const baseClasses = `rounded-[1.5rem] transition-all bg-[var(--color-surface)] border border-[var(--color-border)] duration-300 ease-in-out`;
 
@@ -40,6 +40,7 @@ const MaterialCard: React.FC<MaterialCardProps> = ({
 
   return (
     <div
+      ref={ref}
       className={`${baseClasses} ${elevationClasses[elevation]} ${hoverClasses} ${clickableClasses} ${className} font-sans`}
       onClick={onClick}
       {...props}
@@ -47,7 +48,9 @@ const MaterialCard: React.FC<MaterialCardProps> = ({
       <Text as="div" className="w-full h-full">{children}</Text>
     </div>
   );
-};
+});
+
+MaterialCard.displayName = 'MaterialCard';
 
 // Subcomponentes de MaterialCard
 interface MaterialCardSubComponentProps {

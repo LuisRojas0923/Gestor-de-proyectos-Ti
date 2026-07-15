@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Smartphone, User, CreditCard, Save, Trash2, ArrowLeft, AlertTriangle, Search } from 'lucide-react';
+import React from 'react';
+import { Smartphone, User, CreditCard, Save, Trash2, ArrowLeft, AlertTriangle } from 'lucide-react';
 import { 
   Button, Input, Select, Textarea, MaterialCard as Card, Title, Text, SearchableSelect
 } from '../../../components/atoms';
@@ -13,15 +13,38 @@ interface FormProps {
   onBack: () => void;
   onSave: () => void;
   onDelete: () => void;
-  onInputChange: (field: keyof CorporateLine, value: any) => void;
+  canEdit: boolean;
+  isProcessing: boolean;
+  onInputChange: <K extends keyof CorporateLine>(field: K, value: CorporateLine[K]) => void;
   activeSubTab: 'general' | 'tecnico' | 'finanzas';
   setActiveSubTab: (tab: 'general' | 'tecnico' | 'finanzas') => void;
   companyOptions: { label: string; value: string }[];
 }
 
+type FinancialField =
+  | 'cfm_con_iva'
+  | 'cfm_sin_iva'
+  | 'descuento_39'
+  | 'vr_factura'
+  | 'pago_empleado'
+  | 'pago_empresa'
+  | 'primera_quincena'
+  | 'segunda_quincena';
+
+const FINANCIAL_FIELDS: Array<{ label: string; field: FinancialField }> = [
+  { label: 'CFM con IVA ($)', field: 'cfm_con_iva' },
+  { label: 'CFM sin IVA ($)', field: 'cfm_sin_iva' },
+  { label: 'Descuento 39% ($)', field: 'descuento_39' },
+  { label: 'V/R Factura Operador ($)', field: 'vr_factura' },
+  { label: 'Deducción Empleado ($)', field: 'pago_empleado' },
+  { label: 'Deducción Empresa ($)', field: 'pago_empresa' },
+  { label: '1era Quincena ($)', field: 'primera_quincena' },
+  { label: '2da Quincena ($)', field: 'segunda_quincena' },
+];
+
 export const LineDetailForm: React.FC<FormProps> = ({
   formData, equipos, employeeAlerts, isCreating,
-  onBack, onSave, onDelete, onInputChange,
+  onBack, onSave, onDelete, onInputChange, canEdit, isProcessing,
   activeSubTab, setActiveSubTab, companyOptions
 }) => {
   const hasAlert = formData.documento_asignado && employeeAlerts[formData.documento_asignado];
@@ -43,14 +66,16 @@ export const LineDetailForm: React.FC<FormProps> = ({
           </div>
         </div>
         <div className="flex gap-3 w-full md:w-auto">
-          {!isCreating && (
-            <Button variant="outline" onClick={onDelete} icon={Trash2} className="text-red-500 hover:bg-red-50 hover:border-red-200 flex-1 md:flex-none">
+          {canEdit && !isCreating && (
+            <Button variant="outline" onClick={onDelete} icon={Trash2} disabled={isProcessing} className="text-red-500 hover:bg-red-50 hover:border-red-200 flex-1 md:flex-none">
               Dar de Baja
             </Button>
           )}
-          <Button variant="primary" onClick={onSave} icon={Save} className="shadow-lg shadow-primary-500/20 flex-1 md:flex-none">
-            {isCreating ? 'Guardar Registro' : 'Actualizar Cambios'}
-          </Button>
+          {canEdit && (
+            <Button variant="primary" onClick={onSave} icon={Save} loading={isProcessing} className="shadow-lg shadow-primary-500/20 flex-1 md:flex-none">
+              {isCreating ? 'Guardar Registro' : 'Actualizar Cambios'}
+            </Button>
+          )}
         </div>
       </div>
 
@@ -253,22 +278,13 @@ export const LineDetailForm: React.FC<FormProps> = ({
              </div>
 
              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                 {[
-                   { label: 'CFM con IVA ($)', field: 'cfm_con_iva' },
-                   { label: 'CFM sin IVA ($)', field: 'cfm_sin_iva' },
-                   { label: 'Descuento 39% ($)', field: 'descuento_39' },
-                   { label: 'V/R Factura Operador ($)', field: 'vr_factura' },
-                   { label: 'Deducción Empleado ($)', field: 'pago_empleado' },
-                   { label: 'Deducción Empresa ($)', field: 'pago_empresa' },
-                   { label: '1era Quincena ($)', field: 'primera_quincena' },
-                   { label: '2da Quincena ($)', field: 'segunda_quincena' },
-                 ].map((item) => (
-                   <Input 
+                  {FINANCIAL_FIELDS.map((item) => (
+                    <Input
                       key={item.field}
                       label={item.label} 
                       type="number" 
-                      value={(formData as any)[item.field]?.toString()} 
-                      onChange={(e) => onInputChange(item.field as any, parseFloat(e.target.value) || 0)} 
+                       value={formData[item.field]?.toString() || ''}
+                       onChange={(e) => onInputChange(item.field, parseFloat(e.target.value) || 0)}
                       className="!rounded-2xl"
                    />
                  ))}
