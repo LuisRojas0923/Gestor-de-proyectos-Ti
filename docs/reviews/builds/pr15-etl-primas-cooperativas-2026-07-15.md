@@ -12,7 +12,7 @@
 - Archivo y nombre conservan correspondencia uno a uno; nombres vacíos o desalineados se rechazan.
 - Las cargas exigen autenticación, permiso `nomina_novedades`, firma válida, máximo cinco archivos y 20 MB por archivo.
 - PDFs con más de 500 páginas o cinco millones de caracteres se rechazan.
-- Errores de parser/DB no exponen detalles internos y el parsing se ejecuta fuera del event loop.
+- Errores de parser/DB no exponen detalles internos y el parsing se ejecuta en un proceso cancelable; el timeout termina el worker.
 
 ## Evidencia TDD
 
@@ -61,6 +61,6 @@ Los skips corresponden a escenarios que requieren datos/servicios opcionales del
 | Revisor | Estado previo | Correccion |
 |---|---|---|
 | Backend | Bloqueado | Pruebas actualizadas, validacion archivo/nombre, firmas por extension y health verde. |
-| Seguridad/RBAC | Bloqueado | Auth/RBAC, limites, rate limit, threadpool con timeout y errores/logs saneados. |
+| Seguridad/RBAC | Bloqueado | Auth/RBAC, limites, rate limit, proceso cancelable con timeout y errores/logs saneados. |
 | Docs/pruebas | Bloqueado | Catalogo, TDD, comandos Docker y evidencia completa. |
 | Alcance | Bloqueado hasta persistir | Sin scope creep; frontend/movil no aplican. |

@@ -4,9 +4,9 @@ import logging
 from datetime import datetime
 from typing import List, Dict, Any, Optional
 from fastapi import APIRouter, Depends, UploadFile, File, Form, Query, HTTPException, Request
+from anyio import to_process
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import Session, select, delete
-from starlette.concurrency import run_in_threadpool
 from ....database import obtener_db, obtener_erp_db_opcional
 from ....models.novedades_nomina.nomina import (
     NominaArchivo, NominaRegistroNormalizado, NominaExcepcion
@@ -44,7 +44,10 @@ async def preview_beneficiar(
 
     try:
         rows, summary, warnings_txt = await asyncio.wait_for(
-            run_in_threadpool(extraer_beneficiar, archivos_binarios), timeout=60
+            to_process.run_sync(
+                extraer_beneficiar, archivos_binarios, cancellable=True
+            ),
+            timeout=60,
         )
     except asyncio.TimeoutError as exc:
         raise HTTPException(status_code=422, detail="El procesamiento del Excel excedió el tiempo permitido") from exc

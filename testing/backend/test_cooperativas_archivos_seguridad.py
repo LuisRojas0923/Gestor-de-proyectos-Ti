@@ -164,7 +164,7 @@ async def test_preview_grancoop_rechaza_usuario_sin_permiso():
 
 
 @pytest.mark.asyncio
-async def test_preview_grancoop_sanea_error_del_parser_y_usa_threadpool():
+async def test_preview_grancoop_sanea_error_y_usa_proceso_cancelable():
     async def acceso_pruebas():
         return SimpleNamespace(rol="nomina")
 
@@ -179,7 +179,7 @@ async def test_preview_grancoop_sanea_error_del_parser_y_usa_threadpool():
     app.dependency_overrides[obtener_erp_db_opcional] = erp_pruebas
     try:
         with patch(
-            "app.api.novedades_nomina.routers.cooperativas_grancoop.run_in_threadpool",
+            "app.api.novedades_nomina.routers.cooperativas_grancoop.to_process.run_sync",
             new=AsyncMock(side_effect=ValueError("detalle interno sensible")),
         ) as ejecutar:
             async with AsyncClient(
@@ -194,5 +194,6 @@ async def test_preview_grancoop_sanea_error_del_parser_y_usa_threadpool():
         app.dependency_overrides.clear()
 
     assert ejecutar.await_count == 1
+    assert ejecutar.await_args.kwargs["cancellable"] is True
     assert response.status_code == 422
     assert "detalle interno sensible" not in response.text
