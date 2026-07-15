@@ -10,6 +10,7 @@ from fastapi.responses import FileResponse
 from sqlmodel import select, func, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from ...database import obtener_db, obtener_erp_db_opcional
+from ..auth.profile_router import obtener_usuario_actual_db
 from ...services.erp.empleados_service import EmpleadosService
 from ...models.novedades_nomina.nomina import (
     NominaArchivo, NominaRegistroCrudo, NominaRegistroNormalizado,
@@ -26,7 +27,7 @@ from .routers import (
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(obtener_usuario_actual_db)])
 router.include_router(excepciones_router)
 router.include_router(descuentos_router)
 router.include_router(comisiones_router, prefix="/comisiones")

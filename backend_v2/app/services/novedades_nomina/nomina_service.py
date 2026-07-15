@@ -83,11 +83,26 @@ class NominaService:
         anio: int
     ) -> Dict[str, Any]:
         """Flujo unificado para procesar archivos de nómina especializados."""
-        # 1. Leer archivos y guardar el primero físicamente
+        # 1. Leer archivos y validar
         archivos_binarios = []
         original_filenames = []
+        from fastapi import HTTPException
+        if len(files) > 10:
+            raise HTTPException(status_code=400, detail="Máximo 10 archivos permitidos a la vez.")
+            
         for f in files:
             content = await f.read()
+            if len(content) > 15 * 1024 * 1024:
+                raise HTTPException(status_code=400, detail="El archivo excede el tamaño máximo de 15MB.")
+                
+            # Validar Magic Bytes
+            if extension.lower() in ["xlsx", "zip"]:
+                if not content.startswith(b"PK\x03\x04"):
+                    raise HTTPException(status_code=400, detail="El archivo no es un Excel o ZIP válido (Firma OOXML incorrecta).")
+            elif extension.lower() == "pdf":
+                if not content.startswith(b"%PDF-"):
+                    raise HTTPException(status_code=400, detail="El archivo no es un PDF válido.")
+                    
             archivos_binarios.append(content)
             original_filenames.append(getattr(f, "filename", "archivo"))
             
@@ -141,19 +156,19 @@ class NominaService:
         rows, summary, warnings_txt = await asyncio.to_thread(extractor_fn, archivos_binarios)
         summary.update({"mes": mes, "anio": anio})
 
-        # 3. Obtener info ERP y Excepciones
-        excepciones = await ExcepcionService.obtener_excepciones_activas(session, subcategoria)
-        mapa_erp = await NominaService.get_mapa_erp(db_erp, rows, excepciones)
-        
-        # 4. Borrar antiguos para evitar duplicados en el mismo periodo/subcat
-        subcategoria_clean = subcategoria.strip()
-        stmt_del = delete(NominaRegistroNormalizado).where(
-            NominaRegistroNormalizado.subcategoria_final == subcategoria_clean,
-            NominaRegistroNormalizado.mes_fact == mes,
-            NominaRegistroNormalizado.año_fact == anio,
-        )
-        
+        # 3. Transacción y relectura
         try:
+            excepciones = await ExcepcionService.obtener_excepciones_activas(session, subcategoria)
+            mapa_erp = await NominaService.get_mapa_erp(db_erp, rows, excepciones)
+            
+            # 4. Borrar antiguos para evitar duplicados en el mismo periodo/subcat
+            subcategoria_clean = subcategoria.strip()
+            stmt_del = delete(NominaRegistroNormalizado).where(
+                NominaRegistroNormalizado.subcategoria_final == subcategoria_clean,
+                NominaRegistroNormalizado.mes_fact == mes,
+                NominaRegistroNormalizado.año_fact == anio,
+            )
+            
             await session.execute(stmt_del)
             
             # 6. Crear entrada de archivo
@@ -169,7 +184,16 @@ class NominaService:
             
             await session.commit()
             
-            # 8. Formatear respuesta para el frontend (Compatible con múltiples versiones)
+        except Exception as e:
+            await session.rollback()
+            # Limpieza de archivo físico en caso de fallo
+            import os
+            if os.path.exists(ruta_almacenamiento):
+                os.remove(ruta_almacenamiento)
+            logger.error(f"Error procesando nómina. Rollback y limpieza ejecutados: {str(e)}")
+            raise HTTPException(status_code=500, detail=f"Error en procesamiento: {str(e)}")
+            
+        # 8. Formatear respuesta para el frontend (Compatible con múltiples versiones)
             filas_frontend = []
             warnings_detalle = []
             for r in registros:

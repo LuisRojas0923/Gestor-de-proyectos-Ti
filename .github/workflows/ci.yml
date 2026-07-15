@@ -1,0 +1,27 @@
+name: Nómina CI Tests
+
+on:
+  push:
+    branches: [ "main", "NOVEDADES_NOMINA_V2" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.11"
+    - name: Install dependencies
+      run: |
+        cd backend_v2
+        python -m pip install --upgrade pip
+        pip install pytest pytest-asyncio pandas openpyxl
+        # En caso de necesitar más dependencias se instalan desde requirements.txt
+    - name: Run Pytest
+      run: |
+        cd backend_v2
+        PYTHONPATH=. pytest tests/ -v
