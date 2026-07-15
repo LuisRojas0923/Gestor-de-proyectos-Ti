@@ -42,6 +42,9 @@ Ubicación: `testing/backend/`
 | **RBAC de Auditoría** | `test_auditoria_estadisticas_rbac.py` | Autoriza el dashboard por permiso efectivo y rechaza accesos sin permiso. | ✅ PASSED |
 | **API de Auditoría** | `test_auditoria_estadisticas_http.py` | Contrato HTTP 401/403/200 del endpoint de indicadores. | ✅ PASSED |
 | **Diagnóstico de Estados** | `test_validate_estados.py` | Manejo seguro de resultados y errores DB del script diagnóstico. | ✅ PASSED |
+| **ETL Beneficiar** | `test_beneficiar_prima.py` | Prima opcional, meses ordinarios y rechazo de columnas obligatorias ausentes. | ✅ PASSED |
+| **ETL Grancoop** | `test_grancoop_nombre_matching.py` | CREDIPRIMA, NOMPRI estricto, sumatoria sin duplicar y límites PDF. | ✅ PASSED |
+| **Seguridad Cooperativas** | `test_cooperativas_archivos_seguridad.py` | Firmas, límites, nombres, permiso `nomina_novedades` y parser en proceso cancelable. | ✅ PASSED |
 
 ### 2. Frontend (Vitest)
 Ubicación: `frontend/src/`

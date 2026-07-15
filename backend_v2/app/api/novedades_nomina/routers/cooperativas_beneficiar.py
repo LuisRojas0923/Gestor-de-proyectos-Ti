@@ -1,7 +1,10 @@
 import hashlib
+import asyncio
+import logging
 from datetime import datetime
 from typing import List, Dict, Any, Optional
-from fastapi import APIRouter, Depends, UploadFile, File, Form, Query, HTTPException
+from fastapi import APIRouter, Depends, UploadFile, File, Form, Query, HTTPException, Request
+from anyio import to_process
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import Session, select, delete
 from ....database import obtener_db, obtener_erp_db_opcional
@@ -11,11 +14,22 @@ from ....models.novedades_nomina.nomina import (
 from ....services.erp.empleados_service import EmpleadosService
 from ....services.novedades_nomina.beneficiar_extractor import extraer_beneficiar
 from ....services.novedades_nomina.excepcion_service import ExcepcionService
+from ....services.novedades_nomina.validacion_archivos_cooperativas import leer_archivos_beneficiar
+from ..dependencies import requiere_permiso_nomina_novedades
+from ....core.rate_limiter import limiter
 
-router = APIRouter(tags=["Cooperativas - Beneficiar"])
+
+logger = logging.getLogger(__name__)
+
+router = APIRouter(
+    tags=["Cooperativas - Beneficiar"],
+    dependencies=[Depends(requiere_permiso_nomina_novedades)],
+)
 
 @router.post("/beneficiar/preview")
+@limiter.limit("5/minute")
 async def preview_beneficiar(
+    request: Request,
     mes: int = Form(...),
     anio: int = Form(...),
     files: List[UploadFile] = File(...),
@@ -23,12 +37,25 @@ async def preview_beneficiar(
     db_erp = Depends(obtener_erp_db_opcional),
 ):
     """Procesa Excel de BENEFICIAR, enriquece con ERP, guarda en BD."""
-    archivos_binarios = []
-    for f in files:
-        contenido = await f.read()
-        archivos_binarios.append(contenido)
+    try:
+        archivos_binarios = await leer_archivos_beneficiar(files)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
-    rows, summary, warnings_txt = extraer_beneficiar(archivos_binarios)
+    try:
+        rows, summary, warnings_txt = await asyncio.wait_for(
+            to_process.run_sync(
+                extraer_beneficiar, archivos_binarios, cancellable=True
+            ),
+            timeout=60,
+        )
+    except asyncio.TimeoutError as exc:
+        raise HTTPException(status_code=422, detail="El procesamiento del Excel excedió el tiempo permitido") from exc
+    except Exception as exc:
+        logger.error("No fue posible extraer el archivo Beneficiar")
+        raise HTTPException(status_code=422, detail="No fue posible procesar el Excel") from exc
+    if not rows:
+        raise HTTPException(status_code=422, detail="Los archivos no contienen filas válidas de Beneficiar")
     summary["mes"] = mes
     summary["anio"] = anio
 
@@ -39,8 +66,9 @@ async def preview_beneficiar(
     try:
         result_exc = await session.execute(stmt_exc)
         excepciones_db = result_exc.scalars().all()
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al consultar excepciones para Beneficiar: {str(e)}")
+    except Exception as exc:
+        logger.error("Error al consultar excepciones de Beneficiar")
+        raise HTTPException(status_code=500, detail="Error al consultar excepciones") from exc
     
     mapa_excepciones = {
         e.cedula: {
@@ -168,9 +196,10 @@ async def preview_beneficiar(
             reg = NominaRegistroNormalizado(archivo_id=archivo.id, fecha_creacion=datetime.now(), mes_fact=mes, año_fact=anio, cedula=row["cedula"], nombre_asociado=row.get("nombre_asociado", ""), valor=row["valor"], empresa=row.get("empresa", ""), concepto=row["concepto"], categoria_final="COOPERATIVAS", subcategoria_final="BENEFICIAR", estado_validacion=row.get("estado_erp", "ADVERTENCIA"), observaciones=row.get("observaciones"), fila_origen=len(rows_facturables) + idx + 1)
             session.add(reg)
         await session.commit()
-    except Exception as e:
+    except Exception as exc:
         await session.rollback()
-        raise HTTPException(status_code=500, detail=f"Error al guardar registros de Beneficiar: {str(e)}")
+        logger.error("Error al guardar registros de Beneficiar")
+        raise HTTPException(status_code=500, detail="Error al guardar registros de Beneficiar") from exc
     
     formatted_rows = [{"cedula": r["cedula"], "nombre_asociado": r.get("nombre_asociado", ""), "empresa": r.get("empresa", ""), "valor": r["valor"], "concepto": r["concepto"]} for r in rows_facturables]
     return {"rows": formatted_rows, "summary": summary, "warnings": warnings_txt, "warnings_detalle": warnings_detalle}
@@ -181,8 +210,9 @@ async def obtener_datos_beneficiar(mes: int = Query(...), anio: int = Query(...)
     stmt = select(NominaRegistroNormalizado).where(NominaRegistroNormalizado.subcategoria_final == "BENEFICIAR", NominaRegistroNormalizado.mes_fact == mes, NominaRegistroNormalizado.año_fact == anio)
     try:
         result = await session.execute(stmt); registros = result.scalars().all()
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al consultar datos de Beneficiar: {str(e)}")
+    except Exception as exc:
+        logger.error("Error al consultar datos de Beneficiar")
+        raise HTTPException(status_code=500, detail="Error al consultar datos de Beneficiar") from exc
 
     rows_final = [{"cedula": r.cedula, "nombre_asociado": r.nombre_asociado, "empresa": r.empresa, "valor": r.valor, "concepto": r.concepto, "estado_validacion": r.estado_validacion} 
                   for r in registros 
