@@ -37,12 +37,44 @@
       "titulo": "Permisos ampliados para subagentes con whitelists explícitas",
       "timestamp": "2026-06-03T09:35:00Z",
       "estado": "VIGENTE"
+    },
+    {
+      "operation": "record error",
+      "id": "ERR-003",
+      "titulo": "Enrolamiento biométrico devolvía 503 por token desalineado entre backend y motor",
+      "timestamp": "2026-07-14T00:00:00Z",
+      "prioridad": "ALTA",
+      "estado": "RESUELTO"
+    },
+    {
+      "operation": "record error",
+      "id": "ERR-004",
+      "titulo": "ResponsiveContainer de Recharts inicializaba gráficos con dimensiones -1/-1",
+      "timestamp": "2026-07-14T00:00:00Z",
+      "prioridad": "MEDIA",
+      "estado": "RESUELTO"
+    },
+    {
+      "operation": "record error",
+      "id": "ERR-005",
+      "titulo": "PATCH de tickets convertía errores HTTP esperados en 500 y exponía detalles internos",
+      "timestamp": "2026-07-14T00:00:00Z",
+      "prioridad": "ALTA",
+      "estado": "RESUELTO"
+    },
+    {
+      "operation": "record error",
+      "id": "ERR-006",
+      "titulo": "PATCH de tickets permanece sin autenticación y confía en identidad de auditoría enviada por el cliente",
+      "timestamp": "2026-07-14T00:00:00Z",
+      "prioridad": "CRITICA",
+      "estado": "NO_RESUELTO"
     }
   ],
   "stats": {
-    "total_operations": 2,
-    "last_operation": "record decision (DEC-2026-06-03-1) — 2026-06-03T09:35:00Z",
-    "errors_recorded": 1,
+    "total_operations": 6,
+    "last_operation": "record error (ERR-006) — 2026-07-14T00:00:00Z",
+    "errors_recorded": 5,
     "decisions_recorded": 1,
     "memory_persistence_enabled": true,
     "permission_grant_date": "2026-06-03"

@@ -8,12 +8,17 @@ from app.models.auth.usuario import Usuario
 from app.models.novedades_nomina.schemas_horas_extras import WorkflowTransicionRequest
 from app.main import app
 from app.api.novedades_nomina.routers.horas_extras import transicionar_calculo_endpoint
+from app.api.novedades_nomina.routers.horas_extras_plantillas import (
+    listar as listar_plantillas_endpoint,
+)
 from app.api.novedades_nomina.routers.horas_extras_permisos import (
     PERMISO_HE_ADMIN,
     PERMISO_HE_COMPENSAR,
     PERMISO_HE_CONFIRMAR,
     PERMISO_HE_LEER,
     PERMISO_HE_PLANIFICAR,
+    PERMISO_PLANTILLAS_ADMIN,
+    requiere_permiso_plantillas_consultar,
     validar_permiso_he,
 )
 
@@ -74,6 +79,80 @@ def test_rutas_criticas_exigen_permiso_granular_correcto():
     assert "requiere_permiso_he_admin" in _dependency_names(
         f"{base}/parametros-calculo", "PUT"
     )
+    assert "requiere_permiso_plantillas_consultar" in _dependency_names(
+        f"{base}/plantillas-horario", "GET"
+    )
+    assert "requiere_permiso_plantillas_administrar" in _dependency_names(
+        f"{base}/plantillas-horario", "POST"
+    )
+    assert "requiere_permiso_plantillas_administrar" in _dependency_names(
+        f"{base}/plantillas-horario/{{plantilla_id}}", "PATCH"
+    )
+    assert "requiere_permiso_plantillas_administrar" in _dependency_names(
+        f"{base}/plantillas-horario/{{plantilla_id}}/desactivar", "POST"
+    )
+    assert "requiere_permiso_plantillas_administrar" in _dependency_names(
+        f"{base}/plantillas-horario/{{plantilla_id}}/duplicar", "POST"
+    )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("permiso", [PERMISO_HE_PLANIFICAR, PERMISO_PLANTILLAS_ADMIN])
+async def test_consultar_plantillas_acepta_planificador_o_administrador(
+    monkeypatch, permiso
+):
+    async def fake_permisos(_db, _rol):
+        return [permiso]
+
+    monkeypatch.setattr(
+        "app.api.novedades_nomina.routers.horas_extras_permisos."
+        "ServicioAuth.obtener_permisos_por_rol",
+        fake_permisos,
+    )
+
+    usuario = await requiere_permiso_plantillas_consultar(None, _usuario())
+    assert usuario.id == "TEST-RBAC-HE"
+
+
+@pytest.mark.asyncio
+async def test_consultar_plantillas_rechaza_usuario_sin_permisos(monkeypatch):
+    async def fake_permisos(_db, _rol):
+        return [PERMISO_HE_LEER]
+
+    monkeypatch.setattr(
+        "app.api.novedades_nomina.routers.horas_extras_permisos."
+        "ServicioAuth.obtener_permisos_por_rol",
+        fake_permisos,
+    )
+
+    with pytest.raises(HTTPException) as exc:
+        await requiere_permiso_plantillas_consultar(None, _usuario())
+
+    assert exc.value.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_planificador_no_puede_consultar_plantillas_inactivas(monkeypatch):
+    async def fake_permisos(_db, _rol):
+        return [PERMISO_HE_PLANIFICAR]
+
+    monkeypatch.setattr(
+        "app.api.novedades_nomina.routers.horas_extras_permisos."
+        "ServicioAuth.obtener_permisos_por_rol",
+        fake_permisos,
+    )
+
+    with pytest.raises(HTTPException) as exc:
+        await listar_plantillas_endpoint(
+            limit=20,
+            offset=0,
+            incluir_inactivas=True,
+            q=None,
+            db=None,
+            actor=_usuario(),
+        )
+
+    assert exc.value.status_code == 403
 
 
 @pytest.mark.asyncio

@@ -200,10 +200,22 @@
         "low": 2
       },
       "test_coverage_observations": "Evidencia final reportada: backend 149, health 4/4, concurrencia PostgreSQL 2, frontend 199/2, focal frontend 10/10 y tsc/build/lint focal OK. Collect-only local: 71 casos en diez suites focales. Cerrados bloqueos de concurrencia multi-sesion, IDOR/preliquidacion/recursos indirectos, ERP 503, jefe y disponibilidad VAC/INC/LIC; evidencia TDD roja documenta ModuleNotFoundError previo a implementacion. Riesgos no bloqueantes: sin coverage/log verde final, matriz HTTP no exhaustiva y security pendiente de rerevision vigente."
+    },
+    {
+      "date": "2026-07-13",
+      "scope": "optimizacion-vite-plantillas-horario",
+      "outcome": "blocked",
+      "finding_count_by_severity": {
+        "critical": 0,
+        "high": 3,
+        "medium": 3,
+        "low": 0
+      },
+      "test_coverage_observations": "El build reporta 16 pruebas del hub y 8 de versionado, pero no conserva comandos/salidas y los 16 casos no cubren Vite. Faltan pruebas de polling/fallback/warmup/ignored/holdUntilCrawlEnd y evidencia de suites de componentes modificados. Collect-only local del baseline: 2 pruebas recolectadas. Las metricas posteriores carecen de JSON crudo y la meta CPU <10 % no se alcanza."
     }
   ],
   "stats": {
-    "total_reviews": 16,
-    "last_review": "2026-07-10"
+    "total_reviews": 17,
+    "last_review": "2026-07-13"
   }
 }

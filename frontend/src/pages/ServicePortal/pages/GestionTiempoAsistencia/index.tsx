@@ -47,7 +47,7 @@ const GestionTiempoAsistencia = ({ moduleStatus = {} }: GestionTiempoAsistenciaP
           </Button>
         </MaterialCard>
       ) : (
-        <Text as="div" className="space-y-6">
+        <Text as="div" className="space-y-4">
           {SECCIONES_TIEMPO_ASISTENCIA.map((seccion) => {
             const opcionesSeccion = opciones.filter((opcion) => opcion.seccion === seccion.id);
             if (opcionesSeccion.length === 0) return null;

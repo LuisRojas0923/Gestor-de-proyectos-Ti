@@ -19,6 +19,7 @@ interface SelectProps {
     size?: 'xs' | 'sm' | 'md' | 'lg';
     className?: string;
     name?: string;
+    ariaLabel?: string;
     onChange?: (e: React.ChangeEvent<HTMLSelectElement>) => void;
     onFocus?: (e: React.FocusEvent<HTMLSelectElement>) => void;
     onBlur?: (e: React.FocusEvent<HTMLSelectElement>) => void;
@@ -37,6 +38,7 @@ const Select: React.FC<SelectProps> = ({
     size = 'md',
     className = '',
     name,
+    ariaLabel,
     onChange,
     onFocus,
     onBlur,
@@ -71,6 +73,7 @@ const Select: React.FC<SelectProps> = ({
                 disabled={disabled}
                 required={required}
                 name={name}
+                aria-label={ariaLabel}
                 onChange={onChange}
                 onFocus={onFocus}
                 onBlur={onBlur}

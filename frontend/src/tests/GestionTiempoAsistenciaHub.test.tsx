@@ -40,13 +40,24 @@ describe('Gestión de Tiempo y Asistencia', () => {
     expect(screen.getByLabelText('ruta actual')).toHaveTextContent('/service-portal/biometria');
   });
 
+  it('mueve la descripción de cada acceso a un tooltip accesible', () => {
+    mocks.permisos = ['biometria'];
+    renderHub();
+
+    const descripcion = screen.getByText('Registra tu asistencia y consulta la información habilitada para tu equipo.');
+    const tooltip = descripcion.closest('[role="tooltip"]');
+    const boton = screen.getByRole('button', { name: 'Biometría y asistencia' });
+    expect(tooltip).toBeInTheDocument();
+    expect(boton).toHaveAttribute('aria-describedby', tooltip?.id);
+  });
+
   it('agrupa la unión de permisos y oculta secciones vacías', () => {
     mocks.permisos = ['nomina_horas_extras.planificar', 'alcance_empleados.administrar'];
     renderHub();
-    expect(screen.getByRole('region', { name: 'Planificación de horarios' })).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Asistencia' })).toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'Planificación de horarios' })).not.toBeInTheDocument();
     expect(screen.getByRole('region', { name: 'Horas extras' })).toBeInTheDocument();
     expect(screen.getByRole('region', { name: 'Administración' })).toBeInTheDocument();
-    expect(screen.queryByRole('region', { name: 'Asistencia' })).not.toBeInTheDocument();
   });
 
   it('respeta el estado deshabilitado de horas extras', () => {

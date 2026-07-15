@@ -152,6 +152,19 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+select {
+  color-scheme: light;
+}
+
+select option {
+  background-color: var(--color-surface);
+  color: var(--color-text-primary);
+}
+
+.dark select {
+  color-scheme: dark;
+}
+
 /* Calendario Reserva de Salas: encabezados legibles con texto azul */
 .reserva-salas-calendar .fc-col-header-cell {
   background: var(--color-surface-variant);

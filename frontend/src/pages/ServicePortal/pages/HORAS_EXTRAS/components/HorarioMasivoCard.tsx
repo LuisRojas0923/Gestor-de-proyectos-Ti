@@ -18,6 +18,7 @@ interface HorarioMasivoCardProps {
   observacionMasiva: string;
   codigosNovedad: string[];
   opcionesAlmuerzo: { value: string; label: string }[];
+  selectorPlantilla?: React.ReactNode;
   onPlantillaEntradaChange: (value: string) => void;
   onPlantillaSalidaChange: (value: string) => void;
   onPlantillaAlmuerzoChange: (value: number) => void;
@@ -148,6 +149,7 @@ const HorarioMasivoCard: React.FC<HorarioMasivoCardProps> = ({
   observacionMasiva,
   codigosNovedad,
   opcionesAlmuerzo,
+  selectorPlantilla,
   onPlantillaEntradaChange,
   onPlantillaSalidaChange,
   onPlantillaAlmuerzoChange,
@@ -165,10 +167,10 @@ const HorarioMasivoCard: React.FC<HorarioMasivoCardProps> = ({
     ? 'mt-2 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]/80 p-2.5'
     : 'border-b border-[var(--color-border)] bg-[var(--color-surface)] p-2.5';
   const layoutClass = compacto
-    ? 'flex flex-col gap-2'
+    ? 'grid gap-2 2xl:grid-cols-[minmax(0,1fr)_minmax(280px,320px)] 2xl:items-center'
     : 'flex flex-col gap-2 2xl:flex-row 2xl:items-center 2xl:justify-between';
   const controlesClass = compacto
-    ? 'flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1.5'
+    ? 'flex min-w-0 flex-wrap items-center gap-1.5 2xl:grid 2xl:grid-cols-[104px_96px_142px_190px_minmax(280px,1fr)]'
     : 'flex min-w-0 flex-wrap items-center gap-2';
   const accionesClass = compacto
     ? 'flex flex-wrap items-center justify-end gap-2 border-t border-[var(--color-border)]/60 pt-2.5'
@@ -223,7 +225,7 @@ const HorarioMasivoCard: React.FC<HorarioMasivoCardProps> = ({
                 onChange={onNovedadMasivaChange}
               />
             </div>
-            <div className={`${chipClass} max-w-full gap-1.5`}>
+            <div className={`${chipClass} max-w-full gap-1.5 !h-auto min-h-8 py-1`}>
               <Text className={chipLabelClass}>Días</Text>
               <div className="flex min-w-0 flex-wrap items-center gap-1 sm:flex-nowrap">
                 {diasSemana.map((dia) => {
@@ -248,6 +250,8 @@ const HorarioMasivoCard: React.FC<HorarioMasivoCardProps> = ({
               </div>
             </div>
           </div>
+
+          {selectorPlantilla && <div className="min-w-0">{selectorPlantilla}</div>}
 
           {!ocultarAcciones && (
             <div className={accionesClass}>

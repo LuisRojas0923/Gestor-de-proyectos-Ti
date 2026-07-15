@@ -27,8 +27,11 @@ from ....services.novedades_nomina.plantillas_horario_service import (
 )
 from ....services.auditoria.snapshots import asignar_evento_segura
 from .horas_extras_permisos import (
+    PERMISO_PLANTILLAS_ADMIN,
     requiere_permiso_he_planificar,
     requiere_permiso_plantillas_administrar,
+    requiere_permiso_plantillas_consultar,
+    validar_permiso_he,
 )
 
 router = APIRouter(prefix="/plantillas-horario")
@@ -61,8 +64,10 @@ async def listar(
     limit: int = Query(20, ge=1, le=100), offset: int = Query(0, ge=0),
     incluir_inactivas: bool = False, q: str | None = Query(None, max_length=120),
     db: AsyncSession = Depends(obtener_db),
-    _: Usuario = Depends(requiere_permiso_plantillas_administrar),
+    actor: Usuario = Depends(requiere_permiso_plantillas_consultar),
 ):
+    if incluir_inactivas:
+        await validar_permiso_he(db, actor, PERMISO_PLANTILLAS_ADMIN)
     items, total = await listar_plantillas(db, limit, offset, incluir_inactivas, q)
     return PlantillaHorarioList(items=items, total=total, limit=limit, offset=offset)
 

@@ -80,3 +80,14 @@ async def requiere_permiso_plantillas_administrar(
     usuario: Usuario = Depends(obtener_usuario_actual_db),
 ) -> Usuario:
     return await validar_permiso_he(db, usuario, PERMISO_PLANTILLAS_ADMIN)
+
+
+async def requiere_permiso_plantillas_consultar(
+    db: AsyncSession = Depends(obtener_db),
+    usuario: Usuario = Depends(obtener_usuario_actual_db),
+) -> Usuario:
+    return await validar_permiso_he(
+        db,
+        usuario,
+        (PERMISO_HE_PLANIFICAR, PERMISO_PLANTILLAS_ADMIN),
+    )

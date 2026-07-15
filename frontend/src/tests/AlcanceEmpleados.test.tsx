@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => ({
   notificar: vi.fn(),
   recargar: vi.fn(),
   recargarGestores: vi.fn(),
+  setCargos: vi.fn(),
   setGestorId: vi.fn(),
 }));
 
@@ -18,18 +19,20 @@ const empleado = (index: number) => ({
 });
 
 let items = [empleado(1)];
+let gestorId = 'g1';
 const hookResult = () => ({
   gestores: [
     { id: 'g1', nombre: 'Gestor Uno', rol: 'manager', relaciones_activas: 0 },
     { id: 'g2', nombre: 'Gestor Dos', rol: 'manager', relaciones_activas: 0 },
   ],
-  gestorId: 'g1', busquedaGestor: '', items, total: items.length, facetas: {}, q: '',
+  gestorId, busquedaGestor: '', items, total: items.length,
+  facetas: { cargos: ['Cargo'], areas: ['Área'], ciudades: ['Bogotá'], jefes: ['Jefe'] }, q: '',
   anio: 2026, semanaIso: 28, relacionado: undefined, autorizaHe: undefined,
-  disponible: undefined, cargo: '', area: '', ciudad: '', jefe: '', offset: 0,
+  disponible: undefined, cargos: [], areas: [], ciudades: [], jefes: [], offset: 0,
   limit: 25, cargando: false, error: null, cargandoGestores: false, errorGestores: null,
   setBusquedagestor: vi.fn(), setGestorId: mocks.setGestorId, setQ: vi.fn(), setAnio: vi.fn(),
   setSemanaIso: vi.fn(), setRelacionado: vi.fn(), setAutorizaHe: vi.fn(), setDisponible: vi.fn(),
-  setCargo: vi.fn(), setArea: vi.fn(), setCiudad: vi.fn(), setJefe: vi.fn(), setOffset: vi.fn(),
+  setCargos: mocks.setCargos, setAreas: vi.fn(), setCiudades: vi.fn(), setJefes: vi.fn(), setOffset: vi.fn(),
   recargar: mocks.recargar, recargarGestores: mocks.recargarGestores,
 });
 
@@ -52,6 +55,28 @@ describe('AlcanceEmpleadosPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     items = [empleado(1)];
+    gestorId = 'g1';
+  });
+
+  it('orienta al administrador cuando todavía no selecciona un gestor', () => {
+    gestorId = '';
+    renderPage();
+
+    expect(screen.getByText('Selecciona un gestor para comenzar')).toBeInTheDocument();
+    expect(screen.getByText('1. Busca el gestor')).toBeInTheDocument();
+    expect(screen.queryByText('Buscar y filtrar empleados ERP')).not.toBeInTheDocument();
+  });
+
+  it('activa los filtros por columna de la tabla', () => {
+    renderPage();
+
+    fireEvent.click(screen.getByRole('button', { name: /^Empleado$/i }));
+    const opcionCargo = screen.getAllByRole('button', { name: 'Cargo' }).at(-1)!;
+    expect(opcionCargo).toHaveAttribute('aria-pressed', 'false');
+    fireEvent.click(opcionCargo);
+    fireEvent.click(screen.getAllByRole('button', { name: /^Aplicar$/i }).at(-1)!);
+
+    expect(mocks.setCargos).toHaveBeenCalledWith(['Cargo']);
   });
 
   it('conserva solicitud_id al reintentar y refresca empleados y gestores al tener éxito', async () => {

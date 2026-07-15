@@ -103,6 +103,117 @@
         "F5: vitest-axe no instalado — añadir para tests a11y de los modales migrados.",
         "F6: Bundle size warning pre-existente (index.js 2.97MB) no relacionado con estos cambios."
       ]
+    },
+    {
+      "id": "ERR-003",
+      "titulo": "Enrolamiento biométrico devolvía 503 por token desalineado entre backend y motor",
+      "archivos_afectados": [
+        "docker-compose.yml",
+        ".env (BIOMETRIA_ENGINE_TOKEN; valor omitido)",
+        "POST /api/v2/biometria/enrolar"
+      ],
+      "causa_raiz": "Los contenedores de backend y biometria-engine habían sido creados en momentos distintos: el backend no recibía BIOMETRIA_ENGINE_TOKEN desde el .env vigente, mientras el motor conservaba un token anterior y rechazaba la llamada interna con 401; el backend exponía el fallo como 503.",
+      "solucion_propuesta": [
+        "Definir un token fuerte compartido mediante BIOMETRIA_ENGINE_TOKEN en .env, sin registrar su valor en la memoria ni en el repositorio.",
+        "Recrear los contenedores backend y biometria-engine para aplicar la misma configuración.",
+        "Verificar que ambos servicios tengan tokens configurados y coincidentes, que el motor esté healthy y que una prueba interna autenticada llegue al procesamiento: imagen inválida devuelve 400 en lugar de 401."
+      ],
+      "impacto": "El enrolamiento biométrico quedaba bloqueado para los usuarios y POST /api/v2/biometria/enrolar respondía 503 aunque el motor estuviera disponible.",
+      "estado": "RESUELTO",
+      "prioridad": "ALTA",
+      "componente": "multi",
+      "fecha_deteccion": "2026-07-14",
+      "fecha_resolucion": "2026-07-14",
+      "tags": [
+        "biometria",
+        "configuracion",
+        "contenedores",
+        "autenticacion-interna",
+        "token",
+        "503",
+        "401"
+      ]
+    },
+    {
+      "id": "ERR-004",
+      "titulo": "ResponsiveContainer de Recharts inicializaba gráficos con dimensiones -1/-1",
+      "archivos_afectados": [
+        "frontend/src/pages/Indicators/IndicatorsVolumeView.tsx",
+        "frontend/src/tests/IndicatorsVolumeView.test.tsx"
+      ],
+      "causa_raiz": "En Recharts 3.5, los ResponsiveContainer configurados con dimensiones porcentuales se inicializaban en -1/-1 antes de que ResizeObserver entregara el tamaño real, provocando advertencias y una inicialización inválida de los gráficos de IndicatorsVolumeView.",
+      "solucion_propuesta": [
+        "Configurar initialDimension con valores positivos en los cuatro gráficos de IndicatorsVolumeView.",
+        "Mantener cobertura de regresión en IndicatorsVolumeView.test.tsx para verificar la inicialización positiva."
+      ],
+      "impacto": "Los cuatro gráficos podían inicializarse con dimensiones inválidas antes de medir su contenedor, generando advertencias y riesgo de renderizado incorrecto.",
+      "estado": "RESUELTO",
+      "prioridad": "MEDIA",
+      "componente": "frontend",
+      "fecha_deteccion": "2026-07-14",
+      "fecha_resolucion": "2026-07-14",
+      "tags": [
+        "recharts",
+        "responsive-container",
+        "resize-observer",
+        "graficos",
+        "regresion"
+      ]
+    },
+    {
+      "id": "ERR-005",
+      "titulo": "PATCH de tickets convertía errores HTTP esperados en 500 y exponía detalles internos",
+      "archivos_afectados": [
+        "backend_v2/app/api/tickets/router.py:350",
+        "testing/backend/test_ticket_update_errors.py"
+      ],
+      "causa_raiz": "El manejador general de excepciones del router PATCH de tickets capturaba también HTTPException intencionales 400/404, las convertía en respuestas 500 y reutilizaba detalles de excepciones inesperadas en la respuesta pública.",
+      "solucion_propuesta": [
+        "Preservar y relanzar HTTPException para conservar los estados 400/404 previstos.",
+        "Sanitizar la respuesta 500 de excepciones inesperadas sin exponer detalles internos.",
+        "Ejecutar rollback de la transacción cuando ocurra un fallo inesperado.",
+        "Cubrir los escenarios con pruebas de regresión de actualización de tickets."
+      ],
+      "impacto": "Errores de validación o recursos inexistentes devolvían 500 incorrectamente y los fallos inesperados podían revelar información interna al cliente.",
+      "estado": "RESUELTO",
+      "prioridad": "ALTA",
+      "componente": "backend",
+      "fecha_deteccion": "2026-07-14",
+      "fecha_resolucion": "2026-07-14",
+      "tags": [
+        "tickets",
+        "patch",
+        "http-exception",
+        "manejo-de-errores",
+        "rollback",
+        "regresion"
+      ]
+    },
+    {
+      "id": "ERR-006",
+      "titulo": "PATCH de tickets permanece sin autenticación y confía en identidad de auditoría enviada por el cliente",
+      "archivos_afectados": [
+        "backend_v2/app/api/tickets/router.py:350"
+      ],
+      "causa_raiz": "El endpoint PATCH no exige un principal autenticado y toma del payload del cliente la identidad usada para auditoría, sin vincularla a una identidad verificada por el servidor.",
+      "solucion_propuesta": [
+        "Exigir autenticación y autorización en el endpoint PATCH de tickets.",
+        "Derivar la identidad de auditoría exclusivamente del principal autenticado en el servidor.",
+        "Añadir pruebas de acceso no autenticado, autorización y atribución de auditoría."
+      ],
+      "impacto": "Un cliente no autenticado podría modificar tickets y atribuir la operación a una identidad de auditoría no verificada.",
+      "estado": "NO_RESUELTO",
+      "prioridad": "CRITICA",
+      "componente": "backend",
+      "fecha_deteccion": "2026-07-14",
+      "tags": [
+        "tickets",
+        "patch",
+        "autenticacion",
+        "autorizacion",
+        "auditoria",
+        "seguridad"
+      ]
     }
   ],
   "decisions": [

@@ -330,6 +330,7 @@ class ServicioTicket:
             )
 
         if db_ticket.sub_estado == "Resuelto" and not db_ticket.causa_novedad:
+            await db.rollback()
             raise HTTPException(
                 status_code=400,
                 detail="La 'Causa de la Novedad' es obligatoria para resolver el ticket.",
@@ -371,6 +372,15 @@ class ServicioTicket:
                     print(f"WARNING: No se pudo enviar notificación de cambio de estado: {mail_err}")
 
         await db.commit()
+        evento_websocket = {
+            "type": "ticket_updated",
+            "data": {
+                "id": ticket_id,
+                "estado": db_ticket.estado,
+                "sub_estado": db_ticket.sub_estado,
+                "asignado_a": db_ticket.asignado_a,
+            },
+        }
         
         # Notificaciones nativas
         try:
@@ -407,19 +417,12 @@ class ServicioTicket:
                     )
         except Exception as e_notif:
             import logging
+            await db.rollback()
             logging.getLogger(__name__).warning(f"Error creando notificación de actualización: {e_notif}")
 
         # Notificación en tiempo real vía WebSocket
         try:
-            await manager.broadcast_to_ticket(ticket_id, {
-                "type": "ticket_updated",
-                "data": {
-                    "id": ticket_id,
-                    "estado": db_ticket.estado,
-                    "sub_estado": db_ticket.sub_estado,
-                    "asignado_a": db_ticket.asignado_a
-                }
-            })
+            await manager.broadcast_to_ticket(ticket_id, evento_websocket)
         except Exception:
             pass
 

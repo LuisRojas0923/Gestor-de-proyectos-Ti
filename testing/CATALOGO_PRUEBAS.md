@@ -19,7 +19,7 @@ Ubicación: `testing/backend/`
 | Módulo | Archivo | Descripción | Estado |
 | :--- | :--- | :--- | :--- |
 | **Infra Health** | `test_infrastructure.py` | **Crítico**: Escritura en disco (Adjuntos) y Puente ERP. | ✅ PASSED |
-| **Regresiones** | `test_regresiones.py` | **Master Health Check**: Ciclo de vida, Adjuntos y RBAC. | ⚠️ DB vacía requiere seed de categorías |
+| **Regresiones** | `test_regresiones.py` | **Master Health Check**: Ciclo de vida, Adjuntos y RBAC. | ✅ 3 PASSED / 3 SKIPPED sin credenciales de prueba |
 | **Autenticación** | `test_auth_verification.py` | Verificación de correo y flujo de seguridad. | ✅ PASSED |
 | **Autogestión ERP Auth** | `test_autogestion_usuarios_erp.py` | JIT, registro público y validación fail-closed contra empleados activos del ERP. | ✅ PASSED |
 | **Setup Password** | `test_setup_password.py` | Configuración de contraseña primera vez (setup-password), estado (password-status) y login con password no configurado. | ⚠️ BLOQUEADO LOCAL: credenciales PostgreSQL |
@@ -54,7 +54,7 @@ Ubicación: `testing/backend/`
 | **Horas Extras S9 Reglas GH** | `test_horas_extras_s9_reglas_gh.py` | Reglas confirmadas por Gestion Humana: jornada semanal 42h/210h desde 2026-07-16, compensacion semanal, nocturna 19:00-06:00 y turnos cruzados en dos dias. | ✅ PASSED |
 | **Horas Extras S10 Trazabilidad Diaria** | `test_horas_extras_s10_trazabilidad_diaria.py` | Persistencia del snapshot diario de 7 dias asociado al calculo confirmado; lectura de estados `DISPONIBLE`, `HISTORICO_SIN_SNAPSHOT` e `INCOMPLETO`. | ✅ PASSED |
 | **Horas Extras Parametros Calculo** | `test_horas_extras_parametros_calculo.py` | Consulta y edicion de reglas vigentes en `nomina_parametros_legales`; valida ruta sin prefijo duplicado, RBAC y uso de parametros editados. | ✅ PASSED |
-| **Horas Extras RBAC Granular** | `test_horas_extras_rbac_granular.py` | Manifiesto RBAC granular, dependencias por ruta critica, rechazo 403 sin permiso exacto y separacion confirmar/compensar. | ✅ PASSED |
+| **Horas Extras RBAC Granular** | `test_horas_extras_rbac_granular.py` | Manifiesto RBAC granular, dependencias por ruta critica, lectura de plantillas para planificar/administrar, rechazo 403 y separacion confirmar/compensar. | ✅ PASSED |
 | **Biometría Engine Client** | `test_biometria_engine_client.py` | Mapeo saneado de errores del motor, contrato de embedding y rechazo de respuestas invalidas. | ✅ PASSED |
 | **Biometría Service** | `test_biometria_service.py` | Flujo de negocio sin embedding, estado biométrico backend-source, geocerca backend, comparación vectorial y protección contra traversal en archivos. | ✅ PASSED |
 | **Biometría RBAC/Router** | `test_biometria_router_engine.py` | Dependencia RBAC del módulo `biometria` y delegación del endpoint de estado biométrico. | ✅ PASSED |
@@ -66,6 +66,7 @@ Ubicación: `testing/backend/`
 | **Horarios Plantillas - Contratos y Migración** | `test_horarios_plantillas.py` | Siete días, validación de francos y turnos nocturnos, migración PostgreSQL idempotente y preservación de usuarios. | ✅ PASSED (reporte focal) |
 | **Horarios Plantillas - Servicio** | `test_horarios_plantillas_service.py` | CRUD versionado, búsqueda, historial, copy-on-apply, snapshots, replay/conflicto idempotente y rollback atómico. | ✅ PASSED (reporte focal) |
 | **Alcance Gestor-Empleado** | `test_alcance_empleados.py` | Cédula canónica, M:N, límites bulk, autoedición, bypass admin, filtros/facetas, IDOR, RBAC y ciclo de sesión ERP. | ✅ PASSED (reporte focal) |
+| **Actualización de Tickets** | `test_ticket_update_errors.py` | Preserva errores HTTP de negocio, sanea fallos inesperados, garantiza rollback y mantiene el evento WebSocket si falla una notificación nativa. | ✅ PASSED |
 | **Horarios Migración/Integridad** | `test_horarios_migracion_seguridad.py` | Reparación de constraints PostgreSQL, rechazo de datos inválidos, triggers append-only y propagación de fallo crítico. | ✅ PASSED (reporte final) |
 | **Horarios Seguridad HTTP** | `test_horarios_security_http.py` | IDOR de cálculo, alcance SQL GeoFace, redacción de cédulas y `Cache-Control: no-store, private`. | ✅ PASSED (reporte final) |
 | **Planificador Savepoints** | `test_planificador_savepoints.py` | Identidad canónica, éxito/error/éxito con savepoints y ciclo de sesión ERP del worker OT. | ✅ PASSED (reporte final) |
@@ -102,15 +103,18 @@ Ubicación: `frontend/src/tests/`
 | `PlanificadorHorarioDraft.test.tsx` | Aplicación masiva y persistencia local normalizada del borrador. |
 | `servicePortalFeatureRoutes.test.tsx` | Guardas independientes de Plantillas, Alcance y Biometría. |
 | `horasExtrasWorkflowService.test.ts` | Servicios de transición, bolsa y festivos separados del servicio principal. |
-| `AlcanceEmpleados.test.tsx` | UUID estable en reintento, doble submit, descarte de cambios, refresco y límite 200. |
+| `AlcanceEmpleados.test.tsx` | Estado inicial, filtros de tabla remotos, UUID estable en reintento, doble submit, descarte y límite 200. |
+| `useAlcanceEmpleados.test.tsx` | Filtros multivalor, reinicio de paginación y descarte de resultados obsoletos ante error. |
 | `PlantillasHorarioPage.test.tsx` | Crear/duplicar/desactivar, UUID estable y doble submit de aplicación. |
+| `PlanificadorPlantillas.test.tsx` | Carga del selector, aplicación semanal, francos y conservación de novedades/OT. |
 | `ModalStack.test.tsx` | Escape solo sobre modal superior, scroll lock contado y restauración de foco. |
 | `BiometriaModule.test.tsx` | Error/reintento de capacidades y tabs enlazadas con teclado. |
 | `BiometriaAdminView.test.tsx` | Tabs ARIA y confirmación antes de eliminar zona. |
 | `CeldaDiaEditor.test.tsx` / `validarTurno.test.ts` | Feedback y reglas compartidas para turnos nocturnos. |
 | `gestionTiempoAsistenciaConfig.test.ts` | Matriz exacta de permisos, unión sin duplicados, fail-closed y `moduleStatus`. |
-| `GestionTiempoAsistenciaHub.test.tsx` | Secciones autorizadas, estado vacío, navegación y tarjetas accesibles. |
+| `GestionTiempoAsistenciaHub.test.tsx` | Secciones autorizadas, agrupación, navegación y descripciones compactas mediante tooltips accesibles. |
 | `DashboardView.test.tsx` | Tarjeta única de Tiempo y Asistencia, alias de búsqueda y ausencia sin permiso navegable. |
+| `IndicatorsVolumeView.test.tsx` | Dimensiones iniciales positivas en los cuatro gráficos de volumen para evitar advertencias previas a `ResizeObserver`. |
 | `servicePortalFeatureRoutes.test.tsx` | Nueva ruta autenticada y conservación de guardas independientes históricas. |
 | `GestionTiempoAsistenciaReturns.test.tsx` | Retornos directos al hub y alias de empleados hacia el panel integrado del Planificador. |
 | `ConfiguracionHorasExtrasView.test.tsx` | Cambios pendientes, justificación obligatoria, descarte protegido, reintento y payload mínimo de reglas. |

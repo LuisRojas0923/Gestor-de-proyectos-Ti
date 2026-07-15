@@ -152,6 +152,21 @@ export const FilterDropdown: React.FC<FilterDropdownProps> = (props) => {
         return () => document.removeEventListener('keydown', handleEscape);
     }, [effectiveIsOpen, isSimpleMode, onClose]);
 
+    useEffect(() => {
+        if (!effectiveIsOpen) return;
+        const closeOnViewportChange = (event: Event) => {
+            if (event.target instanceof Node && dropdownRef.current?.contains(event.target)) return;
+            if (isSimpleMode) setInternalIsOpen(false);
+            else onClose?.();
+        };
+        window.addEventListener('resize', closeOnViewportChange);
+        window.addEventListener('scroll', closeOnViewportChange, true);
+        return () => {
+            window.removeEventListener('resize', closeOnViewportChange);
+            window.removeEventListener('scroll', closeOnViewportChange, true);
+        };
+    }, [effectiveIsOpen, isSimpleMode, onClose]);
+
     if (!effectiveIsOpen && isSimpleMode) {
         const hasFilters = (props.selectedOptions?.length || 0) > 0;
         return (
@@ -322,15 +337,19 @@ export const FilterDropdown: React.FC<FilterDropdownProps> = (props) => {
                             />
                         </div>
 
-                        <div
+                        <Button
+                            type="button"
+                            variant="custom"
+                            wrapContent={false}
                             onClick={handleSelectAll}
-                            className="flex items-center gap-2 px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer border-b border-slate-100 dark:border-slate-800 transition-colors"
+                            aria-pressed={isAllSelected}
+                            className="w-full justify-start gap-2 rounded-none border-b border-slate-100 px-3 py-2 text-left transition-colors hover:bg-slate-50 focus:ring-1 focus:ring-primary-500 focus:ring-offset-0 dark:border-slate-800 dark:hover:bg-slate-800/50"
                         >
-                            <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center transition-colors ${isAllSelected ? 'bg-primary-500 border-primary-500' : 'border-slate-300 dark:border-slate-600'}`}>
+                            <div aria-hidden="true" className={`w-3.5 h-3.5 rounded border flex items-center justify-center transition-colors ${isAllSelected ? 'bg-primary-500 border-primary-500' : 'border-slate-300 dark:border-slate-600'}`}>
                                 {isAllSelected && <Check className="w-2.5 h-2.5 text-white" />}
                             </div>
                             <Text variant="caption" weight="bold" className="text-[11px]">Seleccionar Todos</Text>
-                        </div>
+                        </Button>
 
                         <div className="py-1">
                             {isSearching && (
@@ -339,12 +358,20 @@ export const FilterDropdown: React.FC<FilterDropdownProps> = (props) => {
                                 </Text>
                             )}
                             {filteredOptions.map(opt => (
-                                <div key={opt.value} onClick={() => handleToggle(opt.value)} className="flex items-center gap-2 px-3 py-1.5 hover:bg-primary-50 dark:hover:bg-primary-900/10 cursor-pointer">
-                                    <div className={`w-4 h-4 rounded border flex items-center justify-center ${currentSelected.includes(opt.value) ? 'bg-primary-500 border-primary-500' : 'border-slate-300 dark:border-slate-600'}`}>
+                                <Button
+                                    key={opt.value}
+                                    type="button"
+                                    variant="custom"
+                                    wrapContent={false}
+                                    onClick={() => handleToggle(opt.value)}
+                                    aria-pressed={currentSelected.includes(opt.value)}
+                                    className="w-full justify-start gap-2 rounded-none px-3 py-1.5 text-left hover:bg-primary-50 focus:ring-1 focus:ring-primary-500 focus:ring-offset-0 dark:hover:bg-primary-900/10"
+                                >
+                                    <div aria-hidden="true" className={`w-4 h-4 rounded border flex items-center justify-center ${currentSelected.includes(opt.value) ? 'bg-primary-500 border-primary-500' : 'border-slate-300 dark:border-slate-600'}`}>
                                         {currentSelected.includes(opt.value) && <Check className="w-3 h-3 text-white" />}
                                     </div>
                                     <Text variant="caption" className="text-[11px] truncate">{opt.label || '(Vacío)'}</Text>
-                                </div>
+                                </Button>
                             ))}
                             {!isSearching && filteredOptions.length === 0 && (
                                 <Text variant="caption" className="block px-3 py-2 text-[11px] text-[var(--color-text-secondary)]">

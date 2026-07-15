@@ -1,20 +1,16 @@
 import React, { useState, useCallback, useMemo, useRef, useLayoutEffect } from 'react';
 import { Text, Button } from '../atoms';
 import { FilterDropdown } from './FilterDropdown';
-import { ArrowUp, ArrowDown, GripVertical } from 'lucide-react';
+import { ArrowUp, ArrowDown, Funnel, GripVertical } from 'lucide-react';
 
 export interface DataTableColumn<T> {
     key: string;
     label: string;
-    /** Ancho mínimo de la columna, e.g. '100px'. */
     minWidth?: string;
-    /** Ancho máximo de la columna. Si se iguala a minWidth la columna queda fija. */
     maxWidth?: string;
-    /** La columna absorbe el espacio sobrante (equivalente a flex-1 / 1fr). */
     flex?: boolean;
     centered?: boolean;
     filterable?: boolean;
-    /** Clases extra aplicadas al wrapper de la celda en el body, e.g. 'px-6'. */
     cellClassName?: string;
     render?: (row: T) => React.ReactNode;
     subFilters?: { key: string; label: string }[];
@@ -24,9 +20,7 @@ export interface DataTableProps<T> {
     columns: DataTableColumn<T>[];
     data: T[];
     keyExtractor: (row: T) => string;
-
     headerClassName?: string;
-
     showRowIndicator?: boolean;
     rowIndicatorColor?: string;
     onRowClick?: (row: T) => void;
@@ -39,24 +33,19 @@ export interface DataTableProps<T> {
     getRowClassName?: (row: T) => string;
     isRowDraggable?: boolean;
     onRowsReorder?: (fromIndex: number, toIndex: number) => void;
-
     columnFilters?: Record<string, Set<string>>;
     columnOptions?: Record<string, string[]>;
     onFilterChange?: (columnKey: string, filter: Set<string>) => void;
     remoteFilterSearch?: boolean;
     isFilterSearching?: boolean;
     onFilterSearchChange?: (columnKey: string, subFilterKey: string, searchTerm: string) => void;
-
     activeSortKey?: string | null;
     activeSortDir?: 'asc' | 'desc' | null;
     onSort?: (key: string, dir: 'asc' | 'desc' | null) => void;
-
     isLoading?: boolean;
     loadingMessage?: string;
-
     emptyMessage?: string;
     emptyIcon?: React.ReactNode;
-
     maxHeight?: string;
     minHeight?: string;
     className?: string;
@@ -291,9 +280,9 @@ export function DataTable<T>({
         return !!(f && f.size > 0);
     }, [columnFilters, columns]);
 
-    const activeFilterOptionsCount = activeSubFilter ? getFilterOptions(activeSubFilter).length : 0;
+    const activeFilterOptions = activeSubFilter ? getFilterOptions(activeSubFilter) : [];
     const isAllSelected = activeFilter && activeSubFilter
-        ? activeFilterOptionsCount > 0 && (tempSubFilters[activeSubFilter]?.size ?? 0) === activeFilterOptionsCount
+        ? activeFilterOptions.length > 0 && activeFilterOptions.every((option) => tempSubFilters[activeSubFilter]?.has(option.value))
         : false;
 
     const moveRowWithKeyboard = (rowIndex: number, direction: -1 | 1) => {
@@ -305,7 +294,6 @@ export function DataTable<T>({
     return (
         <div className={`relative flex flex-col overflow-x-auto overflow-y-hidden border border-[var(--color-border)] bg-[var(--color-surface)] shadow-sm ${maxHeight} ${minHeight} ${className}`}>
 
-            {/* Filter Dropdown */}
             {activeFilter && anchorRect && (
                 <FilterDropdown
                     isOpen
@@ -319,7 +307,11 @@ export function DataTable<T>({
                         if (!activeSubFilter) return;
                         setTempSubFilters(prev => {
                             const next = { ...prev };
-                            next[activeSubFilter] = new Set(getFilterOptions(activeSubFilter).map(o => o.value));
+                            const values = getFilterOptions(activeSubFilter).map((option) => option.value);
+                            const selected = new Set(next[activeSubFilter] || []);
+                            const allSelected = values.length > 0 && values.every((value) => selected.has(value));
+                            values.forEach((value) => allSelected ? selected.delete(value) : selected.add(value));
+                            next[activeSubFilter] = selected;
                             return next;
                         });
                     }}
@@ -354,10 +346,6 @@ export function DataTable<T>({
                 </div>
             ) : (
                 <>
-                    {/*
-                     * Header — shrink-0, fuera del scroll, misma plantilla de grid que las filas.
-                     * Ambos usan gridTemplateColumns idéntico → columnas alineadas visualmente.
-                     */}
                     <div
                         ref={headerGridRef}
                         className={`shrink-0 bg-[var(--deep-navy)] border-b border-[var(--deep-navy)] overflow-hidden z-20 ${headerClassName}`}
@@ -374,6 +362,8 @@ export function DataTable<T>({
                                 variant="custom"
                                 disabled={!col.filterable}
                                 onClick={() => col.filterable && toggleFilter(col.key)}
+                                aria-expanded={col.filterable ? activeFilter === col.key : undefined}
+                                title={col.filterable ? `Filtrar ${col.label}` : col.label}
                                 className={`
                                     flex items-center ${col.centered ? 'justify-center' : ''} py-2.5 px-4
                                     border-r border-white/10
@@ -399,6 +389,9 @@ export function DataTable<T>({
                                         ) : (
                                             <ArrowDown size={11} className="text-yellow-400 shrink-0 animate-in fade-in slide-in-from-top-1 duration-200" />
                                         )
+                                    )}
+                                    {col.filterable && (
+                                        <Funnel aria-hidden="true" size={11} className={`shrink-0 ${hasFilterActive(col.key) ? 'text-yellow-400' : 'text-white/60 group-hover:text-white'}`} />
                                     )}
                                 </div>
                             </Button>

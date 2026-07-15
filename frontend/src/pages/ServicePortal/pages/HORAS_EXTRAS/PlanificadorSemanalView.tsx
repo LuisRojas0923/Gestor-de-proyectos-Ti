@@ -26,6 +26,7 @@ import HorarioMasivoCard from './components/HorarioMasivoCard';
 import AsignacionOtMasivaCard from './components/AsignacionOtMasivaCard';
 import EmpleadosActivosPanel from './components/EmpleadosActivosPanel';
 import PlanificadorAccionesSemana from './components/PlanificadorAccionesSemana';
+import SelectorPlantillaPlanificador from './components/SelectorPlantillaPlanificador';
 import { fechasDeSemanaIso, fechaIsoCorta, semanaIsoDesdeFecha } from './utils/horarioUtils';
 import {
   CODIGOS_NOVEDAD,
@@ -38,6 +39,8 @@ import {
 } from './utils/planificadorSemanalUtils';
 import { errorTurno } from './utils/validarTurno';
 import { labelDia } from './utils/horarioUtils';
+import { crearOverridesDesdePlantilla, diasActivosDePlantilla } from './utils/planificadorPlantillas';
+import type { PlantillaHorario } from '../../../../types/horariosRelaciones';
 import {
   PLANIFICADOR_DRAFT_KEY,
   guardarBorradorPlanificadorLocal,
@@ -49,7 +52,6 @@ import {
 interface PlanEmpleadoTabla extends PlanEmpleadoInBase {
   empleado?: EmpleadoERPRead;
 }
-
 const PlanificadorSemanalView: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -61,7 +63,6 @@ const PlanificadorSemanalView: React.FC = () => {
     () => new URLSearchParams(location.search).get('panel') === 'empleados',
     [location.search],
   );
-
   const hoy = new Date();
   const [anio, setAnio] = useState<number>(borradorInicial?.anio ?? hoy.getUTCFullYear());
   const [semanaIso, setSemanaIso] = useState<number>(
@@ -273,6 +274,14 @@ const PlanificadorSemanalView: React.FC = () => {
     );
   };
 
+  const aplicarPlantillaHorario = (plantilla: PlantillaHorario) => {
+    if (seleccionados.size === 0) return addNotification('error', 'Selecciona al menos un empleado.');
+    setOverrides((actuales) => crearOverridesDesdePlantilla(plantilla, seleccionados, actuales, defaultDias));
+    setDiasDestino(diasActivosDePlantilla(plantilla));
+    limpiarResultadosSemana();
+    addNotification('success', `Plantilla ${plantilla.nombre} aplicada a ${seleccionados.size} empleados.`);
+  };
+
   const aplicarOtMasiva = (asignaciones: PlanAsignacionOtIn[]) => {
     if (asignaciones.length === 0) {
       addNotification('error', 'Agrega al menos una OT para aplicar.');
@@ -461,6 +470,7 @@ const PlanificadorSemanalView: React.FC = () => {
             observacionMasiva={observacionMasiva}
             codigosNovedad={CODIGOS_NOVEDAD}
             opcionesAlmuerzo={OPCIONES_ALMUERZO}
+            selectorPlantilla={<SelectorPlantillaPlanificador disabled={seleccionados.size === 0} onAplicar={aplicarPlantillaHorario} />}
             onPlantillaEntradaChange={setPlantillaEntrada}
             onPlantillaSalidaChange={setPlantillaSalida}
             onPlantillaAlmuerzoChange={setPlantillaAlmuerzo}

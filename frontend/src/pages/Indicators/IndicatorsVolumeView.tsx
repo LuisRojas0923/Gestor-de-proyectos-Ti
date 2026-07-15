@@ -259,7 +259,7 @@ const IndicatorsVolumeView: React.FC<Props> = ({ causaStats, areaStats, analista
                     </div>
                     <div className="flex-1 flex items-center justify-center w-full">
                         <div className="w-full transition-all duration-300 ease-in-out" style={{ height: `${categoryHeight}px` }} /* [CONTROLADO] */ >
-                            <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+                            <ResponsiveContainer width="100%" height="100%" minWidth={0} initialDimension={{ width: 1, height: categoryHeight }}>
                                 <BarChart data={filteredCausaStats} layout="vertical" margin={{ left: 10, right: 30 }}>
                                     <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="var(--color-border)" />
                                     <XAxis type="number" hide />
@@ -331,7 +331,7 @@ const IndicatorsVolumeView: React.FC<Props> = ({ causaStats, areaStats, analista
                     </div>
                     <div className="flex-1 flex items-center justify-center w-full">
                         <div className="w-full transition-all duration-300 ease-in-out" style={{ height: `${areaHeight}px` }} /* [CONTROLADO] */ >
-                            <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+                            <ResponsiveContainer width="100%" height="100%" minWidth={0} initialDimension={{ width: 1, height: areaHeight }}>
                                 <BarChart data={filteredAreaStats} margin={{ bottom: 25 }}>
                                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" />
                                     <XAxis 
@@ -381,7 +381,7 @@ const IndicatorsVolumeView: React.FC<Props> = ({ causaStats, areaStats, analista
                         </div>
                     </div>
                     <div className="h-[350px] w-full">
-                        <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+                        <ResponsiveContainer width="100%" height="100%" minWidth={0} initialDimension={{ width: 1, height: 350 }}>
                             <BarChart data={filteredAnalistaStats} layout="vertical" margin={{ left: 10, right: 30 }}>
                                 <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="var(--color-border)" />
                                 <XAxis type="number" hide />
@@ -402,7 +402,7 @@ const IndicatorsVolumeView: React.FC<Props> = ({ causaStats, areaStats, analista
                 <div className="bg-[var(--color-surface)] rounded-[1.5rem] md:rounded-[2.5rem] p-3 md:p-4 shadow-xl border border-[var(--color-border)] overflow-hidden">
                     <Title variant="h4" weight="bold" color="text-primary" className="mb-3 text-lg md:text-xl">Soportes por Prioridad</Title>
                     <div className="relative h-[350px] w-full flex items-center justify-center">
-                        <ResponsiveContainer width="100%" height="100%">
+                        <ResponsiveContainer width="100%" height="100%" initialDimension={{ width: 1, height: 350 }}>
                             <PieChart margin={{ top: 20, bottom: 20, left: 30, right: 30 }}>
                                 <defs>
                                     <linearGradient id="gradAlta" x1="0" y1="0" x2="0" y2="1">

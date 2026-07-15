@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useId } from 'react';
 import { Text } from './Text';
 
 interface TooltipProps {
@@ -16,6 +16,7 @@ export const Tooltip: React.FC<TooltipProps> = ({
     width = 'w-52',
     className = 'inline-block',
 }) => {
+    const tooltipId = useId();
     const alignmentClasses = {
         left: {
             container: "left-0 translate-x-0 origin-top-left",
@@ -33,10 +34,19 @@ export const Tooltip: React.FC<TooltipProps> = ({
 
     const placement = alignmentClasses[align];
 
+    const child = React.isValidElement(children)
+        ? children as React.ReactElement<{ 'aria-describedby'?: string }>
+        : null;
+    const trigger = child
+        ? React.cloneElement(child, {
+            'aria-describedby': [child.props['aria-describedby'], tooltipId].filter(Boolean).join(' '),
+        })
+        : children;
+
     return (
         <div className={`relative group cursor-help ${className}`}>
-            {children}
-            <div className={`absolute top-full ${placement.container} mt-2 ${width} p-2.5 bg-[var(--color-surface)]/95 backdrop-blur-md border border-[var(--color-border)] rounded-xl shadow-2xl opacity-0 pointer-events-none group-hover:opacity-100 transition-all duration-200 ease-out z-50 text-center`}>
+            {trigger}
+            <div id={tooltipId} role="tooltip" className={`absolute top-full ${placement.container} mt-2 ${width} p-2.5 bg-[var(--color-surface)]/95 backdrop-blur-md border border-[var(--color-border)] rounded-xl shadow-2xl opacity-0 pointer-events-none group-hover:opacity-100 group-focus-within:opacity-100 transition-all duration-200 ease-out z-50 text-center`}>
                 <div className={`absolute -top-1 ${placement.arrow} w-2 h-2 bg-[var(--color-surface)] border-t border-l border-[var(--color-border)] rotate-45`}></div>
                 {typeof content === 'string' ? (
                     <Text 

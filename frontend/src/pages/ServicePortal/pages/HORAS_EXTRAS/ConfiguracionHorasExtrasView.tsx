@@ -47,6 +47,17 @@ const parametrosHistoricosOcultos = new Set([
   'HORAS_ORDINARIAS_SEMANALES_PREVIAS',
   'DIVISOR_HORA_ORDINARIA_PREVIO',
 ]);
+const layoutGrupos: Record<string, string> = {
+  'Jornada semanal': 'xl:col-span-4',
+  'Valor hora': 'xl:col-span-3',
+  'Jornada nocturna': 'xl:col-span-5',
+  Topes: 'xl:col-span-12',
+};
+const layoutReglas: Record<string, string> = {
+  'Jornada semanal': 'xl:grid-cols-2',
+  'Jornada nocturna': 'xl:grid-cols-2',
+  Topes: 'xl:grid-cols-4',
+};
 
 const obtenerNumero = (parametros: ParametroEditable[], codigo: string) => {
   const valor = parametros.find((parametro) => parametro.codigo === codigo)?.editado;
@@ -215,64 +226,64 @@ const ConfiguracionHorasExtrasView: React.FC = () => {
   };
 
   return (
-    <MaterialCard elevation={0} className="mx-auto my-3 max-w-[1500px] overflow-visible border-0 bg-transparent p-3 shadow-none md:my-6 md:p-6">
+    <MaterialCard elevation={0} className="mx-auto my-2 max-w-[1500px] overflow-visible border-0 bg-transparent p-2 shadow-none md:my-3 md:p-3 xl:my-0 xl:p-0">
       <MaterialCard className="overflow-hidden border-[var(--color-primary)]/15 p-0 shadow-lg shadow-[var(--color-primary)]/5">
-        <MaterialCard elevation={0} className="rounded-none border-0 border-b border-[var(--color-primary)]/15 bg-gradient-to-br from-[var(--color-primary)]/15 via-[var(--color-surface)] to-[var(--color-surface-variant)] p-5 shadow-none md:p-7">
-          <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
-            <div className="flex items-start gap-3 md:gap-4">
-            <Button
-              variant="ghost"
-              onClick={() => solicitarAccion('volver')}
-              className="h-11 w-11 shrink-0 !rounded-2xl !border !border-[var(--color-border)]/70 !bg-[var(--color-surface)]/80 !p-0 shadow-sm backdrop-blur-sm"
-              aria-label="Volver a Tiempo y Asistencia"
-            >
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
+        <MaterialCard elevation={0} className="rounded-none border-0 border-b border-[var(--color-primary)]/15 bg-gradient-to-br from-[var(--color-primary)]/15 via-[var(--color-surface)] to-[var(--color-surface-variant)] p-3 shadow-none">
+          <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex items-start gap-3">
+              <Button
+                variant="ghost"
+                onClick={() => solicitarAccion('volver')}
+                className="h-11 w-11 shrink-0 !rounded-xl !border !border-[var(--color-border)]/70 !bg-[var(--color-surface)]/80 !p-0 shadow-sm backdrop-blur-sm"
+                aria-label="Volver a Tiempo y Asistencia"
+              >
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
               <div className="min-w-0">
-                <div className="mb-2 flex flex-wrap items-center gap-2">
-                  <Badge size="sm" variant="info">Administración</Badge>
-                  <Text as="div" aria-live="polite">
-                    <Badge size="sm" variant={errorCarga ? 'error' : cambiosPendientes > 0 ? 'warning' : 'success'}>
-                      {errorCarga
-                        ? 'No se pudieron cargar las reglas'
-                        : cambiosPendientes > 0
-                          ? `${cambiosPendientes} ${cambiosPendientes === 1 ? 'cambio pendiente' : 'cambios pendientes'}`
-                          : 'Reglas sincronizadas'}
-                    </Badge>
-                  </Text>
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <Title level={2} className="!m-0 !text-lg leading-tight md:!text-xl">Configuración de horas extras</Title>
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <Badge size="sm" variant="info">Administración</Badge>
+                    <Text as="div" aria-live="polite">
+                      <Badge size="sm" variant={errorCarga ? 'error' : cambiosPendientes > 0 ? 'warning' : 'success'}>
+                        {errorCarga
+                          ? 'No se pudieron cargar las reglas'
+                          : cambiosPendientes > 0
+                            ? `${cambiosPendientes} ${cambiosPendientes === 1 ? 'cambio pendiente' : 'cambios pendientes'}`
+                            : 'Reglas sincronizadas'}
+                      </Badge>
+                    </Text>
+                  </div>
                 </div>
-                <Title level={2} className="!m-0 !text-2xl leading-tight md:!text-3xl">Configuración de horas extras</Title>
-                <Text className="mt-1 max-w-3xl text-sm leading-relaxed text-[var(--color-text-secondary)]">
-                  Ajusta las reglas legales que usa el cálculo semanal. Cada modificación queda
-                  acompañada por una justificación para facilitar su trazabilidad.
+                <Text variant="caption" className="mt-0.5 max-w-3xl !text-[11px] leading-snug text-[var(--color-text-secondary)]">
+                  Ajusta las reglas legales del cálculo semanal con trazabilidad de cada cambio.
                 </Text>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-2 sm:flex sm:justify-end">
-              <Button variant="secondary" onClick={() => solicitarAccion('recargar')} disabled={cargando || guardando} className="min-h-11">
+              <Button variant="secondary" size="sm" onClick={() => solicitarAccion('recargar')} disabled={cargando || guardando} className="min-h-11 !text-xs">
                 <RefreshCw className={`mr-2 h-4 w-4 ${cargando ? 'animate-spin' : ''}`} />Recargar
               </Button>
-              <Button onClick={guardar} disabled={cargando || guardando || cambiosPendientes === 0 || !formularioValido} className="min-h-11 shadow-md shadow-[var(--color-primary)]/15 dark:!text-[var(--color-background)]">
+              <Button size="sm" onClick={guardar} disabled={cargando || guardando || cambiosPendientes === 0 || !formularioValido} className="min-h-11 !text-xs shadow-md shadow-[var(--color-primary)]/15 dark:!text-[var(--color-background)]">
                 <Save className="mr-2 h-4 w-4" />{guardando ? 'Guardando...' : 'Guardar cambios'}
               </Button>
             </div>
           </div>
         </MaterialCard>
 
-        <div className="bg-[var(--color-surface-secondary)]/45 p-4 md:p-6">
+        <div className="bg-[var(--color-surface-secondary)]/45 p-2.5 md:p-3">
           {cargando ? (
-            <div className="grid gap-5 xl:grid-cols-2" aria-label="Cargando reglas de cálculo" role="status" aria-busy="true">
+            <div className="grid gap-2 xl:grid-cols-4" aria-label="Cargando reglas de cálculo" role="status" aria-busy="true">
               {[0, 1, 2, 3].map((item) => (
-                <MaterialCard key={item} className="space-y-4 border-[var(--color-border)]/60 p-5 shadow-sm">
-                  <div className="flex items-center gap-3">
-                    <Skeleton variant="circular" width={40} height={40} />
+                <MaterialCard key={item} className="space-y-2 border-[var(--color-border)]/60 p-3 shadow-sm">
+                  <div className="flex items-center gap-2.5">
+                    <Skeleton variant="circular" width={36} height={36} />
                     <div className="flex-1 space-y-2">
                       <Skeleton variant="text" width="45%" />
                       <Skeleton variant="text" width="75%" />
                     </div>
                   </div>
-                  <Skeleton height={132} />
-                  <Skeleton height={132} />
+                  <Skeleton height={72} />
                 </MaterialCard>
               ))}
             </div>
@@ -284,20 +295,21 @@ const ConfiguracionHorasExtrasView: React.FC = () => {
               </div>
             </Callout>
           ) : (
-            <div className="grid items-start gap-5 xl:grid-cols-2">
+            <div className="grid items-start gap-2.5 xl:grid-cols-12">
               {grupos.map((grupo) => {
                 const metadata = metadataGrupos[grupo] ?? { icono: Settings2, descripcion: 'Parámetros del cálculo semanal.' };
                 const IconoGrupo = metadata.icono;
+                const camposEnFila = grupo === 'Topes' || parametrosPorGrupo[grupo].length === 1;
                 return (
-                  <MaterialCard key={grupo} className="overflow-hidden border-[var(--color-border)]/70 p-0 shadow-sm">
-                    <div className="flex items-start justify-between gap-3 border-b border-[var(--color-border)]/60 bg-[var(--color-surface-variant)]/45 p-4 md:p-5">
-                      <div className="flex min-w-0 items-start gap-3">
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[var(--color-primary)]/12 text-[var(--color-primary)]">
-                          <IconoGrupo className="h-5 w-5" />
+                  <MaterialCard key={grupo} className={`${layoutGrupos[grupo] ?? 'xl:col-span-12'} overflow-hidden border-[var(--color-border)]/70 p-0 shadow-sm`}>
+                    <div className="flex items-center justify-between gap-2 border-b border-[var(--color-border)]/60 bg-[var(--color-surface-variant)]/45 p-2.5">
+                      <div className="flex min-w-0 items-center gap-2">
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[var(--color-primary)]/12 text-[var(--color-primary)]">
+                          <IconoGrupo className="h-4 w-4" />
                         </div>
-                        <div>
-                          <Title level={3} className="!m-0 !text-lg">{grupo}</Title>
-                          <Text className="mt-0.5 text-xs leading-relaxed text-[var(--color-text-secondary)]">
+                        <div className="min-w-0">
+                          <Title level={3} className="!m-0 !text-sm">{grupo}</Title>
+                          <Text variant="caption" className="!text-[10px] leading-tight text-[var(--color-text-secondary)] xl:truncate">
                             {metadata.descripcion}
                           </Text>
                         </div>
@@ -305,7 +317,7 @@ const ConfiguracionHorasExtrasView: React.FC = () => {
                       <Badge size="sm" variant="default">{parametrosPorGrupo[grupo].length}</Badge>
                     </div>
 
-                    <div className="grid gap-3 p-3 md:p-4">
+                    <div className={`grid gap-2 p-2 ${layoutReglas[grupo] ?? ''}`}>
                       {parametrosPorGrupo[grupo].map((parametro) => {
                         const modificado = parametro.editado !== parametro.valor
                           || parametro.observacionEditada !== (parametro.observaciones || '');
@@ -316,27 +328,28 @@ const ConfiguracionHorasExtrasView: React.FC = () => {
                           <MaterialCard
                             key={parametro.codigo}
                             elevation={0}
-                            className={`p-4 shadow-none transition-colors md:p-5 ${modificado
+                            className={`p-2.5 shadow-none transition-colors ${modificado
                               ? 'border-[var(--color-primary)] bg-[var(--color-primary)]/5'
                               : 'border-[var(--color-border)]/60 bg-[var(--color-surface)]'}`}
                           >
-                            <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                              <div className="min-w-0">
-                                <Text className="font-semibold leading-snug text-[var(--color-text-primary)]">{parametro.nombre}</Text>
+                            <div className="mb-1.5 flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
+                              <div className="min-w-0 leading-tight">
+                                <Text as="span" variant="caption" className="!text-xs font-semibold leading-tight text-[var(--color-text-primary)]">{parametro.nombre}</Text>
                                 {parametro.norma_soporte && (
-                                  <Text className="mt-1 text-xs leading-relaxed text-[var(--color-text-secondary)]">
-                                    Soporte: {parametro.norma_soporte}
+                                  <Text as="span" variant="caption" className="ml-1.5 !text-[10px] leading-tight text-[var(--color-text-secondary)]">
+                                    · {parametro.norma_soporte}
                                   </Text>
                                 )}
                               </div>
                               {modificado && <Badge size="xs" variant="warning">Cambio pendiente</Badge>}
                             </div>
 
-                            <div className="grid gap-3 md:grid-cols-[minmax(140px,0.7fr)_minmax(220px,1.3fr)]">
+                            <div className={`grid gap-1.5 ${camposEnFila ? 'xl:grid-cols-[minmax(88px,0.6fr)_minmax(0,1.4fr)]' : ''}`}>
                               <Input
                                 label="Valor vigente"
                                 type={parametro.tipo_dato === 'NUMERICO' ? 'number' : parametro.tipo_dato === 'FECHA' ? 'date' : parametro.tipo_dato === 'HORA' ? 'time' : 'text'}
                                 size="sm"
+                                className="[&_label]:!text-[11px]"
                                 aria-label={`Valor vigente de ${parametro.nombre}`}
                                 value={parametro.editado}
                                 onChange={(event) => actualizarCampo(parametro.codigo, {
@@ -352,14 +365,15 @@ const ConfiguracionHorasExtrasView: React.FC = () => {
                                 errorMessage={errorValor}
                               />
                               <Textarea
-                                label="Justificación del cambio"
+                                label="Justificación"
+                                className="[&_label]:!text-[11px] [&>span]:!text-[10px]"
                                 value={parametro.observacionEditada}
                                 onChange={(event) => actualizarCampo(parametro.codigo, { observacionEditada: event.target.value })}
                                 placeholder="Describe brevemente el motivo del ajuste"
                                 aria-label={`Justificación del cambio para ${parametro.nombre}`}
-                                rows={2}
+                                rows={1}
                                 maxLength={500}
-                                textareaClassName="min-h-[68px] resize-none"
+                                textareaClassName="h-10 min-h-10 resize-none py-2 leading-5"
                                 disabled={guardando}
                                 error={faltaJustificacion}
                                 errorMessage={faltaJustificacion ? 'Agrega una justificación nueva para este valor.' : undefined}
@@ -382,7 +396,7 @@ const ConfiguracionHorasExtrasView: React.FC = () => {
           )}
 
           {!cargando && cambiosPendientes > 0 && (
-            <Callout variant={formularioValido ? 'info' : 'warning'} title="Revisión pendiente" icon={Sparkles} className="mt-5">
+            <Callout variant={formularioValido ? 'info' : 'warning'} title="Revisión pendiente" icon={Sparkles} className="mt-3 xl:hidden">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <Text color="inherit" className="text-sm">
                   Verifica {cambiosPendientes === 1 ? 'el ajuste' : `los ${cambiosPendientes} ajustes`} antes de guardar.

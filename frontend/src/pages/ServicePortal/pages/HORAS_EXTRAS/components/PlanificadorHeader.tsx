@@ -77,39 +77,33 @@ const PlanificadorHeader: React.FC<PlanificadorHeaderProps> = ({
             </div>
           </MaterialCard>
 
-          <div className="grid gap-2.5 xl:grid-cols-[280px_minmax(0,1fr)] xl:items-start">
           <MaterialCard elevation={0} className="rounded-2xl border-[var(--color-primary)]/15 bg-[var(--color-surface)]/80 p-0 shadow-none">
-            <div className="flex min-w-0 flex-col gap-1.5 p-2">
-              <div className="flex min-w-0 items-center gap-2">
-                <Button
-                  variant="secondary"
-                  onClick={() => navigate('/service-portal/tiempo-asistencia')}
-                  className="h-8 w-8 shrink-0 !rounded-full !p-0 shadow-none [&_svg]:h-3.5 [&_svg]:w-3.5"
-                  aria-label="Volver a Tiempo y Asistencia"
-                  title="Volver a Tiempo y Asistencia"
-                >
-                  <ArrowLeft />
-                </Button>
-                <div className="min-w-0 flex-1">
-                  <Title level={2} className="!m-0 truncate !text-base leading-tight md:!text-lg">Formulario de Horarios</Title>
-                  <Text className="truncate !text-[10px] font-medium leading-tight text-[var(--color-text-secondary)] md:!text-[11px]">
-                    Programa turnos, novedades y OT para la semana seleccionada.
-                  </Text>
+            <div className="p-2.5">
+              <div className="grid gap-2 xl:grid-cols-[minmax(220px,0.7fr)_auto_minmax(0,1.3fr)] xl:items-center">
+                <div className="flex min-w-0 items-center gap-2">
+                  <Button
+                    variant="secondary"
+                    onClick={() => navigate('/service-portal/tiempo-asistencia')}
+                    className="h-9 w-9 shrink-0 !rounded-full !p-0 shadow-none [&_svg]:h-3.5 [&_svg]:w-3.5"
+                    aria-label="Volver a Tiempo y Asistencia"
+                    title="Volver a Tiempo y Asistencia"
+                  >
+                    <ArrowLeft />
+                  </Button>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <Title level={2} className="!m-0 truncate !text-base leading-tight md:!text-lg">Formulario de Horarios</Title>
+                      {resultado && (
+                        <Badge size="xs" variant={resultado.error ? 'warning' : 'success'} className="h-6 shadow-none">{resultado.ok} OK / {resultado.error} errores</Badge>
+                      )}
+                    </div>
+                    <Text className="truncate !text-[10px] font-medium leading-tight text-[var(--color-text-secondary)]">
+                      Programa turnos, novedades y OT para la semana seleccionada.
+                    </Text>
+                  </div>
                 </div>
-              </div>
 
-              {resultado && (
-                <div className="flex flex-wrap items-center gap-1.5">
-                  <Badge size="xs" variant={resultado.error ? 'warning' : 'success'} className="h-6 shadow-none">{resultado.ok} OK / {resultado.error} errores</Badge>
-                </div>
-              )}
-            </div>
-          </MaterialCard>
-
-          <MaterialCard elevation={0} className="rounded-2xl border-[var(--color-primary)]/15 bg-[var(--color-surface)]/80 p-0 shadow-none">
-              <div className="p-2.5">
-                <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-                  <div className="flex flex-wrap items-center gap-2">
+                <div className="flex flex-wrap items-center gap-1.5 xl:justify-center">
                   <div className={campoSemanaClass}>
                     <Text className={labelSemanaClass}>Inicio</Text>
                     <Input
@@ -132,17 +126,18 @@ const PlanificadorHeader: React.FC<PlanificadorHeaderProps> = ({
                   </div>
                   <Badge size="xs" variant="default" className={chipSemanaClass}>{anio}</Badge>
                 </div>
-                <div className="flex flex-wrap items-center justify-end gap-1.5">
+
+                <div className="flex flex-wrap items-center gap-1.5 xl:justify-end">
                   <Badge size="xs" variant="info" className={chipSemanaClass}>Semana {semanaIso}</Badge>
                   <Button variant="secondary" size="sm" onClick={onAplicarHorario} disabled={horarioSinEmpleados} className={accionHorarioClass}><Copy />{novedadMasiva ? `Aplicar + ${novedadMasiva}` : 'Aplicar'}</Button>
                   <Button variant="ghost" size="sm" onClick={onLimpiarDias} disabled={horarioSinEmpleados} className={accionHorarioClass}><Eraser />Limpiar</Button>
                   {accionesSemana}
                 </div>
               </div>
+
               {controlesHorario}
             </div>
           </MaterialCard>
-          </div>
         </div>
       </div>
 

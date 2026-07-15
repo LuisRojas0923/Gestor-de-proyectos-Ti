@@ -2,6 +2,7 @@
 Router de Tickets - Backend V2 (Async + SQLModel)
 """
 
+import logging
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect, BackgroundTasks
 from fastapi.responses import FileResponse
@@ -34,6 +35,7 @@ from app.config import config
 from app.services.ticket.ws_manager import manager
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 
 @router.get("/categorias", response_model=List[CategoriaTicket])
@@ -355,8 +357,15 @@ async def actualizar_ticket(
     """Actualiza campos de un ticket existente delegando al servicio"""
     try:
         return await ServicioTicket.actualizar_ticket(db, ticket_id, ticket_in, background_tasks)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except HTTPException:
+        raise
+    except Exception:
+        await db.rollback()
+        logger.exception("Error inesperado al actualizar ticket")
+        raise HTTPException(
+            status_code=500,
+            detail="No se pudo actualizar el ticket",
+        )
 
 
 @router.get("/{ticket_id}/historial", response_model=List[HistorialTicket])

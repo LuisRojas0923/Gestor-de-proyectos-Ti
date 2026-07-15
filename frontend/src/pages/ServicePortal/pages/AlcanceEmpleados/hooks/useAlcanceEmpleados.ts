@@ -27,10 +27,10 @@ export const useAlcanceEmpleados = () => {
   const [relacionado, setRelacionado] = useState<boolean | undefined>();
   const [autorizaHe, setAutorizaHe] = useState<boolean | undefined>();
   const [disponible, setDisponible] = useState<boolean | undefined>();
-  const [cargo, setCargo] = useState('');
-  const [area, setArea] = useState('');
-  const [ciudad, setCiudad] = useState('');
-  const [jefe, setJefe] = useState('');
+  const [cargos, setCargos] = useState<string[]>([]);
+  const [areas, setAreas] = useState<string[]>([]);
+  const [ciudades, setCiudades] = useState<string[]>([]);
+  const [jefes, setJefes] = useState<string[]>([]);
   const [offset, setOffset] = useState(0);
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -66,22 +66,27 @@ export const useAlcanceEmpleados = () => {
         const response = await listarEmpleadosGestor(gestorId, {
           q: q.trim() || undefined, anio, semana_iso: semanaIso, relacionado,
           autoriza_he: autorizaHe, disponible_semana: disponible,
-          cargos: cargo ? [cargo] : undefined, areas: area ? [area] : undefined,
-          ciudades: ciudad ? [ciudad] : undefined, jefes: jefe ? [jefe] : undefined,
+          cargos: cargos.length ? cargos : undefined, areas: areas.length ? areas : undefined,
+          ciudades: ciudades.length ? ciudades : undefined, jefes: jefes.length ? jefes : undefined,
           orden: 'cedula', direccion: 'asc', limit, offset,
         }, controller.signal);
         setItems(response.items); setTotal(response.total); setFacetas(response.facetas);
       } catch (reason: unknown) {
-        if (!controller.signal.aborted) setError(reason instanceof Error ? reason.message : 'No se pudieron cargar los empleados');
+        if (!controller.signal.aborted) {
+          setItems([]);
+          setTotal(0);
+          setFacetas({});
+          setError(reason instanceof Error ? reason.message : 'No se pudieron cargar los empleados');
+        }
       } finally { if (!controller.signal.aborted) setCargando(false); }
     }, 250);
     return () => { window.clearTimeout(timer); controller.abort(); };
-  }, [anio, area, autorizaHe, cargo, ciudad, disponible, gestorId, jefe, offset, q, relacionado, revision, semanaIso]);
+  }, [anio, areas, autorizaHe, cargos, ciudades, disponible, gestorId, jefes, offset, q, relacionado, revision, semanaIso]);
 
   const resetOffset = () => setOffset(0);
   return {
     gestores, gestorId, busquedaGestor, items, total, facetas, q, anio, semanaIso,
-    relacionado, autorizaHe, disponible, cargo, area, ciudad, jefe, offset, limit, cargando, error,
+    relacionado, autorizaHe, disponible, cargos, areas, ciudades, jefes, offset, limit, cargando, error,
     cargandoGestores, errorGestores,
     setBusquedagestor: setBusquedaGestor,
     setGestorId: (value: string) => { setGestorId(value); resetOffset(); },
@@ -91,10 +96,10 @@ export const useAlcanceEmpleados = () => {
     setRelacionado: (value: boolean | undefined) => { setRelacionado(value); resetOffset(); },
     setAutorizaHe: (value: boolean | undefined) => { setAutorizaHe(value); resetOffset(); },
     setDisponible: (value: boolean | undefined) => { setDisponible(value); resetOffset(); },
-    setCargo: (value: string) => { setCargo(value); resetOffset(); },
-    setArea: (value: string) => { setArea(value); resetOffset(); },
-    setCiudad: (value: string) => { setCiudad(value); resetOffset(); },
-    setJefe: (value: string) => { setJefe(value); resetOffset(); },
+    setCargos: (values: string[]) => { setCargos(values); resetOffset(); },
+    setAreas: (values: string[]) => { setAreas(values); resetOffset(); },
+    setCiudades: (values: string[]) => { setCiudades(values); resetOffset(); },
+    setJefes: (values: string[]) => { setJefes(values); resetOffset(); },
     setOffset,
     recargar: () => setRevision((value) => value + 1),
     recargarGestores: () => setRevisionGestores((value) => value + 1),
