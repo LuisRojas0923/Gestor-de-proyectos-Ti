@@ -18,6 +18,7 @@ from .services.auth.rbac_discovery import sincronizar_manifiesto_rbac
 # Importar routers
 from .api.desarrollos import router as desarrollos_router
 from .api.desarrollos.actividades_router import router as actividades_router
+from .api.desarrollos.actividad_archivos_router import router as actividad_archivos_router
 from .api.desarrollos.plantillas_router import router as plantillas_router
 from .api.development_by_number import router as development_by_number_router
 from .api.desarrollos.reporte_router import router as reporte_router
@@ -43,6 +44,8 @@ from .api.jerarquia import router as jerarquia_router
 from .api.notificaciones.router import router as notificaciones_router
 from .api.auditoria import router as auditoria_router
 from .core.middleware.auditoria_middleware import auditoria_http_middleware
+from .core.middleware.limite_carga_actividad import LimiteCargaActividadMiddleware
+from .core.config import obtener_configuracion as obtener_configuracion_core
 
 # Configurar logging centralizado
 logging.basicConfig(
@@ -254,6 +257,16 @@ app.include_router(
 )
 app.include_router(
     actividades_router, prefix=f"{api_prefix}/actividades", tags=["Actividades"]
+)
+_config_core = obtener_configuracion_core()
+app.add_middleware(
+    LimiteCargaActividadMiddleware,
+    max_body_size=(_config_core.storage_max_size_mb * 1024 * 1024) + (64 * 1024),
+)
+app.include_router(
+    actividad_archivos_router,
+    prefix=f"{api_prefix}/actividades",
+    tags=["Archivos de actividades"],
 )
 app.include_router(
     plantillas_router,

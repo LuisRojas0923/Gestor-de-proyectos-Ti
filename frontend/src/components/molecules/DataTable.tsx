@@ -175,6 +175,7 @@ export function DataTable<T>({
     }, [activeSubFilter]);
 
     const handleApplyFilter = useCallback(() => {
+        const filterKey = activeFilter;
         if (activeFilter && onFilterChange) {
             const col = columns.find(c => c.key === activeFilter);
             if (col?.subFilters && col.subFilters.length > 0) {
@@ -189,6 +190,7 @@ export function DataTable<T>({
         setAnchorRect(null);
         setFilterSearchTerm('');
         setActiveSubFilter(null);
+        requestAnimationFrame(() => filterKey && headerRefs.current[filterKey]?.focus());
     }, [activeFilter, tempSubFilters, onFilterChange, columns]);
 
     const getFilterOptions = useCallback((key: string) =>
@@ -219,13 +221,31 @@ export function DataTable<T>({
     };
 
     return (
-        <div className={`relative flex flex-col overflow-x-auto overflow-y-hidden border border-[var(--color-border)] bg-[var(--color-surface)] shadow-sm ${maxHeight} ${minHeight} ${className}`}>
+        <div
+            className={`relative flex flex-col overflow-x-auto overflow-y-hidden border border-[var(--color-border)] bg-[var(--color-surface)] shadow-sm ${maxHeight} ${minHeight} ${className}`}
+            role="table"
+            aria-rowcount={data.length + 1}
+        >
 
             {/* Filter Dropdown */}
             {activeFilter && anchorRect && (
                 <FilterDropdown
                     isOpen
-                    onClose={() => { setActiveFilter(null); setAnchorRect(null); setActiveSubFilter(null); }}
+                    onClose={() => {
+                        const filterKey = activeFilter;
+                        setActiveFilter(null);
+                        setAnchorRect(null);
+                        setActiveSubFilter(null);
+                        requestAnimationFrame(() => {
+                            const activeElement = document.activeElement as HTMLElement | null;
+                            if (
+                                filterKey &&
+                                (!activeElement || activeElement === document.body || !document.contains(activeElement))
+                            ) {
+                                headerRefs.current[filterKey]?.focus();
+                            }
+                        });
+                    }}
                     anchorRect={anchorRect}
                     title={columns.find(c => c.key === activeFilter)?.label}
                     type="categorical"
@@ -235,7 +255,9 @@ export function DataTable<T>({
                         if (!activeSubFilter) return;
                         setTempSubFilters(prev => {
                             const next = { ...prev };
-                            next[activeSubFilter] = new Set(getFilterOptions(activeSubFilter).map(o => o.value));
+                            next[activeSubFilter] = isAllSelected
+                                ? new Set()
+                                : new Set(getFilterOptions(activeSubFilter).map(o => o.value));
                             return next;
                         });
                     }}
@@ -262,7 +284,7 @@ export function DataTable<T>({
             )}
 
             {isLoading ? (
-                <div className="flex-1 flex flex-col items-center justify-center gap-3 py-10">
+                <div className="flex-1 flex flex-col items-center justify-center gap-3 py-10" role="status" aria-live="polite">
                     <div className="animate-spin w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full" />
                     <Text variant="body2" color="text-secondary" weight="medium">{loadingMessage}</Text>
                 </div>
@@ -275,6 +297,7 @@ export function DataTable<T>({
                     <div
                         ref={headerGridRef}
                         className={`shrink-0 bg-[var(--deep-navy)] border-b border-[var(--deep-navy)] overflow-hidden z-20 ${headerClassName}`}
+                        role="row"
                     >
                         {isRowDraggable && (
                             <div className="flex items-center justify-center py-2.5 px-2 border-r border-white/10">
@@ -282,12 +305,15 @@ export function DataTable<T>({
                             </div>
                         )}
                         {columns.map((col) => (
-                            <Button
-                                key={col.key}
+                            <div key={col.key} role="columnheader" className="min-w-0">
+                              <Button
                                 ref={(el) => { headerRefs.current[col.key] = el; }}
                                 variant="custom"
                                 disabled={!col.filterable}
                                 onClick={() => col.filterable && toggleFilter(col.key)}
+                                aria-haspopup={col.filterable ? 'dialog' : undefined}
+                                aria-expanded={col.filterable ? activeFilter === col.key : undefined}
+                                fullWidth
                                 className={`
                                     flex items-center ${col.centered ? 'justify-center' : ''} py-2.5 px-4
                                     border-r border-white/10
@@ -315,10 +341,11 @@ export function DataTable<T>({
                                         )
                                     )}
                                 </div>
-                            </Button>
+                              </Button>
+                            </div>
                         ))}
                         {renderRowActions && (
-                            <div className="flex items-center justify-center py-2.5 px-4">
+                            <div className="flex items-center justify-center py-2.5 px-4" role="columnheader">
                                 <Text variant="caption" weight="bold" className="uppercase tracking-wider !text-[11px] text-white whitespace-nowrap">
                                     Acciones
                                 </Text>
@@ -327,7 +354,7 @@ export function DataTable<T>({
                     </div>
 
                     {data.length === 0 ? (
-                        <div className="flex-1 flex flex-col items-center justify-center gap-3 py-10">
+                        <div className="flex-1 flex flex-col items-center justify-center gap-3 py-10" role="status">
                             {emptyIcon}
                             <Text variant="body2" color="text-secondary" weight="medium">{emptyMessage}</Text>
                         </div>
@@ -338,10 +365,12 @@ export function DataTable<T>({
                                 if (bodyRef) (bodyRef as React.MutableRefObject<HTMLDivElement | null>).current = el;
                             }}
                             className="overflow-y-auto custom-scrollbar"
+                            role="rowgroup"
                         >
                             {data.map((row, rowIndex) => (
                                 <div
                                     data-datatable-row="true"
+                                    role="row"
                                     key={keyExtractor(row)}
                                     onClick={() => onRowClick?.(row)}
                                     onDragOver={(e) => {
@@ -364,7 +393,7 @@ export function DataTable<T>({
                                         <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${rowIndicatorColor}`} />
                                     )}
                                     {isRowDraggable && (
-                                        <div className="flex items-center justify-center py-3 px-2 min-w-0">
+                                        <div className="flex items-center justify-center py-3 px-2 min-w-0" role="cell">
                                             <Button
                                                 variant="custom"
                                                 size="xs"
@@ -425,6 +454,7 @@ export function DataTable<T>({
                                     {columns.map((col) => (
                                         <div
                                             key={col.key}
+                                            role="cell"
                                             className={`flex items-center ${col.centered ? 'justify-center' : ''} py-3 px-4 min-w-0 ${col.cellClassName ?? ''}`}
                                         >
                                             {col.render ? col.render(row) : (
@@ -435,7 +465,7 @@ export function DataTable<T>({
                                         </div>
                                     ))}
                                     {renderRowActions && (
-                                        <div className="flex items-center justify-center py-3 px-4 gap-2">
+                                        <div className="flex items-center justify-center py-3 px-4 gap-2" role="cell">
                                             {renderRowActions(row)}
                                         </div>
                                     )}

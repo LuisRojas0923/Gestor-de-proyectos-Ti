@@ -1,6 +1,6 @@
 # Protocolo de descubrimiento — arnés OpenCode
 
-Aplica a **todos** los subagentes en `.opencode/agent/`. Léelo al inicio de cada revisión o consulta de memoria.
+Aplica a **todos** los subagentes en `.opencode/agent/` y a sus adaptadores en `.codex/agents/`. Léelo al inicio de cada revisión o consulta de memoria.
 
 ## 1. Skills de proyecto
 
@@ -67,6 +67,7 @@ Desde la sesión 2026-06-03, los subagentes tienen permisos ampliados para ejecu
 5. **Nunca pushear**: `git push` está DENY (per `skill_git_controlled_push`).
 6. **Network denegado**: `webfetch` y `websearch` están DENY en todos los subagentes.
 7. **Task denegado**: los subagentes no se invocan entre sí sin el orquestador.
+8. **Secrets fuera de contexto**: no leer `.env` ni variantes ignoradas; revisar solo plantillas versionadas como `.env.example`.
 
 ### Comandos comunes heredados de AGENTS.md
 
@@ -85,7 +86,7 @@ Estos comandos están pre-autorizados para todos los subagentes con `bash: allow
 
 - **Backend**: `python -m pytest --collect-only [path]` — listar tests sin ejecutarlos
 - **Frontend**: lectura de `package.json`, `tsconfig.json`, `tailwind.config.js`
-- **Mobile**: lectura de `modulo_actividades_fork/INSTRUCCIONES_FORK.md`
+- **Mobile**: lectura de `modulo_actividades_fork/INSTRUCCIONES_FORK.md` y archivos versionados bajo `movil/`
 - **Docs**: lectura de `docs/bitacora/`, `docs/decisions/`
 - **Security**: `grep -rn "pattern" path` para buscar patrones peligrosos
 
@@ -109,3 +110,12 @@ Al añadir un skill nuevo en `.agents/skills/`:
 Al tocar `.agents/skills/` en un build, `docs-tests-reviewer` debe verificar que la matriz ADR o los agentes siguen al día.
 
 Al añadir/modificar permisos de un subagente, actualizar esta tabla.
+
+## 9. Adaptadores Codex
+
+- `.opencode/agent/*.md` es la fuente canonica para roles, checklists, routing y memoria.
+- `.codex/agents/*.toml` mantiene el mismo roster de ocho agentes y referencia el Markdown homologo; no debe copiar sus reglas completas.
+- Todos los adaptadores Codex usan `sandbox_mode = "read-only"` y devuelven sus reportes inline.
+- Si una revision o `error-memory` requiere persistencia, devuelve el cambio propuesto al orquestador para aplicarlo solo en las rutas autorizadas.
+- La memoria local `.codex/agent-memory/` no forma parte del proyecto y permanece ignorada.
+- Al agregar, retirar o renombrar un agente canonico, actualizar en el mismo cambio su adaptador Codex y este protocolo.

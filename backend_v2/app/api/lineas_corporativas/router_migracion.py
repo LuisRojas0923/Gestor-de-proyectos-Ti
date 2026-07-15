@@ -11,7 +11,10 @@ import io
 from fastapi import UploadFile, File
 
 from app.database import obtener_db
+from app.models.auth.usuario import Usuario
 from app.models.linea_corporativa import LineaCorporativa, EmpleadoLinea
+from .dependencies import requiere_administrador_lineas_corporativas
+from .archivos import leer_excel_seguro
 
 router = APIRouter()
 
@@ -19,13 +22,14 @@ router = APIRouter()
 @router.post("/migracion-legacy")
 async def migracion_legacy(
     archivo: UploadFile = File(...),
-    db: AsyncSession = Depends(obtener_db)
+    db: AsyncSession = Depends(obtener_db),
+    _: Usuario = Depends(requiere_administrador_lineas_corporativas),
 ):
     """
     Migración masiva desde el Excel histórico (Matriz de 161 registros).
     Usa Polars para procesamiento rápido y mapeo de campos financieros.
     """
-    content = await archivo.read()
+    content = await leer_excel_seguro(archivo)
     
     def clean_money(value) -> float:
         if value is None or (isinstance(value, str) and not value.strip()):
@@ -149,8 +153,6 @@ async def migracion_legacy(
             "lineas_procesadas": count_success
         }
 
-    except Exception as e:
+    except Exception as exc:
         await db.rollback()
-        import traceback
-        print(traceback.format_exc())
-        raise HTTPException(status_code=500, detail=f"Error en migración: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error al migrar la matriz") from exc

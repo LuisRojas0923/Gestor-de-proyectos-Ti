@@ -30,10 +30,11 @@ from app.models.ticket.ticket import (
 from app.services.ticket.servicio import ServicioTicket
 from app.services.ticket.bi_service import TicketBIService
 from app.utils_cache import global_cache
-from app.config import config
+from app.core.config import obtener_configuracion
 from app.services.ticket.ws_manager import manager
 
 router = APIRouter()
+config = obtener_configuracion()
 
 
 @router.get("/categorias", response_model=List[CategoriaTicket])

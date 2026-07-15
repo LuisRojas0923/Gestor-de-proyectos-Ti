@@ -31,6 +31,7 @@ from app.services.desarrollos.actividad_access_service import (
     bloquear_ancestros_y_obtener_actividad,
     usuario_puede_acceder_actividad,
     usuario_puede_acceder_desarrollo,
+    usuario_puede_modificar_actividad,
 )
 from app.services.auditoria.snapshots import (
     asignar_actualizacion_segura,
@@ -265,34 +266,7 @@ async def actualizar_actividad(
 
         snapshot_antes = modelo_a_dict_auditoria(act_db)
 
-        # Validar permisos de edición (PATCH) — sin bypass de roles
-        subordinados = await JerarquiaService.obtener_ids_y_nombres_subordinados(db, usuario.id)
-        todos_los_ids = [usuario.id] + subordinados["ids"]
-        todos_los_nombres = [usuario.nombre] + subordinados["nombres"]
-
-        tiene_acceso = False
-        if (act_db.responsable_id in todos_los_ids or 
-            act_db.asignado_a_id in todos_los_ids or 
-            act_db.delegado_por_id in todos_los_ids):
-            tiene_acceso = True
-        
-        if not tiene_acceso:
-            stmt_dev = select(Desarrollo).where(
-                Desarrollo.id == act_db.desarrollo_id,
-                or_(
-                    Desarrollo.creado_por_id.in_(todos_los_ids),
-                    Desarrollo.responsable_id.in_(todos_los_ids),
-                    Desarrollo.analista.in_(todos_los_nombres),
-                    Desarrollo.supervisor.in_(todos_los_nombres),
-                    Desarrollo.autoridad.in_(todos_los_nombres),
-                    Desarrollo.responsable.in_(todos_los_nombres),
-                )
-            )
-            res_dev = await db.execute(stmt_dev)
-            if res_dev.scalar_one_or_none() is not None:
-                tiene_acceso = True
-        
-        if not tiene_acceso:
+        if not await usuario_puede_modificar_actividad(db, usuario, act_db):
             raise HTTPException(
                 status_code=403,
                 detail="No tiene permisos para modificar esta actividad"

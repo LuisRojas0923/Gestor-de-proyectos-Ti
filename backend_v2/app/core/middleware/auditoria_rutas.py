@@ -19,6 +19,7 @@ _PATRONES_DESCARGA = (
     re.compile(r"^/api/v2/inventario/plantilla-maestra$"),
     re.compile(r"^/api/v2/inventario/plantilla-transito$"),
     re.compile(r"^/api/v2/viaticos/estado-cuenta/xlsx$"),
+    re.compile(r"^/api/v2/actividades/\d+/archivo$"),
 )
 
 _ENTIDAD_DESCARGA = (
@@ -29,6 +30,7 @@ _ENTIDAD_DESCARGA = (
     (re.compile(r"^/api/v2/inventario/plantilla-maestra$"), "plantilla_inventario", "maestra"),
     (re.compile(r"^/api/v2/inventario/plantilla-transito$"), "plantilla_inventario", "transito"),
     (re.compile(r"^/api/v2/viaticos/estado-cuenta/xlsx$"), "exportacion_viaticos", None),
+    (re.compile(r"^/api/v2/actividades/(\d+)/archivo$"), "archivo_actividad", 1),
 )
 
 _PARAMS_DESCARGA = frozenset({

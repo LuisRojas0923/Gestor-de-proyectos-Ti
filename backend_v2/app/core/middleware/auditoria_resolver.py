@@ -21,6 +21,12 @@ _TIPO_ENTIDAD_POR_MODULO = {
     "novedades-nomina": "nomina",
     "reserva-salas": "reserva",
     "impuestos": "impuestos",
+    "lineas-corporativas": "linea_corporativa",
+}
+
+_SUBRECURSOS_ANIDADOS = {
+    ("lineas-corporativas", "equipos"): "equipo_movil",
+    ("lineas-corporativas", "personas"): "persona_linea",
 }
 
 _SEGMENTO_NO_ID = frozenset({
@@ -74,6 +80,12 @@ def inferir_entidad_desde_ruta(ruta: str) -> tuple[Optional[str], Optional[str]]
         return None, None
 
     modulo = partes[2]
+    if len(partes) >= 5:
+        tipo_anidado = _SUBRECURSOS_ANIDADOS.get((modulo, partes[3]))
+        identificador = partes[4]
+        if tipo_anidado and identificador:
+            return tipo_anidado, identificador
+
     candidato = partes[3]
     if candidato in _SEGMENTO_NO_ID:
         return None, None

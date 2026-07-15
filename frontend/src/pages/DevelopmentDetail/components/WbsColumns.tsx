@@ -1,7 +1,6 @@
 import React from 'react';
 import {
     Ban,
-    Download,
     Pencil,
     Copy,
     Trash2,
@@ -20,6 +19,7 @@ import { ValidationStatusBadge } from '../../../components/assignments/Validatio
 import { DataTableColumn } from '../../../components/molecules/DataTable';
 import { WbsActivityTree } from '../../../types/wbs';
 import { ESTADO_ICON_SIZE, ESTADO_MENU_OPTIONS, getEstadoStatusIcon } from '../../../utils/estadoIcons';
+import { ActivityEvidenceButton } from './ActivityEvidenceButton';
 
 type WbsRow = WbsActivityTree & { _rowIndex: number };
 
@@ -370,16 +370,11 @@ export const getWbsColumns = ({
         maxWidth: '48px',
         centered: true,
         render: (row) => row.archivo_url ? (
-            <a
-                href={row.archivo_url}
-                target="_blank"
-                rel="noreferrer"
-                className="text-[var(--color-primary)] hover:underline inline-flex"
-                title="Descargar archivo"
-                onClick={(e) => e.stopPropagation()}
-            >
-                <Download size={14} />
-            </a>
+            <ActivityEvidenceButton
+                actividadId={row.id}
+                archivoUrl={row.archivo_url}
+                compact
+            />
         ) : (
             <Text variant="caption" color="text-secondary">-</Text>
         ),

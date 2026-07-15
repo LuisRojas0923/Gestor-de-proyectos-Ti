@@ -61,10 +61,6 @@ class Configuracion(BaseSettings):
     frontend_url: str = "http://localhost:5173"
     hostveremail: str = "http://portalservicios.refridcol.com"
 
-    # Almacenamiento Local
-    storage_path: str = "/app/storage/attachments"
-    storage_max_size_mb: int = 25  # Límite por archivo
-
     # Metadatos dinámicos
     detected_ip: str = "No detectada"
 
@@ -79,6 +75,16 @@ class Configuracion(BaseSettings):
     # Notion Integration
     notion_api_key: Optional[str] = None
     notion_database_id: Optional[str] = None
+
+    @property
+    def storage_path(self) -> str:
+        from app.core.config import obtener_configuracion as obtener_configuracion_core
+        return obtener_configuracion_core().storage_path
+
+    @property
+    def storage_max_size_mb(self) -> int:
+        from app.core.config import obtener_configuracion as obtener_configuracion_core
+        return obtener_configuracion_core().storage_max_size_mb
 
     class Config:
         # Buscamos el .env en la raíz del proyecto (un nivel arriba de backend_v2)

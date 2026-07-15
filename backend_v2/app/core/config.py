@@ -8,7 +8,7 @@ o se lanza un error en producción.
 from functools import lru_cache
 from typing import Literal
 
-from pydantic import field_validator
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -48,6 +48,9 @@ class Settings(BaseSettings):
     # Rate limiting (SlowAPI). Redis-backed para compartir bucket entre workers.
     redis_url: str = "redis://localhost:6379/0"
 
+    storage_path: str = "/app/storage/attachments"
+    storage_max_size_mb: int = Field(default=25, gt=0, le=100)
+
     # IPs (separadas por coma) de proxies en los que se confía el header
     # X-Forwarded-For. Vacío = no se confía en ningún proxy (cae al IP de
     # la conexión TCP real). "*" está prohibido por seguridad.
@@ -67,6 +70,7 @@ class Settings(BaseSettings):
     # /auth/refresh: el usuario ya esta autenticado, pero limitamos por IP
     # para evitar que un atacante con un token robado haga refresh infinito.
     rate_limit_refresh: str = "20/hour"
+    rate_limit_actividad_archivo: str = "20/hour"
 
     # Lockout por cuenta: tras N fallos de login consecutivos en una ventana
     # corta, se bloquea el acceso a esa cuenta (no por IP) durante
