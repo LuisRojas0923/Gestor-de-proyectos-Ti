@@ -102,6 +102,7 @@ def _parsear_valores_linea(linea: str) -> List[int]:
 
 def extraer_grancoop(
     archivos_binarios: List[bytes],
+    archivos_nombres: List[str] = None,
 ) -> Tuple[List[Dict[str, Any]], Dict[str, Any], List[str]]:
     """
     Procesa 1..N archivos PDF de GRANCOOP.
@@ -117,6 +118,9 @@ def extraer_grancoop(
     asociados_procesados = 0
 
     for file_idx, contenido in enumerate(archivos_binarios):
+        nombre_archivo = archivos_nombres[file_idx] if archivos_nombres and file_idx < len(archivos_nombres) else ""
+        es_archivo_prima = "NOMPRI" in nombre_archivo.upper()
+
         nombre_actual = ""
         lineas_detalle: List[str] = []
         linea_totales: str = ""
@@ -153,6 +157,7 @@ def extraer_grancoop(
                     _procesar_bloque(
                         nombre_actual, lineas_detalle,
                         linea_totales, rows, warnings,
+                        es_archivo_prima
                     )
                     asociados_procesados += 1
 
@@ -191,6 +196,7 @@ def extraer_grancoop(
             _procesar_bloque(
                 nombre_actual, lineas_detalle,
                 linea_totales, rows, warnings,
+                es_archivo_prima
             )
             asociados_procesados += 1
 
@@ -212,6 +218,7 @@ def _procesar_bloque(
     linea_totales: str,
     rows: List[Dict[str, Any]],
     warnings: List[str],
+    es_archivo_prima: bool = False,
 ) -> None:
     """Procesa un bloque de asociado y genera las filas long."""
     cedula = _extraer_cedula(lineas_detalle)
@@ -227,12 +234,29 @@ def _procesar_bloque(
 
     for linea_det in lineas_detalle:
         vals = _parsear_valores_linea(linea_det)
-        if "crediprima" in linea_det.lower() or "fondo mutual" in linea_det.lower():
+        
+        # CREDIPRIMA siempre es prima
+        if "crediprima" in linea_det.lower():
             for i in range(10):
                 totales_prima[i] += vals[i]
             tiene_detalles_validos = True
             continue
+            
+        # FONDO MUTUAL depende del tipo de archivo
+        if "fondo mutual" in linea_det.lower():
+            if es_archivo_prima:
+                for i in range(10):
+                    totales_prima[i] += vals[i]
+                tiene_detalles_validos = True
+                continue
+            else:
+                # Si no es archivo prima, cae en el bloque normal (adicionales)
+                for i in range(10):
+                    totales[i] += vals[i]
+                tiene_detalles_validos = True
+                continue
         
+        # Líneas normales
         for i in range(10):
             totales[i] += vals[i]
         tiene_detalles_validos = True
@@ -255,8 +279,8 @@ def _procesar_bloque(
         + totales[IDX_GASTOS]
     )
 
-    # Suma de todos los rubros para las líneas de Prima
-    valor_prima = sum(totales_prima)
+    # Suma de todos los rubros para las líneas de Prima (se excluye la columna 9 porque es el "Total" y duplicaría el valor)
+    valor_prima = sum(totales_prima[:9])
 
     conceptos = [
         ("GRANCOOP APORTES", valor_aporte),

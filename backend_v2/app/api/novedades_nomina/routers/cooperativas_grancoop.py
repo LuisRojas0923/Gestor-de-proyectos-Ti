@@ -24,11 +24,13 @@ async def preview_grancoop(
 ):
     """Procesa PDFs de GRANCOOP, enriquece con ERP, guarda en BD."""
     archivos_binarios = []
+    archivos_nombres = []
     for f in files:
         contenido = await f.read()
         archivos_binarios.append(contenido)
+        archivos_nombres.append(f.filename)
 
-    rows, summary, warnings_txt = extraer_grancoop(archivos_binarios)
+    rows, summary, warnings_txt = extraer_grancoop(archivos_binarios, archivos_nombres)
     summary["mes"] = mes
     summary["anio"] = anio
 
