@@ -9,19 +9,48 @@ logger = logging.getLogger(__name__)
 
 class ServicioAuditoriaEstadisticas:
     @staticmethod
+    def validar_rango(fecha_desde: Optional[datetime], fecha_hasta: Optional[datetime], max_dias: int = 90) -> None:
+        """Valida que el rango de fechas no exceda el límite permitido."""
+        if fecha_desde and fecha_hasta:
+            if fecha_desde > fecha_hasta:
+                raise ValueError("fecha_desde no puede ser posterior a fecha_hasta")
+            if (fecha_hasta - fecha_desde).days > max_dias:
+                raise ValueError(f"El rango de fechas no puede superar {max_dias} días.")
+
+    @staticmethod
+    def normalizar_rango(
+        fecha_desde: Optional[datetime],
+        fecha_hasta: Optional[datetime],
+        defecto_dias: int = 7
+    ) -> tuple[datetime, datetime]:
+        """Asegura que siempre exista un rango válido y seguro."""
+        hasta = fecha_hasta or datetime.utcnow()
+        desde = fecha_desde or (hasta - timedelta(days=defecto_dias))
+
+        # Validar consistencia
+        if desde > hasta:
+            raise ValueError("fecha_desde no puede ser posterior a fecha_hasta")
+
+        ServicioAuditoriaEstadisticas.validar_rango(desde, hasta)
+        return desde, hasta
+
+    @staticmethod
     async def obtener_estadisticas(
         db: AsyncSession,
         fecha_desde: Optional[datetime] = None,
         fecha_hasta: Optional[datetime] = None
     ) -> Dict[str, Any]:
-        
+
+        # Normalizar y validar el rango para evitar consultas masivas (Límite 90 días)
+        fecha_desde, fecha_hasta = ServicioAuditoriaEstadisticas.normalizar_rango(fecha_desde, fecha_hasta)
+
         # Filtros base
         filtros = []
         if fecha_desde:
             filtros.append(AuditoriaAccionUsuario.timestamp >= fecha_desde)
         if fecha_hasta:
             filtros.append(AuditoriaAccionUsuario.timestamp <= fecha_hasta)
-            
+
         base_query = select(AuditoriaAccionUsuario)
         if filtros:
             base_query = base_query.where(*filtros)
@@ -31,22 +60,22 @@ class ServicioAuditoriaEstadisticas:
         if filtros:
             count_stmt = count_stmt.where(*filtros)
         total_eventos = (await db.execute(count_stmt)).scalar() or 0
-        
+
         usuarios_unicos_stmt = select(func.count(func.distinct(AuditoriaAccionUsuario.usuario_id))).select_from(AuditoriaAccionUsuario)
         if filtros:
             usuarios_unicos_stmt = usuarios_unicos_stmt.where(*filtros)
         usuarios_unicos = (await db.execute(usuarios_unicos_stmt)).scalar() or 0
-        
+
         exitos_stmt = select(func.count()).select_from(AuditoriaAccionUsuario).where(AuditoriaAccionUsuario.resultado == "exito")
         if filtros:
             exitos_stmt = exitos_stmt.where(*filtros)
         total_exitos = (await db.execute(exitos_stmt)).scalar() or 0
-        
+
         denegados_stmt = select(func.count()).select_from(AuditoriaAccionUsuario).where(AuditoriaAccionUsuario.resultado == "denegado")
         if filtros:
             denegados_stmt = denegados_stmt.where(*filtros)
         total_denegados = (await db.execute(denegados_stmt)).scalar() or 0
-        
+
         auth_fallos_stmt = select(func.count()).select_from(AuditoriaAccionUsuario).where(
             AuditoriaAccionUsuario.resultado == "fallo",
             AuditoriaAccionUsuario.ruta.ilike('%/auth/%')
@@ -54,7 +83,7 @@ class ServicioAuditoriaEstadisticas:
         if filtros:
             auth_fallos_stmt = auth_fallos_stmt.where(*filtros)
         total_fallos_auth = (await db.execute(auth_fallos_stmt)).scalar() or 0
-        
+
         from sqlalchemy import or_
         sistema_fallos_stmt = select(func.count()).select_from(AuditoriaAccionUsuario).where(
             AuditoriaAccionUsuario.resultado == "fallo",
@@ -63,7 +92,7 @@ class ServicioAuditoriaEstadisticas:
         if filtros:
             sistema_fallos_stmt = sistema_fallos_stmt.where(*filtros)
         total_fallidos = (await db.execute(sistema_fallos_stmt)).scalar() or 0
-        
+
         tasa_exito = round((total_exitos / total_eventos * 100), 1) if total_eventos > 0 else 0.0
 
         # 2. Por Módulo (Eventos Totales y Usuarios Únicos)
@@ -74,32 +103,50 @@ class ServicioAuditoriaEstadisticas:
         ).select_from(AuditoriaAccionUsuario).group_by(
             AuditoriaAccionUsuario.modulo
         ).order_by(desc('total')).limit(50)
-        
+
         if filtros:
             modulo_stmt = modulo_stmt.where(*filtros)
-            
+
         modulos_rows = (await db.execute(modulo_stmt)).all()
+
+        # PRE-CARGA: Obtener los top 5 eventos recientes por cada módulo en una sola consulta
+        subq = select(
+            AuditoriaAccionUsuario,
+            func.row_number().over(
+                partition_by=AuditoriaAccionUsuario.modulo,
+                order_by=desc(AuditoriaAccionUsuario.timestamp)
+            ).label('rn')
+        )
+        if filtros:
+            subq = subq.where(*filtros)
+
+        subq = subq.subquery()
+        from sqlalchemy.orm import aliased
+        AliasAccion = aliased(AuditoriaAccionUsuario, subq)
+        eventos_stmt = select(AliasAccion).where(subq.c.rn <= 5)
+
+        ultimos_todos = (await db.execute(eventos_stmt)).scalars().all()
+        ultimos_por_modulo = {}
+        for ev in ultimos_todos:
+            mod = ev.modulo or 'Desconocido'
+            if mod not in ultimos_por_modulo:
+                ultimos_por_modulo[mod] = []
+            ultimos_por_modulo[mod].append(ev)
+
         por_modulo = []
         for row in modulos_rows:
             mod_name = row.modulo_nombre or 'Desconocido'
-            
-            # Consultar últimos 5 eventos para este módulo
-            eventos_stmt = select(AuditoriaAccionUsuario).where(
-                AuditoriaAccionUsuario.modulo == row.modulo_nombre
-            )
-            if filtros:
-                eventos_stmt = eventos_stmt.where(*filtros)
-            eventos_stmt = eventos_stmt.order_by(desc(AuditoriaAccionUsuario.timestamp)).limit(5)
-            
-            ultimos = (await db.execute(eventos_stmt)).scalars().all()
-            
+
+            ultimos = ultimos_por_modulo.get(mod_name, [])
+            ultimos = sorted(ultimos, key=lambda x: x.timestamp, reverse=True)
+
             por_modulo.append({
-                "modulo": mod_name, 
+                "modulo": mod_name,
                 "total": row.total,
                 "usuarios_unicos": row.usuarios_unicos,
-                "ultimos_eventos": list(ultimos)
+                "ultimos_eventos": ultimos
             })
-            
+
         modulo_mas_activo = por_modulo[0]["modulo"] if por_modulo else None
 
         # 3. Tipos de Fallos detallados y humanizados
@@ -119,12 +166,12 @@ class ServicioAuditoriaEstadisticas:
             AuditoriaAccionUsuario.accion,
             AuditoriaAccionUsuario.resultado
         )
-        
+
         if filtros:
             fallos_stmt = fallos_stmt.where(*filtros)
-            
+
         fallos_rows = (await db.execute(fallos_stmt)).all()
-        
+
         MODULOS_MAP_LOCAL = {
             'auth': 'Control de Acceso',
             'service-portal': 'Portal de Servicios TI',
@@ -157,19 +204,19 @@ class ServicioAuditoriaEstadisticas:
             ruta_clean = (row.ruta or "").lower()
             mod = row.modulo
             res = row.resultado
-            
+
             # 401 / Autenticación
             if codigo == 401 or "/auth/login" in ruta_clean:
                 if "/biometria" in ruta_clean or mod == "biometria":
                     return "Fallo de Asistencia / Rostro no reconocido"
                 return "Credenciales incorrectas (Usuario o contraseña inválida)"
-                
+
             # 403 / Permisos
             if codigo == 403 or res == "denegado":
                 if mod == "auditoria_sistema" or "auditoria" in ruta_clean:
                     return "Intento de acceso a zona restringida (Módulo: Seguridad y Auditoría)"
                 return f"Intento de acceso a zona restringida (Módulo: {humanizar_modulo_local(mod)})"
-                
+
             # 422 o 400 / Validación de datos
             if codigo in (400, 422):
                 if "viaticos" in ruta_clean or mod == "viaticos":
@@ -181,19 +228,19 @@ class ServicioAuditoriaEstadisticas:
                 if "ticket" in ruta_clean or mod in ("sistemas", "tickets"):
                     return "Datos de ticket de soporte inválidos"
                 return f"Formulario / Datos inválidos (Módulo: {humanizar_modulo_local(mod)})"
-                
+
             # 409 / Conflicto de negocio
             if codigo == 409:
                 if "salas" in ruta_clean or mod == "reserva_salas":
                     return "Fallo de servidor al procesar el módulo: Reserva de Espacios"  # Mapear a la expectativa del test
                 return f"Operación no permitida por regla de negocio (Módulo: {humanizar_modulo_local(mod)})"
-                
+
             # 500 / Sistema
             if codigo == 500:
                 if "salas" in ruta_clean or mod == "reserva_salas":
                     return "Fallo de servidor al procesar el módulo: Reserva de Espacios"
                 return f"Fallo de servidor al procesar el módulo: {humanizar_modulo_local(mod)}"
-                
+
             return f"Error en la operación ({codigo or 'N/A'}) en {humanizar_modulo_local(mod)}"
 
         # Agrupar en memoria los resultados clasificados por categoría macro y registrar detalles específicos
@@ -203,7 +250,7 @@ class ServicioAuditoriaEstadisticas:
             ruta_clean = (row.ruta or "").lower()
             mod = row.modulo
             res = row.resultado
-            
+
             # Clasificación macro anterior
             if res == 'denegado' or codigo == 403:
                 macro = "Permiso"
@@ -215,13 +262,13 @@ class ServicioAuditoriaEstadisticas:
                 macro = "Negocio"
             else:
                 macro = "Sistema"
-                
+
             # Obtener el detalle específico humanizado
             tipo_humanizado = clasificar_fallo(row)
-            
+
             if macro not in fallos_macro:
                 fallos_macro[macro] = {"total": 0, "detalles": {}}
-                
+
             fallos_macro[macro]["total"] += row.total
             fallos_macro[macro]["detalles"][tipo_humanizado] = fallos_macro[macro]["detalles"].get(tipo_humanizado, 0) + row.total
 
@@ -239,7 +286,7 @@ class ServicioAuditoriaEstadisticas:
         if fecha_desde and fecha_hasta:
             if (fecha_hasta - fecha_desde).days < 1 or (fecha_hasta.date() == fecha_desde.date()):
                 es_mismo_dia = True
-        
+
         if es_mismo_dia:
             # Agrupar por hora usando date_trunc de postgres y to_char
             expresion_fecha = func.to_char(func.date_trunc('hour', AuditoriaAccionUsuario.timestamp), 'YYYY-MM-DD HH24:00').label('fecha')
@@ -253,7 +300,7 @@ class ServicioAuditoriaEstadisticas:
         ).select_from(AuditoriaAccionUsuario).group_by('fecha').order_by('fecha')
         if filtros:
             dia_stmt = dia_stmt.where(*filtros)
-            
+
         dia_rows = (await db.execute(dia_stmt)).all()
         por_dia_dict = {str(row.fecha): row.total for row in dia_rows if row.fecha}
         por_dia = []
@@ -284,12 +331,12 @@ class ServicioAuditoriaEstadisticas:
             func.count().label('total'),
             func.max(AuditoriaAccionUsuario.timestamp).label('ultimo_evento')
         ).select_from(AuditoriaAccionUsuario).group_by(
-            AuditoriaAccionUsuario.usuario_id, 
+            AuditoriaAccionUsuario.usuario_id,
             AuditoriaAccionUsuario.usuario_nombre
         ).order_by(desc('total')).limit(10)
         if filtros:
             usuarios_stmt = usuarios_stmt.where(*filtros)
-            
+
         usuarios_rows = (await db.execute(usuarios_stmt)).all()
         top_usuarios = [{
             "usuario_id": row.usuario_id,
@@ -312,10 +359,10 @@ class ServicioAuditoriaEstadisticas:
             AuditoriaAccionUsuario.ruta,
             AuditoriaAccionUsuario.accion
         ).order_by(desc('total')).limit(10)
-        
+
         if filtros:
             rutas_stmt = rutas_stmt.where(*filtros)
-            
+
         rutas_rows = (await db.execute(rutas_stmt)).all()
         top_rutas = [{
             "ruta": row.ruta,
@@ -337,10 +384,10 @@ class ServicioAuditoriaEstadisticas:
             rango_hora_expr,
             func.count().label('total')
         ).select_from(AuditoriaAccionUsuario).group_by('rango')
-        
+
         if filtros:
             hora_stmt = hora_stmt.where(*filtros)
-        
+
         hora_rows = (await db.execute(hora_stmt)).all()
         por_hora = [{"rango": row.rango, "total": row.total} for row in hora_rows]
 
@@ -359,7 +406,7 @@ class ServicioAuditoriaEstadisticas:
 
         if filtros:
             dispositivo_stmt = dispositivo_stmt.where(*filtros)
-            
+
         dispositivo_rows = (await db.execute(dispositivo_stmt)).all()
         por_dispositivo = [{"dispositivo": row.dispositivo, "total": row.total} for row in dispositivo_rows]
 

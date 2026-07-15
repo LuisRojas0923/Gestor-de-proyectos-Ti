@@ -33,18 +33,18 @@ type Severidad = 'Bajo' | 'Medio' | 'Alto' | 'Crítico';
 const calcularSeveridad = (row: AuditoriaEvento): Severidad => {
   const acc = (row.accion || '').toLowerCase();
   const code = row.codigo_respuesta || 200;
-  
+
   // Detectar consulta de información de viáticos de un tercero
-  const esConsultaTercero = 
-    row.modulo === 'viaticos' && 
-    row.metadatos?.cedula_consultada && 
-    row.usuario_id && 
+  const esConsultaTercero =
+    row.modulo === 'viaticos' &&
+    row.metadatos?.cedula_consultada &&
+    row.usuario_id &&
     !row.usuario_id.includes(row.metadatos.cedula_consultada);
-    
+
   if (esConsultaTercero) {
     return 'Medio';
   }
-  
+
   // 1. Si el resultado es exitoso (200-299)
   if (row.resultado === 'exito' || (code >= 200 && code < 300)) {
     // Acciones sensibles exitosas como eliminación o alteración de roles se consideran de severidad Media
@@ -53,18 +53,18 @@ const calcularSeveridad = (row: AuditoriaEvento): Severidad => {
     }
     return 'Bajo';
   }
-  
+
   // 2. Si el resultado es fallido o denegado
   // Caídas críticas del servidor (500)
   if (code >= 500) {
     return 'Crítico';
   }
-  
+
   // Bloqueos de seguridad (401/403)
   if (row.resultado === 'denegado' || code === 403 || code === 401) {
     return 'Alto';
   }
-  
+
   // Formularios inválidos o errores de reglas de negocio (400, 422, 409)
   return 'Medio';
 };
@@ -95,7 +95,7 @@ const getSeveridadDetalle = (sev: Severidad) => {
 const parseUserAgent = (ua: string | undefined | null): string => {
   if (!ua) return 'Desconocido';
   const uaLower = ua.toLowerCase();
-  
+
   let browser = 'Desconocido';
   if (uaLower.includes('edg/')) browser = 'Edge';
   else if (uaLower.includes('opr/') || uaLower.includes('opera')) browser = 'Opera';
@@ -105,18 +105,18 @@ const parseUserAgent = (ua: string | undefined | null): string => {
   else if (uaLower.includes('postman')) browser = 'Postman';
   else if (uaLower.includes('insomnia')) browser = 'Insomnia';
   else if (uaLower.includes('python')) browser = 'Python / Script';
-  
+
   let os = '';
   if (uaLower.includes('windows')) os = 'Windows';
   else if (uaLower.includes('mac os')) os = 'macOS';
   else if (uaLower.includes('linux')) os = 'Linux';
   else if (uaLower.includes('android')) os = 'Android';
   else if (uaLower.includes('iphone') || uaLower.includes('ipad')) os = 'iOS';
-  
+
   if (browser !== 'Desconocido' && os) return `${browser} (${os})`;
   if (browser !== 'Desconocido') return browser;
   if (os) return os;
-  
+
   // Fallback si no reconoce nada, devuelve la primera palabra (ej. "Mozilla/5.0")
   return ua.split(' ')[0] || 'Desconocido';
 };
@@ -133,9 +133,9 @@ const MODULOS_DISPONIBLES = [
   { value: 'inventario', label: 'Inventario Anual de TI' },
 ];
 
-const UltimosEventosTable: React.FC<UltimosEventosTableProps> = ({ 
-  datos, 
-  isLoading, 
+const UltimosEventosTable: React.FC<UltimosEventosTableProps> = ({
+  datos,
+  isLoading,
   hideSearch = false,
   hideModuleFilter = false,
   hideGroupButton = false,
@@ -159,7 +159,7 @@ const UltimosEventosTable: React.FC<UltimosEventosTableProps> = ({
   const datosFiltrados = useMemo(() => {
     if (!datos) return [];
     let filtrados = datos;
-    
+
     if (filtroModulo !== 'todos') {
       filtrados = filtrados.filter(row => row.modulo === filtroModulo);
     }
@@ -171,7 +171,7 @@ const UltimosEventosTable: React.FC<UltimosEventosTableProps> = ({
         filtrados = filtrados.filter(row => row.resultado !== 'exito');
       }
     }
-    
+
     if (busquedaUsuario.trim() !== '') {
       const query = busquedaUsuario.toLowerCase().trim();
       filtrados = filtrados.filter(row => {
@@ -180,7 +180,7 @@ const UltimosEventosTable: React.FC<UltimosEventosTableProps> = ({
         return nombre.includes(query) || id.includes(query);
       });
     }
-    
+
     return filtrados;
   }, [datos, filtroModulo, filtroResultado, busquedaUsuario]);
 
@@ -280,14 +280,14 @@ const UltimosEventosTable: React.FC<UltimosEventosTableProps> = ({
       render: (row: AuditoriaEvento) => {
         const sev = calcularSeveridad(row);
         let info = getSeveridadDetalle(sev);
-        
+
         // Sobreescribir detalle si es consulta de terceros
-        const esConsultaTercero = 
-          row.modulo === 'viaticos' && 
-          row.metadatos?.cedula_consultada && 
-          row.usuario_id && 
+        const esConsultaTercero =
+          row.modulo === 'viaticos' &&
+          row.metadatos?.cedula_consultada &&
+          row.usuario_id &&
           !row.usuario_id.includes(row.metadatos.cedula_consultada);
-          
+
         if (esConsultaTercero && sev === 'Medio') {
           info = { significado: 'Consulta de información de tercero', accion: 'Validar motivo de consulta' };
         }
@@ -357,9 +357,9 @@ const UltimosEventosTable: React.FC<UltimosEventosTableProps> = ({
               />
             </div>
             {!hideGroupButton && (
-              <Button 
-                variant={agrupado ? 'primary' : 'outline'} 
-                size="sm" 
+              <Button
+                variant={agrupado ? 'primary' : 'outline'}
+                size="sm"
                 onClick={() => setAgrupado(!agrupado)}
                 icon={Users}
               >
@@ -375,9 +375,9 @@ const UltimosEventosTable: React.FC<UltimosEventosTableProps> = ({
         </div>
 
       {!agrupado ? (
-        <DataTable 
-          columns={columns} 
-          data={datosFiltrados} 
+        <DataTable
+          columns={columns}
+          data={datosFiltrados}
           keyExtractor={(row) => row.id.toString()}
           emptyMessage="No se encontraron eventos en este período."
           onRowClick={(row) => onVerDetalle ? onVerDetalle(row) : setEventoSeleccionado(row)}
@@ -393,7 +393,7 @@ const UltimosEventosTable: React.FC<UltimosEventosTableProps> = ({
               const isExpanded = expandedUsers.has(group.usuario_id);
               return (
                 <div key={group.usuario_id || Math.random().toString()} className="border border-[var(--color-border)] rounded-lg overflow-hidden bg-[var(--color-surface)]">
-                  <div 
+                  <div
                     className="p-3 bg-[var(--color-surface-variant)] flex items-center justify-between cursor-pointer hover:opacity-80 transition-opacity"
                     onClick={() => toggleUser(group.usuario_id)}
                   >
@@ -406,12 +406,12 @@ const UltimosEventosTable: React.FC<UltimosEventosTableProps> = ({
                     </div>
                     <Badge variant="default" size="sm">{group.eventos.length} eventos</Badge>
                   </div>
-                  
+
                   {isExpanded && (
                     <div className="border-t border-[var(--color-border)]">
-                      <DataTable 
-                        columns={columnsWithoutUser} 
-                        data={group.eventos} 
+                      <DataTable
+                        columns={columnsWithoutUser}
+                        data={group.eventos}
                         keyExtractor={(row) => row.id.toString()}
                         onRowClick={(row) => onVerDetalle ? onVerDetalle(row) : setEventoSeleccionado(row)}
                       />
@@ -425,9 +425,9 @@ const UltimosEventosTable: React.FC<UltimosEventosTableProps> = ({
       )}
 
       {/* Modal de Detalles del Evento (Reutilizado del Sistema de Auditoría General) */}
-      <AuditoriaEventoDetalle 
-        evento={eventoSeleccionado} 
-        onCerrar={() => setEventoSeleccionado(null)} 
+      <AuditoriaEventoDetalle
+        evento={eventoSeleccionado}
+        onCerrar={() => setEventoSeleccionado(null)}
       />
     </Card>
   );

@@ -7,12 +7,12 @@ export type RangoPeriodo = 'hoy' | '7dias' | '30dias' | 'personalizado';
 export function useAuditoriaStats() {
     const { get } = useApi<AuditoriaEstadisticas>();
     const { get: getEventos } = useApi<any>(); // Para listar eventos
-    
+
     const [estadisticas, setEstadisticas] = useState<AuditoriaEstadisticas | null>(null);
     const [ultimosEventos, setUltimosEventos] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    
+
     const [periodo, setPeriodo] = useState<RangoPeriodo>('30dias');
     const [fechaDesde, setFechaDesde] = useState<string>('');
     const [fechaHasta, setFechaHasta] = useState<string>('');
@@ -27,17 +27,17 @@ export function useAuditoriaStats() {
             if (desde) params.append('fecha_desde', desde);
             if (hasta) params.append('fecha_hasta', hasta);
             params.append('_t', Date.now().toString());
-            
+
             const statsUrl = `/auditoria/estadisticas${params.toString() ? `?${params.toString()}` : ''}`;
             params.append('page', '1');
             params.append('page_size', '15');
             const eventosUrl = `/auditoria/eventos${params.toString() ? `?${params.toString()}` : ''}`;
-            
+
             const [statsData, eventosData] = await Promise.all([
                 get(statsUrl),
                 getEventos(eventosUrl)
             ]);
-            
+
             if (statsData) {
                 setEstadisticas(statsData);
             }
@@ -57,10 +57,10 @@ export function useAuditoriaStats() {
             const hoy = new Date();
             const formatear = (d: Date) => d.toISOString().split('T')[0] + 'T00:00:00';
             const formatearFin = (d: Date) => d.toISOString().split('T')[0] + 'T23:59:59';
-            
+
             let desde = '';
             let hasta = formatearFin(hoy);
-            
+
             if (periodo === 'hoy') {
                 desde = formatear(hoy);
             } else if (periodo === '7dias') {
@@ -75,7 +75,7 @@ export function useAuditoriaStats() {
                 desde = fechaDesde ? `${fechaDesde}T00:00:00` : '';
                 hasta = fechaHasta ? `${fechaHasta}T23:59:59` : '';
             }
-            
+
             if (periodo !== 'personalizado' || (desde && hasta)) {
                 activeDatesRef.current = { desde, hasta };
                 cargar(desde, hasta);
@@ -90,11 +90,13 @@ export function useAuditoriaStats() {
         let timeoutId: any = null;
 
         const conectar = () => {
+            const token = localStorage.getItem('token');
+            const wsToken = token ? `?token=${token}` : '';
             const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
             const wsHost = window.location.host;
             const wsUrl = wsHost.includes('localhost')
-                ? `${wsProtocol}//localhost:8000/api/v2/auditoria/ws/dashboard`
-                : `${wsProtocol}//${wsHost}/api/v2/auditoria/ws/dashboard`;
+                ? `${wsProtocol}//localhost:8000/api/v2/auditoria/ws/dashboard${wsToken}`
+                : `${wsProtocol}//${wsHost}/api/v2/auditoria/ws/dashboard${wsToken}`;
 
             socket = new WebSocket(wsUrl);
 
@@ -129,15 +131,20 @@ export function useAuditoriaStats() {
 
     return {
         estadisticas,
+        setEstadisticas,
         ultimosEventos,
         isLoading,
+        setIsLoading,
         error,
+        setError,
         periodo,
         setPeriodo,
         fechaDesde,
         setFechaDesde,
         fechaHasta,
         setFechaHasta,
+        computedDesde: activeDatesRef.current.desde,
+        computedHasta: activeDatesRef.current.hasta,
         recargar: () => {
             const { desde, hasta } = activeDatesRef.current;
             cargar(desde, hasta);

@@ -101,8 +101,8 @@ async def obtener_estadisticas_auditoria(
 ):
     """Retorna las estadísticas, KPIs y agrupaciones para el dashboard de auditoría."""
     return await ServicioAuditoriaEstadisticas.obtener_estadisticas(
-        db, 
-        fecha_desde=fecha_desde, 
+        db,
+        fecha_desde=fecha_desde,
         fecha_hasta=fecha_hasta
     )
 

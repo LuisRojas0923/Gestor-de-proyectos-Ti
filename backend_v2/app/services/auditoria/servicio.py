@@ -118,7 +118,7 @@ class ServicioAuditoria:
             )
             await db.execute(stmt)
             await db.commit()
-            
+
             # Notificar al dashboard de auditoría en tiempo real
             try:
                 from app.services.auditoria.ws_manager import auditoria_ws_manager

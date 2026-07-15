@@ -90,7 +90,7 @@ export const humanizarClave = (clave: string): string => {
   if (!clave) return '';
   const clean = clave.trim().toLowerCase();
   if (CLAVES_MAP[clean]) return CLAVES_MAP[clean];
-  
+
   // Convertir snake_case o camelCase a texto normal capitalizado
   const palabras = clave.replace(/_/g, ' ').replace(/([A-Z])/g, ' $1').trim();
   return palabras.charAt(0).toUpperCase() + palabras.slice(1).toLowerCase();
@@ -99,13 +99,13 @@ export const humanizarClave = (clave: string): string => {
 export const humanizarResultado = (resultado: string | null | undefined, codigo?: number | null): string => {
   if (!resultado) return 'Procesado';
   const res = resultado.toLowerCase();
-  
+
   if (res === 'exito') return 'Éxito';
   if (res === 'denegado' || codigo === 403) return 'Bloqueado (Sin Permisos)';
   if (codigo === 401) return 'Contraseña / Credenciales Incorrectas';
   if (codigo === 422 || codigo === 400) return 'Error de Validación / Datos Inválidos';
   if (codigo === 500) return 'Fallo Crítico del Servidor';
-  
+
   return 'Fallo en la operación';
 };
 
@@ -125,7 +125,7 @@ export const humanizarAccionDetallada = (row: any): string => {
   const modulo = (row.modulo || '').toLowerCase();
   const ruta = (row.ruta || '').toLowerCase();
   let datos = row.datos_nuevos;
-  
+
   if (typeof datos === 'string') {
     try { datos = JSON.parse(datos); } catch (e) { /* ignore */ }
   }
@@ -174,7 +174,7 @@ export const humanizarAccionDetallada = (row: any): string => {
 
   // 4. Desarrollos / Software Factory / Actividades
   if (modulo === 'desarrollos' || modulo === 'desarrollo' || modulo === 'actividades' || ruta.includes('/actividades') || ruta.includes('/desarrollos')) {
-    
+
     // Acciones específicas de Actividades
     if (ruta.includes('/actividades')) {
       const titulo = datos?.titulo ? ` "${datos.titulo}"` : '';
@@ -219,7 +219,7 @@ export const humanizarAccionDetallada = (row: any): string => {
     const ano = row.metadatos?.ano || row.metadatos?.ano_gravable || '';
     const anoStr = ano ? ` (Año ${ano})` : '';
     const target = row.metadatos?.cedula_target ? ` para la cédula ${row.metadatos.cedula_target}` : '';
-    
+
     if (ruta.includes('/certificado-220')) {
       return `Descargó Certificado de Ingresos y Retenciones (Formato 220)${anoStr}${target}`;
     }
@@ -311,7 +311,7 @@ export const humanizarAccionDetallada = (row: any): string => {
     if (ruta.includes('/ronda-vista')) return 'Aceptó e inició la ronda de inventario asignada';
     if (ruta.includes('/plantilla-maestra')) return 'Descargó la Plantilla Maestra en Excel (.xlsx)';
     if (ruta.includes('/plantilla-transito')) return 'Descargó la Plantilla de Tránsito en Excel (.xlsx)';
-    
+
     // Desglose detallado de operaciones de asignación
     if (ruta.includes('/asignar/habilitar-c2')) return 'Habilitó Segundo Conteo (C2) para responsable';
     if (ruta.includes('/asignar')) {
@@ -351,7 +351,7 @@ export const humanizarAccionDetallada = (row: any): string => {
  */
 export const humanizarRuta = (ruta: string): string => {
   if (!ruta) return 'Ruta Desconocida';
-  
+
   const rutasMap: Record<string, string> = {
     '/api/v2/viaticos/enviar': 'Envío de Viáticos',
     '/api/v2/auth/login': 'Inicio de Sesión',
@@ -369,7 +369,7 @@ export const humanizarRuta = (ruta: string): string => {
 
   // Si no hay coincidencia exacta, limpiar y formatear un poco
   let limpia = ruta.replace('/api/v2/', '').replace('/api/v1/', '').replace('/', ' - ');
-  
+
   // Capitalizar
   limpia = limpia.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
   return limpia || ruta;

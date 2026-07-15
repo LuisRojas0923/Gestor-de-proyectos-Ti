@@ -32,8 +32,8 @@ def test_validar_rango_rechaza_periodos_mayores_a_90_dias():
     ("fecha_desde", "fecha_hasta"),
     [
         (None, None),
-        (datetime(2026, 4, 1), None),
-        (None, datetime(2026, 4, 30)),
+        (datetime.utcnow() - timedelta(days=10), None),
+        (None, datetime.utcnow() + timedelta(days=10)),
     ],
 )
 def test_normalizar_rango_completa_limites_omitidos(fecha_desde, fecha_hasta):

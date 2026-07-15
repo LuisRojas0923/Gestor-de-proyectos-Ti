@@ -26,7 +26,7 @@ const UserEventsModal: React.FC<UserEventsModalProps> = ({ isOpen, onClose, usua
         const params = new URLSearchParams();
         if (fechaDesde) params.append('fecha_desde', fechaDesde);
         if (fechaHasta) params.append('fecha_hasta', fechaHasta);
-        
+
         // Asumimos que si usuario_id existe, buscamos por id, sino por nombre
         if (usuario.usuario_id) {
             params.append('usuario_id', usuario.usuario_id);
@@ -39,7 +39,7 @@ const UserEventsModal: React.FC<UserEventsModalProps> = ({ isOpen, onClose, usua
 
         const url = `/auditoria/eventos?${params.toString()}`;
         const data = await get(url);
-        
+
         if (data && data.items) {
           setEventos(data.items);
         }
@@ -61,7 +61,7 @@ const UserEventsModal: React.FC<UserEventsModalProps> = ({ isOpen, onClose, usua
         <Text variant="body2" color="text-secondary" className="mb-4">
           Esta vista muestra los últimos registros de actividad del usuario seleccionado.
         </Text>
-        
+
         <div className="max-h-[60vh] overflow-y-auto custom-scrollbar pr-2">
             <UltimosEventosTable datos={eventos} isLoading={isLoading} hideSearch={true} hideGroupButton={true} />
         </div>

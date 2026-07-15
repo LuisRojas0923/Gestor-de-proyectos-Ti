@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Title, Text, MaterialCard as Card, Button } from '../../../../components/atoms';
+import { Callout } from '../../../../components/molecules';
 import { Activity, Loader2, RefreshCw } from 'lucide-react';
 import PeriodSelector from './components/PeriodSelector';
 import KpiCards from './components/KpiCards';
@@ -21,20 +22,22 @@ const AuditoriaIndicadores: React.FC = () => {
   const [selectedUser, setSelectedUser] = useState<TopUsuario | null>(null);
   const [selectedRoute, setSelectedRoute] = useState<TopRuta | null>(null);
 
-  const { 
-    estadisticas, 
+  const {
+    estadisticas,
     setEstadisticas,
     ultimosEventos,
-    isLoading, 
+    isLoading,
     setIsLoading,
-    error, 
+    error,
     setError,
-    periodo, 
-    setPeriodo, 
-    fechaDesde, 
-    setFechaDesde, 
-    fechaHasta, 
+    periodo,
+    setPeriodo,
+    fechaDesde,
+    setFechaDesde,
+    fechaHasta,
     setFechaHasta,
+    computedDesde,
+    computedHasta,
     recargar
   } = useAuditoriaStats();
 
@@ -58,28 +61,29 @@ const AuditoriaIndicadores: React.FC = () => {
         </Button>
       </div>
 
-      <PeriodSelector 
-        periodo={periodo} 
-        setPeriodo={setPeriodo} 
-        fechaDesde={fechaDesde} 
-        setFechaDesde={setFechaDesde} 
-        fechaHasta={fechaHasta} 
-        setFechaHasta={setFechaHasta} 
+      <PeriodSelector
+        periodo={periodo}
+        setPeriodo={setPeriodo}
+        fechaDesde={fechaDesde}
+        setFechaDesde={setFechaDesde}
+        fechaHasta={fechaHasta}
+        setFechaHasta={setFechaHasta}
       />
 
       {error ? (
-        <Card className="p-8 text-center text-red-500 border-red-200 bg-red-50 dark:bg-red-950/20">
-          <Text variant="body1">{error}</Text>
-        </Card>
+        <Callout variant="error" title="No se pudieron cargar los indicadores" role="alert">
+          {error}
+        </Callout>
       ) : isLoading && !estadisticas ? (
-        <div className="flex justify-center items-center h-64">
+        <div className="flex justify-center items-center h-64" role="status" aria-live="polite">
           <Loader2 className="w-10 h-10 animate-spin text-[var(--color-primary)]" />
+          <Text className="sr-only">Cargando indicadores de auditoría</Text>
         </div>
       ) : estadisticas ? (
         <>
           {/* Fila 1: KPI Cards */}
-          <KpiCards 
-            stats={estadisticas} 
+          <KpiCards
+            stats={estadisticas}
             onClickDenegados={() => setKpiModalTipo('denegados')}
             onClickFallosAuth={() => setKpiModalTipo('fallos_auth')}
           />
@@ -97,12 +101,12 @@ const AuditoriaIndicadores: React.FC = () => {
 
           {/* Fila 4: Tablas de Top */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
-            <TopUsuariosTable 
-              datos={estadisticas.top_usuarios || []} 
+            <TopUsuariosTable
+              datos={estadisticas.top_usuarios || []}
               onUserClick={setSelectedUser}
             />
-            <TopRutasTable 
-              datos={estadisticas.top_rutas || []} 
+            <TopRutasTable
+              datos={estadisticas.top_rutas || []}
               onRouteClick={setSelectedRoute}
             />
           </div>
@@ -112,28 +116,28 @@ const AuditoriaIndicadores: React.FC = () => {
             <UltimosEventosTable datos={ultimosEventos} isLoading={isLoading} />
           </div>
 
-          <KpiUsersModal 
-            isOpen={!!kpiModalTipo} 
-            onClose={() => setKpiModalTipo(null)} 
+          <KpiUsersModal
+            isOpen={!!kpiModalTipo}
+            onClose={() => setKpiModalTipo(null)}
             tipo={kpiModalTipo}
-            fechaDesde={fechaDesde}
-            fechaHasta={fechaHasta}
+            fechaDesde={computedDesde}
+            fechaHasta={computedHasta}
           />
 
           <UserEventsModal
             isOpen={!!selectedUser}
             onClose={() => setSelectedUser(null)}
             usuario={selectedUser}
-            fechaDesde={fechaDesde}
-            fechaHasta={fechaHasta}
+            fechaDesde={computedDesde}
+            fechaHasta={computedHasta}
           />
 
           <RouteEventsModal
             isOpen={!!selectedRoute}
             onClose={() => setSelectedRoute(null)}
             rutaSeleccionada={selectedRoute}
-            fechaDesde={fechaDesde}
-            fechaHasta={fechaHasta}
+            fechaDesde={computedDesde}
+            fechaHasta={computedHasta}
           />
         </>
       ) : null}
