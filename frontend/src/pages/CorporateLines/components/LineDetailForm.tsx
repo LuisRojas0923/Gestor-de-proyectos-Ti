@@ -1,7 +1,7 @@
 import React from 'react';
 import { Smartphone, User, CreditCard, Save, Trash2, ArrowLeft, AlertTriangle } from 'lucide-react';
 import { 
-  Button, Input, Select, Textarea, MaterialCard as Card, Title, Text
+  Button, Input, Select, Textarea, MaterialCard as Card, Title, Text, SearchableSelect
 } from '../../../components/atoms';
 import { CorporateLine, EquipoMovil } from '../useCorporateLines';
 
@@ -13,15 +13,39 @@ interface FormProps {
   onBack: () => void;
   onSave: () => void;
   onDelete: () => void;
-  onInputChange: (field: keyof CorporateLine, value: any) => void;
+  canEdit: boolean;
+  isProcessing: boolean;
+  onInputChange: <K extends keyof CorporateLine>(field: K, value: CorporateLine[K]) => void;
   activeSubTab: 'general' | 'tecnico' | 'finanzas';
   setActiveSubTab: (tab: 'general' | 'tecnico' | 'finanzas') => void;
+  companyOptions: { label: string; value: string }[];
 }
+
+type FinancialField =
+  | 'cfm_con_iva'
+  | 'cfm_sin_iva'
+  | 'descuento_39'
+  | 'vr_factura'
+  | 'pago_empleado'
+  | 'pago_empresa'
+  | 'primera_quincena'
+  | 'segunda_quincena';
+
+const FINANCIAL_FIELDS: Array<{ label: string; field: FinancialField }> = [
+  { label: 'CFM con IVA ($)', field: 'cfm_con_iva' },
+  { label: 'CFM sin IVA ($)', field: 'cfm_sin_iva' },
+  { label: 'Descuento 39% ($)', field: 'descuento_39' },
+  { label: 'V/R Factura Operador ($)', field: 'vr_factura' },
+  { label: 'Deducción Empleado ($)', field: 'pago_empleado' },
+  { label: 'Deducción Empresa ($)', field: 'pago_empresa' },
+  { label: '1era Quincena ($)', field: 'primera_quincena' },
+  { label: '2da Quincena ($)', field: 'segunda_quincena' },
+];
 
 export const LineDetailForm: React.FC<FormProps> = ({
   formData, equipos, employeeAlerts, isCreating,
-  onBack, onSave, onDelete, onInputChange,
-  activeSubTab, setActiveSubTab
+  onBack, onSave, onDelete, onInputChange, canEdit, isProcessing,
+  activeSubTab, setActiveSubTab, companyOptions
 }) => {
   const hasAlert = formData.documento_asignado && employeeAlerts[formData.documento_asignado];
 
@@ -42,14 +66,16 @@ export const LineDetailForm: React.FC<FormProps> = ({
           </div>
         </div>
         <div className="flex gap-3 w-full md:w-auto">
-          {!isCreating && (
-            <Button variant="outline" onClick={onDelete} icon={Trash2} className="text-red-500 hover:bg-red-50 hover:border-red-200 flex-1 md:flex-none">
+          {canEdit && !isCreating && (
+            <Button variant="outline" onClick={onDelete} icon={Trash2} disabled={isProcessing} className="text-red-500 hover:bg-red-50 hover:border-red-200 flex-1 md:flex-none">
               Dar de Baja
             </Button>
           )}
-          <Button variant="primary" onClick={onSave} icon={Save} className="shadow-lg shadow-primary-500/20 flex-1 md:flex-none">
-            {isCreating ? 'Guardar Registro' : 'Actualizar Cambios'}
-          </Button>
+          {canEdit && (
+            <Button variant="primary" onClick={onSave} icon={Save} loading={isProcessing} className="shadow-lg shadow-primary-500/20 flex-1 md:flex-none">
+              {isCreating ? 'Guardar Registro' : 'Actualizar Cambios'}
+            </Button>
+          )}
         </div>
       </div>
 
@@ -110,17 +136,19 @@ export const LineDetailForm: React.FC<FormProps> = ({
                 placeholder="Ej. +57 311..."
                 className="!rounded-2xl"
               />
-              <Select
+              <Input
                 label="Empresa Responsable"
-                value={formData.empresa || 'RDC'}
+                value={formData.empresa || ''}
                 onChange={(e) => onInputChange('empresa', e.target.value)}
-                options={[
-                  { label: 'RDC', value: 'RDC' },
-                  { label: 'CRUZTOR', value: 'CRUZTOR' },
-                  { label: 'GTC', value: 'GTC' },
-                ]}
+                placeholder="Ej. RDC, CRUZTOR..."
+                list="empresas-list"
                 className="!rounded-2xl"
               />
+              <datalist id="empresas-list">
+                {companyOptions.map((opt) => (
+                  <option key={opt.value} value={opt.value} />
+                ))}
+              </datalist>
               <Select
                 label="Estado de la Línea"
                 value={formData.estatus || 'ACTIVA'}
@@ -139,14 +167,14 @@ export const LineDetailForm: React.FC<FormProps> = ({
               <Input 
                 label="Identificación Usuario (Cédula)" 
                 value={formData.documento_asignado || ''} 
-                onChange={(e) => onInputChange('documento_asignado', e.target.value)} 
+                onChange={(e) => onInputChange('documento_asignado', e.target.value === '' ? null : e.target.value)} 
                 icon={User}
                 className="!rounded-2xl"
               />
               <Input 
                 label="Responsable del Cobro" 
                 value={formData.documento_cobro || ''} 
-                onChange={(e) => onInputChange('documento_cobro', e.target.value)} 
+                onChange={(e) => onInputChange('documento_cobro', e.target.value === '' ? null : e.target.value)} 
                 icon={CreditCard}
                 className="!rounded-2xl"
               />
@@ -170,15 +198,14 @@ export const LineDetailForm: React.FC<FormProps> = ({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div className="space-y-4">
                 <Title variant="h6" weight="bold">Hardware Asignado</Title>
-                <Select
+                <SearchableSelect
                   label="Dispositivo del Inventario"
                   value={formData.equipo_id?.toString() || ''}
-                  onChange={(e) => onInputChange('equipo_id', e.target.value === '' ? null : parseInt(e.target.value))}
+                  onChange={(val) => onInputChange('equipo_id', val === '' ? null : parseInt(val))}
                   options={[
                     { label: 'Seleccionar del catálogo...', value: '' },
                     ...equipos.map(e => ({ label: `${e.modelo} - ${e.imei || 'Sin IMEI'}`, value: (e.id || '').toString() })),
                   ]}
-                  className="!rounded-2xl"
                 />
                 <Input 
                    label="Nombre del Plan Contratado"
@@ -205,7 +232,7 @@ export const LineDetailForm: React.FC<FormProps> = ({
         {activeSubTab === 'finanzas' && (
           <div className="space-y-8">
              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-               <div className="p-5 bg-primary-50 dark:bg-primary-900/10 rounded-3xl border border-primary-100 dark:border-primary-800/50 space-y-4">
+               <div className="p-5 bg-primary-50 dark:bg-primary-800/20 rounded-3xl border border-primary-100 dark:border-primary-800/50 space-y-4">
                   <Title variant="h6" weight="bold" color="text-primary">Parámetros de Dispersión (Motor IA)</Title>
                   <Text variant="caption" className="opacity-70 mb-4 block">Define qué porcentaje asume el empleado en la liquidación automática.</Text>
                   <div className="grid grid-cols-2 gap-4">
@@ -251,22 +278,13 @@ export const LineDetailForm: React.FC<FormProps> = ({
              </div>
 
              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                 {[
-                   { label: 'CFM con IVA ($)', field: 'cfm_con_iva' },
-                   { label: 'CFM sin IVA ($)', field: 'cfm_sin_iva' },
-                   { label: 'Descuento 39% ($)', field: 'descuento_39' },
-                   { label: 'V/R Factura Operador ($)', field: 'vr_factura' },
-                   { label: 'Deducción Empleado ($)', field: 'pago_empleado' },
-                   { label: 'Deducción Empresa ($)', field: 'pago_empresa' },
-                   { label: '1era Quincena ($)', field: 'primera_quincena' },
-                   { label: '2da Quincena ($)', field: 'segunda_quincena' },
-                 ].map((item) => (
-                   <Input 
+                  {FINANCIAL_FIELDS.map((item) => (
+                    <Input
                       key={item.field}
                       label={item.label} 
                       type="number" 
-                      value={(formData as any)[item.field]?.toString()} 
-                      onChange={(e) => onInputChange(item.field as any, parseFloat(e.target.value) || 0)} 
+                       value={formData[item.field]?.toString() || ''}
+                       onChange={(e) => onInputChange(item.field, parseFloat(e.target.value) || 0)}
                       className="!rounded-2xl"
                    />
                  ))}

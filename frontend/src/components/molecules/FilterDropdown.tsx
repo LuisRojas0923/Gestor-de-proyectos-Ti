@@ -13,7 +13,7 @@ interface FilterDropdownProps {
     // API Compleja (Controlled mode)
     isOpen?: boolean;
     onClose?: () => void;
-    anchorRect?: { top: number; left: number; width: number } | DOMRect | null;
+    anchorRect?: { top: number; bottom?: number; left: number; width: number } | DOMRect | null;
     title?: string;
     type?: 'categorical' | 'numeric' | 'date';
 
@@ -84,40 +84,42 @@ export const FilterDropdown: React.FC<FilterDropdownProps> = (props) => {
         effectiveAnchor = internalAnchor;
     } else if (anchorRect) {
         effectiveAnchor = {
-            top: anchorRect.top + window.scrollY,
-            left: anchorRect.left + window.scrollX,
+            top: anchorRect.bottom ?? anchorRect.top,
+            left: anchorRect.left,
             width: anchorRect.width
         };
     }
 
     const [position, setPosition] = useState<{ top: number; left: number } | null>(null);
     const [maxHeight, setMaxHeight] = useState<string>('450px');
+    const anchorTop = effectiveAnchor?.top;
+    const anchorLeft = effectiveAnchor?.left;
 
     useEffect(() => {
-        if (effectiveIsOpen && effectiveAnchor) {
+        if (effectiveIsOpen && anchorTop !== undefined && anchorLeft !== undefined) {
             const windowHeight = window.innerHeight;
-            const spaceBelow = windowHeight - effectiveAnchor.top - 20;
+            const spaceBelow = windowHeight - anchorTop - 20;
 
-            if (spaceBelow < 300 && effectiveAnchor.top > 300) {
+            if (spaceBelow < 300 && anchorTop > 300) {
                 setPosition({
-                    top: effectiveAnchor.top - (triggerHeight + 8) - Math.min(400, effectiveAnchor.top - 40),
-                    left: effectiveAnchor.left
+                    top: anchorTop - (triggerHeight + 8) - Math.min(400, anchorTop - 40),
+                    left: anchorLeft
                 });
-                setMaxHeight(`${effectiveAnchor.top - 60}px`);
+                setMaxHeight(`${anchorTop - 60}px`);
             } else {
-                setPosition({ top: effectiveAnchor.top + 4, left: effectiveAnchor.left });
+                setPosition({ top: anchorTop + 4, left: anchorLeft });
                 setMaxHeight(`${Math.min(450, spaceBelow)}px`);
             }
         }
-    }, [effectiveIsOpen, effectiveAnchor?.top, effectiveAnchor?.left, effectiveAnchor?.width, triggerHeight]);
+    }, [effectiveIsOpen, anchorTop, anchorLeft, triggerHeight]);
 
     const toggleSimple = (e: React.MouseEvent) => {
         e.stopPropagation();
         if (triggerRef.current) {
             const rect = triggerRef.current.getBoundingClientRect();
             setInternalAnchor({
-                top: rect.bottom + window.scrollY,
-                left: rect.left + window.scrollX,
+                top: rect.bottom,
+                left: rect.left,
                 width: rect.width
             });
         }
@@ -135,6 +137,19 @@ export const FilterDropdown: React.FC<FilterDropdownProps> = (props) => {
         };
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [effectiveIsOpen, isSimpleMode, onClose]);
+
+    useEffect(() => {
+        if (!effectiveIsOpen) return;
+        const handleEscape = (event: KeyboardEvent) => {
+            if (event.key !== 'Escape') return;
+            event.preventDefault();
+            if (isSimpleMode) setInternalIsOpen(false);
+            else onClose?.();
+            requestAnimationFrame(() => triggerRef.current?.focus());
+        };
+        document.addEventListener('keydown', handleEscape);
+        return () => document.removeEventListener('keydown', handleEscape);
     }, [effectiveIsOpen, isSimpleMode, onClose]);
 
     if (!effectiveIsOpen && isSimpleMode) {
@@ -213,6 +228,8 @@ export const FilterDropdown: React.FC<FilterDropdownProps> = (props) => {
             ref={dropdownRef}
             className="fixed z-[9999] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 flex flex-col min-w-[280px]"
             style={dynamicStyle}
+            role="dialog"
+            aria-label={title || 'Filtrar columna'}
         >
             {/* Header */}
             <div className="p-3 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 flex items-center justify-between">
@@ -224,6 +241,7 @@ export const FilterDropdown: React.FC<FilterDropdownProps> = (props) => {
                     size="sm"
                     onClick={isSimpleMode ? handleApply : onClose}
                     title="Cerrar"
+                    aria-label="Cerrar filtro"
                     className="!w-5 !h-5 !p-0 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-200 dark:hover:text-slate-200 dark:hover:bg-slate-700"
                 >
                     <X size={12} />
@@ -299,30 +317,43 @@ export const FilterDropdown: React.FC<FilterDropdownProps> = (props) => {
                                 size="xs"
                                 icon={Search}
                                 value={currentSearch}
+                                aria-label={`Buscar valores de ${title || 'la columna'}`}
                                 onChange={(e) => handleSearch(e.target.value)}
                                 autoFocus
                                 className="[&_input]:h-8 [&_input]:text-[11px] [&_input]:bg-slate-100 dark:[&_input]:bg-slate-800 [&_input]:border-none"
                             />
                         </div>
 
-                        <div
+                        <Button
+                            type="button"
+                            variant="custom"
                             onClick={handleSelectAll}
+                            aria-pressed={isAllSelected}
+                            fullWidth
                             className="flex items-center gap-2 px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer border-b border-slate-100 dark:border-slate-800 transition-colors"
                         >
                             <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center transition-colors ${isAllSelected ? 'bg-primary-500 border-primary-500' : 'border-slate-300 dark:border-slate-600'}`}>
                                 {isAllSelected && <Check className="w-2.5 h-2.5 text-white" />}
                             </div>
                             <Text variant="caption" weight="bold" className="text-[11px]">Seleccionar Todos</Text>
-                        </div>
+                        </Button>
 
                         <div className="py-1">
                             {filteredOptions.map(opt => (
-                                <div key={opt.value} onClick={() => handleToggle(opt.value)} className="flex items-center gap-2 px-3 py-1.5 hover:bg-primary-50 dark:hover:bg-primary-900/10 cursor-pointer">
+                                <Button
+                                    key={opt.value}
+                                    type="button"
+                                    variant="custom"
+                                    fullWidth
+                                    aria-pressed={currentSelected.includes(opt.value)}
+                                    onClick={() => handleToggle(opt.value)}
+                                    className="flex items-center gap-2 px-3 py-1.5 hover:bg-primary-50 dark:hover:bg-primary-900/10 cursor-pointer"
+                                >
                                     <div className={`w-4 h-4 rounded border flex items-center justify-center ${currentSelected.includes(opt.value) ? 'bg-primary-500 border-primary-500' : 'border-slate-300 dark:border-slate-600'}`}>
                                         {currentSelected.includes(opt.value) && <Check className="w-3 h-3 text-white" />}
                                     </div>
                                     <Text variant="caption" className="text-[11px] truncate">{opt.label || '(Vacío)'}</Text>
-                                </div>
+                                </Button>
                             ))}
                         </div>
                     </>

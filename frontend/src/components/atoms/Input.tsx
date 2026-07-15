@@ -38,6 +38,7 @@ interface InputProps {
   autoFocus?: boolean;
   onPaste?: (e: React.ClipboardEvent<HTMLInputElement>) => void;
   readOnly?: boolean;
+  list?: string;
   'aria-label'?: string;
 }
 
@@ -75,6 +76,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(({
   autoFocus,
   onPaste,
   readOnly = false,
+  list,
   'aria-label': ariaLabel,
 }, ref) => {
   const [showPassword, setShowPassword] = useState(false); // [CONTROLADO]
@@ -174,6 +176,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(({
           autoFocus={autoFocus}
           onPaste={onPaste}
           readOnly={readOnly}
+          list={list}
           aria-label={ariaLabel}
           className={`${baseClasses} ${sizeClasses[size]} ${stateClasses} ${backgroundClasses} ${iconPaddingClasses[size]} ${className}`}
           style={style}

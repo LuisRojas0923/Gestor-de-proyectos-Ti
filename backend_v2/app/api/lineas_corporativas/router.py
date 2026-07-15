@@ -1,18 +1,18 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import text
+from sqlalchemy.exc import IntegrityError
 from sqlmodel import select
 from typing import List
+import logging
 
 from app.database import obtener_db, obtener_erp_db_opcional
-from app.models.linea_corporativa import LineaCorporativa, EquipoMovil, EmpleadoLinea
+from app.models.linea_corporativa import LineaCorporativa
 from app.models.linea_corporativa.factura_model import FacturaLinea
 from app.models.linea_corporativa.factura_detalle_model import FacturaLineaDetalle
 from .schemas import (
-    LineaCorporativaCreate, LineaCorporativaUpdate, LineaCorporativaOut,
-    EquipoMovilCreate, EquipoMovilOut,
-    EmpleadoLineaCreate, EmpleadoLineaOut,
+    LineaCorporativaCreate, LineaCorporativaOut, LineaCorporativaUpdate,
     ResumenCORow, FacturaDetalleRow
 )
 from datetime import datetime
@@ -22,42 +22,44 @@ import re
 from fastapi import UploadFile, File
 from sqlalchemy import func
 from app.services.erp import EmpleadosService
+from app.services.auditoria.snapshots import (
+    asignar_actualizacion_segura,
+    asignar_creacion_segura,
+    asignar_eliminacion_segura,
+    asignar_evento_segura,
+    modelo_a_dict_auditoria,
+)
+from app.services.lineas_corporativas.maestros_service import (
+    ConflictoIntegridadLineas,
+    ErrorPersistenciaLineas,
+    LineasCorporativasMaestrosService,
+    RecursoEnUsoLineas,
+    RecursoNoEncontradoLineas,
+)
+from app.models.auth.usuario import Usuario
+from .dependencies import (
+    requiere_administrador_lineas_corporativas,
+    requiere_permiso_lineas_corporativas,
+)
+from .maestros_router import router as maestros_router
+from .alertas_router import router as alertas_router
+from .archivos import leer_excel_seguro
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(requiere_permiso_lineas_corporativas)])
+router.include_router(maestros_router)
+router.include_router(alertas_router)
+logger = logging.getLogger(__name__)
 
-# --- ENDPOINTS EQUIPOS ---
-@router.get("/equipos", response_model=List[EquipoMovilOut])
-async def listar_equipos(db: AsyncSession = Depends(obtener_db)):
-    try:
-        result = await db.execute(select(EquipoMovil))
-        return result.scalars().all()
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al listar equipos: {str(e)}")
 
-@router.post("/equipos", response_model=EquipoMovilOut)
-async def crear_equipo(equipo_in: EquipoMovilCreate, db: AsyncSession = Depends(obtener_db)):
-    db_obj = EquipoMovil(**equipo_in.model_dump())
-    db.add(db_obj)
-    await db.commit()
-    await db.refresh(db_obj)
-    return db_obj
-
-# --- ENDPOINTS PERSONAS ---
-@router.get("/personas", response_model=List[EmpleadoLineaOut])
-async def listar_personas(db: AsyncSession = Depends(obtener_db)):
-    try:
-        result = await db.execute(select(EmpleadoLinea))
-        return result.scalars().all()
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al listar personas: {str(e)}")
-
-@router.post("/personas", response_model=EmpleadoLineaOut)
-async def crear_persona(persona_in: EmpleadoLineaCreate, db: AsyncSession = Depends(obtener_db)):
-    db_obj = EmpleadoLinea(**persona_in.model_dump())
-    db.add(db_obj)
-    await db.commit()
-    await db.refresh(db_obj)
-    return db_obj
+def _error_integridad_linea(exc: IntegrityError) -> HTTPException:
+    detalle = str(exc.orig) if exc.orig else str(exc)
+    if "documento_asignado" in detalle:
+        return HTTPException(status_code=400, detail="La cédula asignada no existe")
+    if "documento_cobro" in detalle:
+        return HTTPException(status_code=400, detail="La cédula de cobro no existe")
+    if "equipo_id" in detalle:
+        return HTTPException(status_code=400, detail="El equipo seleccionado no existe")
+    return HTTPException(status_code=400, detail="Error de integridad de datos")
 
 # --- ENDPOINTS LINEAS ---
 @router.get("/", response_model=List[LineaCorporativaOut])
@@ -70,91 +72,56 @@ async def listar_lineas(db: AsyncSession = Depends(obtener_db)):
     try:
         result = await db.execute(query)
         return result.scalars().unique().all()
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al listar líneas: {str(e)}")
-
-@router.get("/alertas-empleados")
-async def obtener_alertas_empleados(db_erp: Session = Depends(obtener_erp_db_opcional), db_local: AsyncSession = Depends(obtener_db)):
-    if db_erp is None:
-        return {"error": "ERP no disponible", "alertas": {}}
-    
-    try:
-        result = await db_local.execute(select(EmpleadoLinea.documento))
-        cedulas = [str(c) for c in result.scalars().all() if c]
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al consultar cédulas locales: {str(e)}")
-    
-    if not cedulas:
-        return {"alertas": {}}
-
-    alertas = {}
-    query = text("""
-        SELECT DISTINCT ON (E.nrocedula)
-            E.nrocedula AS nrocedula,
-            C.estado AS estado,
-            C.fecharetiro AS fecharetiro
-        FROM establecimiento E
-        LEFT JOIN contrato C ON TRIM(CAST(C.establecimiento AS TEXT)) = TRIM(CAST(E.nrocedula AS TEXT))
-        WHERE TRIM(CAST(E.nrocedula AS TEXT)) IN :cedulas
-        ORDER BY E.nrocedula, C.fechainicio DESC NULLS LAST
-    """)
-    
-    try:
-        erp_result = db_erp.execute(query, {"cedulas": tuple(cedulas)}).fetchall()
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error en consulta ERP: {str(e)}")
-    
-    for row in erp_result:
-        cedula = str(row.nrocedula).strip()
-        estado = str(row.estado).strip()
-        fecha_retiro = row.fecharetiro
-        
-        reasons = []
-        if estado.lower() != 'activo':
-            severity = "CRITICAL"
-            reasons.append(f"Estado: {estado}")
-        if fecha_retiro and str(fecha_retiro)[:10] != '1900-01-01':
-            severity = "WARNING" if estado.lower() == 'activo' else "CRITICAL"
-            reasons.append(f"Retiro: {fecha_retiro}")
-            
-        if reasons:
-            alertas[cedula] = {
-                "inactivo": estado.lower() != 'activo', 
-                "clase": severity,
-                "motivos": ", ".join(reasons),
-                "fecha_retiro": str(fecha_retiro) if fecha_retiro else None
-            }
-            
-    return {"alertas": alertas}
+    except Exception as exc:
+        logger.error("Error al listar líneas corporativas")
+        raise HTTPException(status_code=500, detail="Error al listar líneas") from exc
 
 @router.post("/", response_model=LineaCorporativaOut, status_code=status.HTTP_201_CREATED)
-async def crear_linea(linea_in: LineaCorporativaCreate, db: AsyncSession = Depends(obtener_db)):
+async def crear_linea(
+    linea_in: LineaCorporativaCreate,
+    request: Request,
+    db: AsyncSession = Depends(obtener_db),
+    _: Usuario = Depends(requiere_administrador_lineas_corporativas),
+):
     try:
         existing = await db.execute(select(LineaCorporativa).where(LineaCorporativa.linea == linea_in.linea))
         if existing.scalar_one_or_none():
             raise HTTPException(status_code=400, detail="La linea corporativa ya se encuentra registrada.")
     except HTTPException:
         raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al verificar duplicados: {str(e)}")
+    except Exception as exc:
+        logger.error("Error al verificar línea duplicada")
+        raise HTTPException(status_code=500, detail="Error al verificar duplicados") from exc
         
     db_linea = LineaCorporativa(**linea_in.model_dump())
     db.add(db_linea)
-    await db.commit()
-    await db.refresh(db_linea)
-    
-    # Reload with relationships
-    query = select(LineaCorporativa).options(
-        joinedload(LineaCorporativa.equipo),
-        joinedload(LineaCorporativa.asignado),
-        joinedload(LineaCorporativa.responsable_cobro)
-    ).where(LineaCorporativa.id == db_linea.id)
-    
     try:
+        await db.flush()
+        await db.refresh(db_linea)
+        query = select(LineaCorporativa).options(
+            joinedload(LineaCorporativa.equipo),
+            joinedload(LineaCorporativa.asignado),
+            joinedload(LineaCorporativa.responsable_cobro)
+        ).where(LineaCorporativa.id == db_linea.id)
         result = await db.execute(query)
-        return result.scalar_one()
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al recargar línea creada: {str(e)}")
+        linea = result.scalar_one()
+        await db.commit()
+        asignar_evento_segura(
+            request,
+            modulo="lineas_corporativas",
+            accion="crear",
+            entidad_tipo="linea_corporativa",
+            entidad_id=str(linea.id),
+        )
+        asignar_creacion_segura(request, linea)
+        return linea
+    except IntegrityError as exc:
+        await db.rollback()
+        raise _error_integridad_linea(exc) from exc
+    except Exception as exc:
+        await db.rollback()
+        logger.error("Error al crear línea corporativa")
+        raise HTTPException(status_code=500, detail="Error al crear línea") from exc
 
 @router.get("/reporte-co", response_model=List[ResumenCORow])
 async def reporte_por_centro_costo(periodo: str, db: AsyncSession = Depends(obtener_db)):
@@ -193,13 +160,9 @@ async def reporte_por_centro_costo(periodo: str, db: AsyncSession = Depends(obte
                     data[k] = float(v)
             rows.append(ResumenCORow(**data))
         return rows
-    except Exception as e:
-        import traceback
-        error_trace = traceback.format_exc()
-        raise HTTPException(
-            status_code=500, 
-            detail=f"Error al generar reporte: {str(e)}\n{error_trace}"
-        )
+    except Exception as exc:
+        logger.error("Error al generar reporte de líneas corporativas")
+        raise HTTPException(status_code=500, detail="Error al generar reporte") from exc
 
 @router.get("/{id}", response_model=LineaCorporativaOut)
 async def obtener_linea(id: int, db: AsyncSession = Depends(obtener_db)):
@@ -217,43 +180,82 @@ async def obtener_linea(id: int, db: AsyncSession = Depends(obtener_db)):
         return linea
     except HTTPException:
         raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al obtener línea: {str(e)}")
+    except Exception as exc:
+        logger.error("Error al obtener línea corporativa")
+        raise HTTPException(status_code=500, detail="Error al obtener línea") from exc
 
 @router.put("/{id}", response_model=LineaCorporativaOut)
-async def actualizar_linea(id: int, linea_in: LineaCorporativaUpdate, db: AsyncSession = Depends(obtener_db)):
+async def actualizar_linea(
+    id: int,
+    linea_in: LineaCorporativaUpdate,
+    request: Request,
+    db: AsyncSession = Depends(obtener_db),
+    _: Usuario = Depends(requiere_administrador_lineas_corporativas),
+):
     db_linea = await db.get(LineaCorporativa, id)
     if not db_linea:
         raise HTTPException(status_code=404, detail="Linea no encontrada")
         
+    datos_anteriores = modelo_a_dict_auditoria(db_linea)
     update_data = linea_in.model_dump(exclude_unset=True)
     for key, value in update_data.items():
         setattr(db_linea, key, value)
         
     db_linea.updated_at = datetime.utcnow()
     db.add(db_linea)
-    await db.commit()
-    
-    # Reload with relationships
-    query = select(LineaCorporativa).options(
-        joinedload(LineaCorporativa.equipo),
-        joinedload(LineaCorporativa.asignado),
-        joinedload(LineaCorporativa.responsable_cobro)
-    ).where(LineaCorporativa.id == id)
     
     try:
+        await db.flush()
+        query = select(LineaCorporativa).options(
+            joinedload(LineaCorporativa.equipo),
+            joinedload(LineaCorporativa.asignado),
+            joinedload(LineaCorporativa.responsable_cobro)
+        ).where(LineaCorporativa.id == id)
         result = await db.execute(query)
-        return result.scalar_one()
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al recargar línea actualizada: {str(e)}")
+        linea = result.scalar_one()
+        await db.commit()
+        asignar_evento_segura(
+            request,
+            modulo="lineas_corporativas",
+            accion="actualizar",
+            entidad_tipo="linea_corporativa",
+            entidad_id=str(id),
+        )
+        asignar_actualizacion_segura(request, datos_anteriores, linea)
+        return linea
+    except IntegrityError as exc:
+        await db.rollback()
+        raise _error_integridad_linea(exc) from exc
+    except Exception as exc:
+        await db.rollback()
+        logger.error("Error al actualizar línea corporativa")
+        raise HTTPException(status_code=500, detail="Error al actualizar línea") from exc
 
 @router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT)
-async def eliminar_linea(id: int, db: AsyncSession = Depends(obtener_db)):
-    db_linea = await db.get(LineaCorporativa, id)
-    if not db_linea:
-        raise HTTPException(status_code=404, detail="Linea no encontrada")
-    
-    await db.commit()
+async def eliminar_linea(
+    id: int,
+    request: Request,
+    db: AsyncSession = Depends(obtener_db),
+    _: Usuario = Depends(requiere_administrador_lineas_corporativas),
+):
+    try:
+        antes = await LineasCorporativasMaestrosService.eliminar_linea(db, id)
+    except RecursoNoEncontradoLineas as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except RecursoEnUsoLineas as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except ConflictoIntegridadLineas as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except ErrorPersistenciaLineas as exc:
+        raise HTTPException(status_code=500, detail="Error interno al eliminar la línea") from exc
+    asignar_evento_segura(
+        request,
+        modulo="lineas_corporativas",
+        accion="eliminar",
+        entidad_tipo="linea_corporativa",
+        entidad_id=str(id),
+    )
+    asignar_eliminacion_segura(request, antes)
 
 # --- ENDPOINTS FACTURACIÓN Y REPORTES ---
 
@@ -262,12 +264,13 @@ async def importar_factura(
     periodo: str, 
     archivo: UploadFile = File(...), 
     db: AsyncSession = Depends(obtener_db),
-    db_erp: Session = Depends(obtener_erp_db_opcional)
+    db_erp: Session = Depends(obtener_erp_db_opcional),
+    _: Usuario = Depends(requiere_administrador_lineas_corporativas),
 ):
     """
     Importa el Excel de Claro usando índices de columna fijos (MIN:3, DESC:5, VALOR:6, IMP:7, TOTAL:9).
     """
-    content = await archivo.read()
+    content = await leer_excel_seguro(archivo)
     try:
         # Lectura sin cabeceras para usar índices
         df = pl.read_excel(io.BytesIO(content), read_options={"has_header": False})
@@ -424,9 +427,10 @@ async def importar_factura(
             "periodo": periodo,
             "registros_procesados": registros
         }
-    except Exception as e:
+    except Exception as exc:
         await db.rollback()
-        raise HTTPException(status_code=500, detail=f"Error en procesamiento: {str(e)}")
+        logger.error("Error al importar factura de líneas corporativas")
+        raise HTTPException(status_code=500, detail="Error al procesar la factura") from exc
 
 @router.get("/alertas-factura/{periodo}")
 async def obtener_alertas_factura(periodo: str, db: AsyncSession = Depends(obtener_db)):
@@ -450,8 +454,9 @@ async def obtener_alertas_factura(periodo: str, db: AsyncSession = Depends(obten
                 "total": float(f_line.total)
             })
         return alerts
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except Exception as exc:
+        logger.error("Error al consultar alertas de factura")
+        raise HTTPException(status_code=500, detail="Error al consultar alertas") from exc
 
 @router.get("/detalle-factura/{periodo}", response_model=List[FacturaDetalleRow])
 async def obtener_detalle_factura(periodo: str, db: AsyncSession = Depends(obtener_db)):
@@ -480,8 +485,9 @@ async def obtener_detalle_factura(periodo: str, db: AsyncSession = Depends(obten
             )
             for r in rows
         ]
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al obtener detalle: {str(e)}")
+    except Exception as exc:
+        logger.error("Error al consultar detalle de factura")
+        raise HTTPException(status_code=500, detail="Error al consultar detalle") from exc
 
 # --- INCLUSIÓN DE SUB-ROUTERS ---
 from .router_migracion import router as router_migracion

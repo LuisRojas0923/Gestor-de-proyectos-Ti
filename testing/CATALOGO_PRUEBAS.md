@@ -24,7 +24,8 @@ Ubicación: `testing/backend/`
 | **Autogestión ERP Auth** | `test_autogestion_usuarios_erp.py` | JIT, registro público y validación fail-closed contra empleados activos del ERP. | ✅ PASSED |
 | **Setup Password** | `test_setup_password.py` | Configuración de contraseña primera vez (setup-password), estado (password-status) y login con password no configurado. | ⚠️ BLOQUEADO LOCAL: credenciales PostgreSQL |
 | **Escalado de Roles** | `test_auth_escalation.py` | **Seguridad**: Escalado de roles, invalidación de sesiones, cambio forzado de contraseña. | ✅ PASSED |
-| **Líneas Corp.** | `test_lineas_corporativas.py` | Gestión de equipos móviles y personal. | ✅ PASSED |
+| **Líneas Corp.** | `test_lineas_corporativas.py` | CRUD autenticado de equipos, personas y líneas; reportes del módulo. | ✅ PASSED |
+| **Seguridad Líneas Corp.** | `test_lineas_corporativas_seguridad.py` | RBAC administrativo, archivos, transacciones, auditoría sin PII, errores seguros y degradación del ERP. | ✅ PASSED |
 | **Core API** | `test_api_v2.py` | Salud general y Auth básico. | ✅ PASSED |
 | **ERP Sync** | `test_requisiciones.py` | Sincronización de catálogos con el ERP. | ✅ PASSED |
 | **Viáticos** | `test_viaticos.py` | Flujo de legalización y solicitudes. | ✅ PASSED |
@@ -56,6 +57,7 @@ Ubicación: `frontend/src/`
 | **Anulación WBS** | `pages/DevelopmentDetail/DeleteActivityModal.test.tsx` | Modal confirma anulación lógica y evita copy de eliminación física. | ✅ PASSED |
 | **Indicadores de Auditoría** | `pages/ServicePortal/pages/AuditoriaIndicadores/index.test.tsx` | Estados de éxito, error y actualización manual del dashboard. | ✅ PASSED |
 | **Organigrama interactivo** | `pages/OrganizationalHierarchy/*.test.tsx` y `utils.test.ts` | Expansión inicial, paneo móvil, layout aislado y controles accesibles. | ✅ PASSED |
+| **Líneas Corporativas** | `components/atoms/SearchableSelect.test.tsx`, `components/molecules/__tests__/{DataTable,Modal}.test.tsx`, `pages/CorporateLines/**/*.test.tsx` | Teclado, tabla/filtros accesibles, modales, confirmaciones, reintentos y estados de gestores. | ✅ PASSED |
 
 ### 3. Rendimiento (Locust)
 Ubicación: `testing/backend/load_test.py`

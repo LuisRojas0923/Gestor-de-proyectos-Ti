@@ -1,8 +1,19 @@
+import os
+
 import pytest
+import pytest_asyncio
 from datetime import datetime
 from dotenv import load_dotenv
+from app.services.auth.servicio import ServicioAuth
 
 load_dotenv()
+
+
+@pytest_asyncio.fixture(autouse=True)
+async def autenticar_cliente(client):
+    cedula = os.getenv("TEST_USER_CEDULA", "1107068093")
+    token = ServicioAuth.crear_token_acceso({"sub": cedula})
+    client.headers["Authorization"] = f"Bearer {token}"
 
 # --- PRUEBAS DE EQUIPOS MÓVILES ---
 @pytest.mark.asyncio
@@ -19,7 +30,7 @@ async def test_crear_y_listar_equipos(client):
     
     # 1. Crear Equipo
     response = await client.post("/lineas-corporativas/equipos", json=equipo_payload)
-    assert response.status_code == 200 # Según router.py es 200
+    assert response.status_code == 201
     equipo_data = response.json()
     assert equipo_data["modelo"] == equipo_payload["modelo"]
     assert "id" in equipo_data
@@ -46,7 +57,7 @@ async def test_crear_y_listar_personas(client):
     
     # 1. Crear Persona
     response = await client.post("/lineas-corporativas/personas", json=persona_payload)
-    assert response.status_code == 200
+    assert response.status_code == 201
     persona_data = response.json()
     assert persona_data["documento"] == cedula_test
     
@@ -55,6 +66,41 @@ async def test_crear_y_listar_personas(client):
     assert response_list.status_code == 200
     personas = response_list.json()
     assert any(p["documento"] == cedula_test for p in personas)
+
+
+@pytest.mark.asyncio
+async def test_actualizar_y_eliminar_maestros(client):
+    timestamp = int(datetime.now().timestamp())
+    equipo = (
+        await client.post(
+            "/lineas-corporativas/equipos",
+            json={"modelo": f"CRUD-{timestamp}", "marca": "TEST"},
+        )
+    ).json()
+    actualizado = await client.put(
+        f"/lineas-corporativas/equipos/{equipo['id']}",
+        json={"estado_fisico": "REGULAR"},
+    )
+    assert actualizado.status_code == 200
+    assert actualizado.json()["estado_fisico"] == "REGULAR"
+    assert (
+        await client.delete(f"/lineas-corporativas/equipos/{equipo['id']}")
+    ).status_code == 204
+
+    documento = f"CRUD-{timestamp}"
+    await client.post(
+        "/lineas-corporativas/personas",
+        json={"documento": documento, "nombre": "PERSONA CRUD"},
+    )
+    persona_actualizada = await client.put(
+        f"/lineas-corporativas/personas/{documento}",
+        json={"cargo": "Cargo actualizado"},
+    )
+    assert persona_actualizada.status_code == 200
+    assert persona_actualizada.json()["cargo"] == "Cargo actualizado"
+    assert (
+        await client.delete(f"/lineas-corporativas/personas/{documento}")
+    ).status_code == 204
 
 # --- PRUEBA DE CICLO DE VIDA DE LÍNEA ---
 @pytest.mark.asyncio
