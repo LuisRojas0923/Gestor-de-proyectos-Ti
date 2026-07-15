@@ -6,6 +6,7 @@ from typing import Optional, List
 from datetime import datetime, date
 from decimal import Decimal
 from sqlmodel import SQLModel, Field, Relationship
+from pydantic import ConfigDict
 from sqlalchemy import text, Column, Text
 from typing import TYPE_CHECKING
 
@@ -101,15 +102,19 @@ class ActividadBase(SQLModel):
     compromiso: Optional[str] = None
     compromiso_fecha: Optional[date] = None
     compromiso_cumplido: bool = False
-    archivo_url: Optional[str] = None
 
 
 class ActividadCrear(ActividadBase):
+    model_config = ConfigDict(extra="ignore")
+
     desarrollo_id: str
     parent_id: Optional[int] = None
-
+    fecha_inicio_real: Optional[date] = None
+    fecha_fin_real: Optional[date] = None
 
 class ActividadActualizar(SQLModel):
+    model_config = ConfigDict(extra="ignore")
+
     titulo: Optional[str] = None
     descripcion: Optional[str] = None
     estado: Optional[str] = None
@@ -128,8 +133,6 @@ class ActividadActualizar(SQLModel):
     compromiso: Optional[str] = None
     compromiso_fecha: Optional[date] = None
     compromiso_cumplido: Optional[bool] = None
-    archivo_url: Optional[str] = None
-
 
 class ActividadLeer(ActividadBase):
     id: int
@@ -138,6 +141,7 @@ class ActividadLeer(ActividadBase):
     fecha_inicio_real: Optional[date] = None
     fecha_fin_real: Optional[date] = None
     horas_reales: Decimal
+    archivo_url: Optional[str] = None
     anulada: bool = False
     anulada_en: Optional[datetime] = None
     anulada_por_id: Optional[str] = None

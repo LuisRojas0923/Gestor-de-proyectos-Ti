@@ -81,6 +81,10 @@ export const API_ENDPOINTS = {
   ACTIVITY_LOG_DELETE: (activityId: number) => `/log-actividades/actividades/${activityId}`,
   ACTIVITY_LOG_FIELD_CONFIG: (developmentId: string, stageId: number) => `/log-actividades/desarrollos/${developmentId}/etapas/${stageId}/configuracion-campos`,
 
+  WBS_ACTIVITIES: '/actividades/',
+  WBS_ACTIVITY_BY_ID: (id: number) => `/actividades/${id}`,
+  WBS_ACTIVITY_EVIDENCE: (id: number) => `/actividades/${id}/archivo`,
+
   // Development stages actions
   DEVELOPMENT_STAGE_CLOSE: (developmentId: string) => `/etapas-desarrollo/${developmentId}/cerrar-etapa`,
 

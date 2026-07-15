@@ -46,10 +46,16 @@ Este documento describe cómo un LLM debe guiar a un usuario para crear un **Des
 | `horas_estimadas` | decimal | — | Estimado en horas |
 | `seguimiento` | string | — | Notas de seguimiento |
 | `compromiso` | string | — | Compromisos definidos |
-| `archivo_url` | string | — | Enlace a evidencia o documento |
+| `archivo_url` | string | solo lectura | Referencia interna o enlace legado. No se acepta al crear/editar por JSON. |
 
 **Endpoint:** `POST /api/v2/actividades/`  
 La API recalcula automáticamente el `porcentaje_progreso` del proyecto al crear actividades.
+
+Las evidencias se cargan después de crear la actividad mediante
+`POST /api/v2/actividades/{actividad_id}/archivo` con un único campo multipart
+llamado `archivo`. La descarga autenticada usa
+`GET /api/v2/actividades/{actividad_id}/archivo` y la desvinculación usa `DELETE`
+sobre la misma ruta.
 
 ---
 

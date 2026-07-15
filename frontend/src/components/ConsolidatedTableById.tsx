@@ -2,6 +2,7 @@ import React, { useEffect, useState, useMemo, useRef } from 'react';
 import { Calendar } from 'lucide-react';
 import { API_CONFIG } from '../config/api';
 import { Text, Title, Button, Badge, Icon } from './atoms';
+import { ActivityEvidenceButton } from '../pages/DevelopmentDetail/components/ActivityEvidenceButton';
 
 type Actividad = {
     id: number;
@@ -329,14 +330,11 @@ const ConsolidatedTableById: React.FC<{ desarrolloId: string }> = ({ desarrolloI
                                                     {a.seguimiento || a.compromiso || '—'}
                                                 </Text>
                                                 {a.archivo_url && (
-                                                    <a
-                                                        href={a.archivo_url}
-                                                        target="_blank"
-                                                        rel="noreferrer"
-                                                        className="mt-1 inline-block text-[11px] font-semibold text-[var(--color-primary)] hover:underline"
-                                                    >
-                                                        Ver archivo
-                                                    </a>
+                                                    <ActivityEvidenceButton
+                                                        actividadId={a.id}
+                                                        archivoUrl={a.archivo_url}
+                                                        label="Ver archivo"
+                                                    />
                                                 )}
                                             </td>
                                             <td className="md:w-24 shrink-0 py-3 px-4 text-center">

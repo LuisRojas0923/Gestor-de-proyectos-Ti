@@ -76,6 +76,33 @@ async def usuario_puede_acceder_actividad(db: AsyncSession, usuario: Usuario, ac
     return await usuario_puede_acceder_desarrollo(db, usuario, actividad.desarrollo_id)
 
 
+async def usuario_puede_modificar_actividad(
+    db: AsyncSession, usuario: Usuario, actividad: Actividad
+) -> bool:
+    subordinados = await JerarquiaService.obtener_ids_y_nombres_subordinados(db, usuario.id)
+    todos_los_ids = [usuario.id] + subordinados["ids"]
+    todos_los_nombres = [usuario.nombre] + subordinados["nombres"]
+    if (
+        actividad.responsable_id in todos_los_ids
+        or actividad.asignado_a_id in todos_los_ids
+        or actividad.delegado_por_id in todos_los_ids
+    ):
+        return True
+    consulta = select(Desarrollo).where(
+        Desarrollo.id == actividad.desarrollo_id,
+        or_(
+            Desarrollo.creado_por_id.in_(todos_los_ids),
+            Desarrollo.responsable_id.in_(todos_los_ids),
+            Desarrollo.analista.in_(todos_los_nombres),
+            Desarrollo.supervisor.in_(todos_los_nombres),
+            Desarrollo.autoridad.in_(todos_los_nombres),
+            Desarrollo.responsable.in_(todos_los_nombres),
+        ),
+    )
+    resultado = await db.execute(consulta)
+    return resultado.scalar_one_or_none() is not None
+
+
 async def bloquear_ancestros_y_obtener_actividad(db: AsyncSession, actividad_id: int) -> Actividad | None:
     ids = []
     current_id = actividad_id
