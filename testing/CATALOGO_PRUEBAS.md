@@ -18,8 +18,8 @@ Ubicación: `testing/backend/`
 
 | Módulo | Archivo | Descripción | Estado |
 | :--- | :--- | :--- | :--- |
-| **Infra Health** | `test_infrastructure.py` | **Crítico**: Escritura en disco (Adjuntos) y Puente ERP. | ✅ PASSED |
-| **Regresiones** | `test_regresiones.py` | **Master Health Check**: Ciclo de vida, Adjuntos y RBAC. | ⚠️ DB vacía requiere seed de categorías |
+| **Infra Health** | `test_infrastructure.py` | **Crítico**: Escritura en disco (Adjuntos) y Puente ERP. | ✅ 1 PASSED / 1 SKIPPED |
+| **Regresiones** | `test_regresiones.py` | **Master Health Check**: Ciclo de vida, Adjuntos y RBAC. | ✅ 3 PASSED / 3 SKIPPED |
 | **Autenticación** | `test_auth_verification.py` | Verificación de correo y flujo de seguridad. | ✅ PASSED |
 | **Autogestión ERP Auth** | `test_autogestion_usuarios_erp.py` | JIT, registro público y validación fail-closed contra empleados activos del ERP. | ✅ PASSED |
 | **Setup Password** | `test_setup_password.py` | Configuración de contraseña primera vez (setup-password), estado (password-status) y login con password no configurado. | ⚠️ BLOQUEADO LOCAL: credenciales PostgreSQL |
@@ -37,7 +37,7 @@ Ubicación: `testing/backend/`
 | **Asignación Jerárquica** | `test_asignacion_desarrollos_actividades.py` | Persistencia de responsable, ejecutor, delegador y estado de validación. | ✅ PASSED |
 | **Validaciones Asignación** | `test_validaciones_asignacion.py` | Creación automática de validaciones indirectas y resolución aprobada/rechazada. | ✅ PASSED |
 | **Anulación Actividades** | `test_actividad_delete.py` | Anulación lógica recursiva de actividades, metadatos de anulación y limpieza de validaciones asociadas. | ✅ PASSED |
-| **Evidencias WBS** | `test_actividad_archivos.py` | Persistencia física, validación de tipo/tamaño/firma, aislamiento por actividad y auditoría de descargas. | ✅ PASSED |
+| **Evidencias WBS** | `test_actividad_archivos.py` | Persistencia física, validación de tipo/tamaño/firma, aislamiento por actividad, auditoría y carga por ejecutor distinto del creador. | ✅ PASSED |
 | **Prioridad Desarrollos** | `test_desarrollo_prioridad.py` | Ciclo CRUD de prioridades en desarrollos. | ✅ PASSED |
 | **Notificaciones** | `test_notificaciones.py` | Ciclo CRUD de notificaciones persistentes de usuario. | ✅ PASSED |
 | **Indicadores de Auditoría** | `test_auditoria_estadisticas.py` | Valida límites e integridad de rangos temporales del dashboard. | ✅ PASSED |
@@ -58,6 +58,7 @@ Ubicación: `frontend/src/`
 | **Anulación WBS** | `pages/DevelopmentDetail/DeleteActivityModal.test.tsx` | Modal confirma anulación lógica y evita copy de eliminación física. | ✅ PASSED |
 | **Descarga Evidencias WBS** | `services/ActivityEvidenceService.test.ts` | Clasificación de enlaces legados y descarga autenticada de archivos internos. | ✅ PASSED |
 | **Carga Evidencias WBS** | `pages/DevelopmentDetail/WbsNodeModal.test.tsx` | Éxito parcial, mensaje de error y reintento de carga sin duplicar la actividad. | ✅ PASSED |
+| **Selector y filtros WBS** | `components/molecules/__tests__/{FilePicker,DataTable}.test.tsx` | Área completa del selector de archivos y alineación configurable de textos del filtro. | ✅ PASSED |
 | **Indicadores de Auditoría** | `pages/ServicePortal/pages/AuditoriaIndicadores/index.test.tsx` | Estados de éxito, error y actualización manual del dashboard. | ✅ PASSED |
 | **Organigrama interactivo** | `pages/OrganizationalHierarchy/*.test.tsx` y `utils.test.ts` | Expansión inicial, paneo móvil, layout aislado y controles accesibles. | ✅ PASSED |
 | **Líneas Corporativas** | `components/atoms/SearchableSelect.test.tsx`, `components/molecules/__tests__/{DataTable,Modal}.test.tsx`, `pages/CorporateLines/**/*.test.tsx` | Teclado, tabla/filtros accesibles, modales, confirmaciones, reintentos y estados de gestores. | ✅ PASSED |

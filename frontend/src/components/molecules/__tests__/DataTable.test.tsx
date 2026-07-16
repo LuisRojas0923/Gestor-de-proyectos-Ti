@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { describe, expect, it, vi } from 'vitest';
 import { DataTable, type DataTableColumn } from '../DataTable';
@@ -77,11 +77,34 @@ describe('DataTable — accesibilidad de filtros', () => {
 
     const option = screen.getByRole('button', { name: 'Actividad A' });
     expect(option).toHaveAttribute('aria-pressed', 'false');
+    expect(within(option).getByText('Actividad A')).toHaveClass('text-left');
     option.focus();
     expect(option).toHaveFocus();
     fireEvent.keyDown(document, { key: 'Escape' });
     expect(screen.queryByRole('dialog', { name: 'Nombre' })).not.toBeInTheDocument();
     await waitFor(() => expect(header).toHaveFocus());
+  });
+
+  it('alinea a la derecha los textos del filtro cuando se solicita', () => {
+    render(
+      <DataTable<Row>
+        columns={[{ key: 'name', label: 'Nombre', filterable: true }]}
+        data={rows}
+        keyExtractor={row => row.id}
+        columnOptions={{ name: ['Actividad A'] }}
+        onFilterChange={vi.fn()}
+        onSort={vi.fn()}
+        filterTextAlign="right"
+      />
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Nombre' }));
+
+    const filter = screen.getByRole('dialog', { name: 'Nombre' });
+    expect(within(filter).getByText('Ordenar')).toHaveClass('text-right');
+    expect(screen.getByText('Seleccionar Todos')).toHaveClass('text-right', 'flex-1');
+    expect(within(filter).getByText('Actividad A')).toHaveClass('text-right', 'flex-1');
+    expect(screen.getByPlaceholderText('Buscar...')).toHaveClass('text-right');
   });
 });
 

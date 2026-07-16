@@ -119,7 +119,6 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode, is
         sortState,
         setSort,
     } = useColumnFilters(tree, columnAccessors, `wbs_${developmentId}`);
-
     const flattenedFiltered = flattenTree(filteredData);
     const rowData: WbsRow[] = flattenedFiltered.map((n, i) => ({ ...n, _rowIndex: i + 1 }));
 
@@ -470,6 +469,7 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode, is
                         columnFilters={filters}
                         columnOptions={uniqueValues}
                         onFilterChange={(key, newSet) => setColumnFilter(key, newSet)}
+                        filterTextAlign="right"
                         activeSortKey={sortState?.key ?? null}
                         activeSortDir={sortState?.dir ?? null}
                         onSort={setSort}

@@ -43,6 +43,7 @@ export interface DataTableProps<T> {
     columnFilters?: Record<string, Set<string>>;
     columnOptions?: Record<string, string[]>;
     onFilterChange?: (columnKey: string, filter: Set<string>) => void;
+    filterTextAlign?: 'left' | 'right';
 
     activeSortKey?: string | null;
     activeSortDir?: 'asc' | 'desc' | null;
@@ -78,6 +79,7 @@ export function DataTable<T>({
     columnFilters = {},
     columnOptions = {},
     onFilterChange,
+    filterTextAlign = 'left',
     activeSortKey,
     activeSortDir,
     onSort,
@@ -280,6 +282,7 @@ export function DataTable<T>({
                         setActiveSubFilter(subKey);
                         setFilterSearchTerm('');
                     }}
+                    optionTextAlign={filterTextAlign}
                 />
             )}
 
