@@ -102,7 +102,15 @@ const HdiPreview: React.FC = () => {
 
     const handleFilesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files) {
-            setFiles(Array.from(e.target.files));
+            const selected = Array.from(e.target.files);
+            const valid = selected.filter(f => {
+                if (f.size > 10 * 1024 * 1024) {
+                    addNotification('error', `El archivo ${f.name} excede el límite de 10MB.`);
+                    return false;
+                }
+                return true;
+            });
+            setFiles(valid);
         }
     };
 

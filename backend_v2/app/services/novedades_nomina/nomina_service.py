@@ -107,7 +107,8 @@ class NominaService:
             original_filenames.append(getattr(f, "filename", "archivo"))
             
         import os
-        STORAGE_DIR = "uploads/nomina"
+        subcat_folder = subcategoria.lower().replace(" ", "_").replace("/", "_")
+        STORAGE_DIR = os.path.join("uploads", "nomina", str(anio), str(mes), subcat_folder)
         os.makedirs(STORAGE_DIR, exist_ok=True)
         
         ruta_almacenamiento = "memory"

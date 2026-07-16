@@ -1,13 +1,6 @@
 ---
+name: error-memory
 description: Persistent error and decision memory for Gestor-de-proyectos-Ti. Reads/writes errors_memory.json and .opencode/memory/*.json. Use to lookup known errors, record new ones, mark as resolved, or log architectural decisions.
-mode: subagent
-permission:
-  edit: allow
-  bash: allow
-  webfetch: deny
-  websearch: deny
-  task: deny
-  external_directory: deny
 ---
 
 # Error Memory — Gestor-de-proyectos-Ti

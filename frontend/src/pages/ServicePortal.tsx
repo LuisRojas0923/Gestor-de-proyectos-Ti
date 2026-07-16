@@ -378,34 +378,44 @@ const ServicePortal: React.FC = () => {
                     </ProtectedRoute>
                 } />
 
-                <Route path="novedades-nomina" element={<NominaDashboard />} />
-                <Route path="novedades-nomina/LIBRANZAS/BOGOTA LIBRANZA" element={<BogotaLibranzaPreview />} />
-                <Route path="novedades-nomina/LIBRANZAS/DAVIVIENDA LIBRANZA" element={<DaviviendaLibranzaPreview />} />
-                <Route path="novedades-nomina/LIBRANZAS/OCCIDENTE LIBRANZA" element={<OccidenteLibranzaPreview />} />
-                <Route path="novedades-nomina/COOPERATIVAS/GRANCOOP" element={<GrancoopPreview />} />
-                <Route path="novedades-nomina/COOPERATIVAS/BENEFICIAR" element={<BeneficiarPreview />} />
-                <Route path="novedades-nomina/OTROS/SEGUROS HDI" element={<HdiPreview />} />
-                <Route path="novedades-nomina/FUNEBRES/CAMPOSANTO" element={<CamposantoPreview />} />
-                <Route path="novedades-nomina/FUNEBRES/RECORDAR" element={<RecordarPreview />} />
-                <Route path="novedades-nomina/OTROS/POLIZAS VEHICULOS" element={<PolizasVehiculosPreview />} />
-                <Route path="novedades-nomina/OTROS/MEDICINA PREPAGADA" element={<MedicinaPrepagadaPreview />} />
-                <Route path="novedades-nomina/OTROS/OTROS GERENCIA" element={<OtrosGerenciaPreview />} />
-                <Route path="novedades-nomina/OTROS/GESTION EXCEPCIONES" element={<ExcepcionesPreview />} />
-                <Route path="novedades-nomina/NOVEDADES/PLANILLAS REGIONALES 1Q" element={<PlanillasRegionales1QPreview />} />
-                <Route path="novedades-nomina/NOVEDADES/PLANILLAS REGIONALES 2Q" element={<PlanillasRegionales2QPreview />} />
-                <Route path="novedades-nomina/DESCUENTOS/CONTROL DE DESCUENTOS" element={<ControlDescuentosTabla />} />
-                <Route path="novedades-nomina/DESCUENTOS/CONTROL DE DESCUENTOS/preview" element={<ControlDescuentosPreview />} />
-                <Route path="novedades-nomina/DESCUENTOS/CONTROL DE DESCUENTOS/tabla" element={<ControlDescuentosTabla />} />
-                <Route path="novedades-nomina/DESCUENTOS/CONTROL DE DESCUENTOS/conceptos" element={<ControlDescuentosConceptos />} />
-                <Route path="novedades-nomina/DESCUENTOS/CONTROL DE DESCUENTOS/registro" element={<ControlDescuentosRegistro />} />
-                <Route path="novedades-nomina/DESCUENTOS/CELULARES" element={<CelularesPreview />} />
-                <Route path="novedades-nomina/DESCUENTOS/RETENCIONES" element={<RetencionesPreview />} />
-                <Route path="novedades-nomina/DESCUENTOS/EMBARGOS" element={<EmbargosPreview />} />
-                <Route path="novedades-nomina/:category/:subcategory" element={<NominaUploadView />} />
-                <Route path="novedades-nomina/preview/:archivoId" element={<NominaPreviewView />} />
-                <Route path="novedades-nomina/resumen" element={<NominaSummaryView />} />
-                <Route path="novedades-nomina/tabla-maestra" element={<TablaMaestraView />} />
-                <Route path="novedades-nomina/historial" element={<NominaHistorialView />} />
+                <Route path="novedades-nomina" element={
+                    <ProtectedRoute moduleCode="nomina_novedades">
+                        <NominaDashboard />
+                    </ProtectedRoute>
+                } />
+                <Route path="novedades-nomina/*" element={
+                    <ProtectedRoute moduleCode="nomina_novedades">
+                        <Routes>
+                            <Route path="LIBRANZAS/BOGOTA LIBRANZA" element={<BogotaLibranzaPreview />} />
+                            <Route path="LIBRANZAS/DAVIVIENDA LIBRANZA" element={<DaviviendaLibranzaPreview />} />
+                            <Route path="LIBRANZAS/OCCIDENTE LIBRANZA" element={<OccidenteLibranzaPreview />} />
+                            <Route path="COOPERATIVAS/GRANCOOP" element={<GrancoopPreview />} />
+                            <Route path="COOPERATIVAS/BENEFICIAR" element={<BeneficiarPreview />} />
+                            <Route path="OTROS/SEGUROS HDI" element={<HdiPreview />} />
+                            <Route path="FUNEBRES/CAMPOSANTO" element={<CamposantoPreview />} />
+                            <Route path="FUNEBRES/RECORDAR" element={<RecordarPreview />} />
+                            <Route path="OTROS/POLIZAS VEHICULOS" element={<PolizasVehiculosPreview />} />
+                            <Route path="OTROS/MEDICINA PREPAGADA" element={<MedicinaPrepagadaPreview />} />
+                            <Route path="OTROS/OTROS GERENCIA" element={<OtrosGerenciaPreview />} />
+                            <Route path="OTROS/GESTION EXCEPCIONES" element={<ExcepcionesPreview />} />
+                            <Route path="NOVEDADES/PLANILLAS REGIONALES 1Q" element={<PlanillasRegionales1QPreview />} />
+                            <Route path="NOVEDADES/PLANILLAS REGIONALES 2Q" element={<PlanillasRegionales2QPreview />} />
+                            <Route path="DESCUENTOS/CONTROL DE DESCUENTOS" element={<ControlDescuentosTabla />} />
+                            <Route path="DESCUENTOS/CONTROL DE DESCUENTOS/preview" element={<ControlDescuentosPreview />} />
+                            <Route path="DESCUENTOS/CONTROL DE DESCUENTOS/tabla" element={<ControlDescuentosTabla />} />
+                            <Route path="DESCUENTOS/CONTROL DE DESCUENTOS/conceptos" element={<ControlDescuentosConceptos />} />
+                            <Route path="DESCUENTOS/CONTROL DE DESCUENTOS/registro" element={<ControlDescuentosRegistro />} />
+                            <Route path="DESCUENTOS/CELULARES" element={<CelularesPreview />} />
+                            <Route path="DESCUENTOS/RETENCIONES" element={<RetencionesPreview />} />
+                            <Route path="DESCUENTOS/EMBARGOS" element={<EmbargosPreview />} />
+                            <Route path=":category/:subcategory" element={<NominaUploadView />} />
+                            <Route path="preview/:archivoId" element={<NominaPreviewView />} />
+                            <Route path="resumen" element={<NominaSummaryView />} />
+                            <Route path="tabla-maestra" element={<TablaMaestraView />} />
+                            <Route path="historial" element={<NominaHistorialView />} />
+                        </Routes>
+                    </ProtectedRoute>
+                } />
                 
                 <Route path="comisiones" element={
                     <ProtectedRoute moduleCode="comisiones">

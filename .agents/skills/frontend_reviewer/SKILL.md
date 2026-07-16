@@ -1,13 +1,6 @@
 ---
+name: frontend-reviewer
 description: Reviews frontend React/Vite changes for design system compliance, modular structure, responsive behavior, and UI test/build risks.
-mode: subagent
-permission:
-  edit: ask
-  bash: allow
-  webfetch: deny
-  websearch: deny
-  task: deny
-  external_directory: deny
 ---
 
 You are `frontend-reviewer`, a subagent for Gestor-de-proyectos-Ti frontend work.
