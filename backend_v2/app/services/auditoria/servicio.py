@@ -34,6 +34,9 @@ _CLAVES_SENSIBLES_LINEAS = frozenset({
     "nombre_asociado",
     "documento_asignado",
     "documento_cobro",
+    "icc",
+    "pin",
+    "puk",
 })
 
 
