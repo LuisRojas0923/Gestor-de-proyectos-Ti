@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { MaterialCard as Card, Title, Text, ProgressBar, Select } from '../../../../../components/atoms';
+import { MaterialCard as Card, Title, Text, ProgressBar, Select, Button } from '../../../../../components/atoms';
 import { Users, Activity, ChevronDown, ChevronUp, Clock, Filter } from 'lucide-react';
 import type { StatsPorModulo } from '../../../../../types/auditoria';
 import { humanizarModulo, humanizarAccionDetallada } from '../utils/humanizer';
@@ -28,7 +28,7 @@ const EventosPorModulo: React.FC<EventosPorModuloProps> = ({ datos }) => {
     const datosFiltrados = datos.filter(item => {
       if (filtroModulo === 'todos') return true;
       const mod = (item.modulo || '').toLowerCase();
-      
+
       if (filtroModulo === 'auth' && mod === 'auth') return true;
       if (filtroModulo === 'viaticos' && mod.includes('viaticos')) return true;
       if (filtroModulo === 'requisiciones' && mod.includes('requisiciones')) return true;
@@ -37,7 +37,7 @@ const EventosPorModulo: React.FC<EventosPorModuloProps> = ({ datos }) => {
       if (filtroModulo === 'impuestos' && mod === 'impuestos') return true;
       if (filtroModulo === 'comisiones' && mod === 'comisiones') return true;
       if (filtroModulo === 'inventario' && mod.includes('inventario')) return true;
-      
+
       return mod.includes(filtroModulo);
     });
 
@@ -57,10 +57,10 @@ const EventosPorModulo: React.FC<EventosPorModuloProps> = ({ datos }) => {
         }
       } else {
         // Deep copy to avoid mutating the original array elements
-        mapa.set(nombreHumanizado, { 
-          ...item, 
+        mapa.set(nombreHumanizado, {
+          ...item,
           modulo: nombreHumanizado, // use humanized name as key
-          ultimos_eventos: item.ultimos_eventos ? [...item.ultimos_eventos] : undefined 
+          ultimos_eventos: item.ultimos_eventos ? [...item.ultimos_eventos] : undefined
         });
       }
     });
@@ -81,7 +81,7 @@ const EventosPorModulo: React.FC<EventosPorModuloProps> = ({ datos }) => {
             <Title variant="h6">Actividad por Módulo</Title>
             <Text variant="caption" color="text-secondary">Uso del sistema y usuarios únicos</Text>
           </div>
-          
+
           <div className="flex items-center gap-2 w-full sm:w-48">
             <Filter className="w-4 h-4 text-[var(--color-text-secondary)]" />
             <Select
@@ -93,7 +93,7 @@ const EventosPorModulo: React.FC<EventosPorModuloProps> = ({ datos }) => {
             />
           </div>
         </div>
-        
+
         <div className="flex-1 overflow-y-auto min-h-0 pr-2 custom-scrollbar">
           {datosAgrupados.length === 0 ? (
             <div className="w-full h-full flex items-center justify-center">
@@ -108,12 +108,13 @@ const EventosPorModulo: React.FC<EventosPorModuloProps> = ({ datos }) => {
 
                 return (
                   <div key={index} className="flex flex-col gap-1.5">
-                    <button 
+                    <Button
+                      variant="custom"
                       type="button"
                       aria-expanded={isExpanded}
                       aria-controls={`eventos-modulo-${index}`}
                       aria-label={`Ver eventos de ${item.modulo}`}
-                      className={`w-full flex justify-between items-end ${hasEvents ? 'cursor-pointer group' : ''}`}
+                      className={`w-full flex justify-between items-end bg-transparent p-0 border-0 hover:bg-transparent ${hasEvents ? 'cursor-pointer group' : ''}`}
                       onClick={() => hasEvents && toggleExpand(index)}
                     >
                       <div className="flex items-center gap-2 flex-1 min-w-0">
@@ -126,7 +127,7 @@ const EventosPorModulo: React.FC<EventosPorModuloProps> = ({ datos }) => {
                           {item.modulo}
                         </Text>
                       </div>
-                      
+
                       <div className="flex items-center gap-3 text-[11px] text-[var(--color-text-secondary)] font-medium">
                         {item.usuarios_unicos !== undefined && (
                           <div className="flex items-center gap-1" title="Usuarios únicos">
@@ -143,8 +144,8 @@ const EventosPorModulo: React.FC<EventosPorModuloProps> = ({ datos }) => {
                           </Text>
                         </div>
                       </div>
-                    </button>
-                    
+                    </Button>
+
                     <ProgressBar progress={porcentaje} variant="primary" className="h-1.5" />
 
                     {/* Acordeón de detalles */}
@@ -155,14 +156,14 @@ const EventosPorModulo: React.FC<EventosPorModuloProps> = ({ datos }) => {
                           let fechaFormateada = 'N/A';
                           if (evento.timestamp) {
                             const d = new Date(evento.timestamp);
-                            fechaFormateada = new Intl.DateTimeFormat('es-CO', { 
-                              month: 'short', 
-                              day: 'numeric', 
-                              hour: '2-digit', 
-                              minute: '2-digit' 
+                            fechaFormateada = new Intl.DateTimeFormat('es-CO', {
+                              month: 'short',
+                              day: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
                             }).format(d);
                           }
-                          
+
                           return (
                             <div key={evento.id} className="flex flex-col gap-0.5 pb-2 border-b border-[var(--color-border)] border-opacity-30 last:border-0 last:pb-0">
                               <div className="flex justify-between items-start gap-2">

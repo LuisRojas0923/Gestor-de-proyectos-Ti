@@ -1,6 +1,6 @@
 import React from 'react';
 import { MaterialCard as Card, Title, Text } from '../../../../../components/atoms';
-import { Activity, ShieldAlert, CheckCircle, AlertTriangle, UserX } from 'lucide-react';
+import { Activity, ShieldAlert, CheckCircle, UserX } from 'lucide-react';
 import type { AuditoriaEstadisticas } from '../../../../../types/auditoria';
 
 interface KpiCardsProps {
@@ -53,7 +53,7 @@ const KpiCards: React.FC<KpiCardsProps> = ({ stats, onClickDenegados, onClickFal
         </div>
       </Card>
 
-      <Card 
+      <Card
         className={`p-4 bg-[var(--color-surface)] border border-[var(--color-border)] shadow-sm flex items-center gap-4 ${onClickDenegados ? 'cursor-pointer hover:bg-red-50/50 dark:hover:bg-red-900/10 transition-colors' : ''}`}
         onClick={onClickDenegados}
       >
@@ -70,7 +70,7 @@ const KpiCards: React.FC<KpiCardsProps> = ({ stats, onClickDenegados, onClickFal
         </div>
       </Card>
 
-      <Card 
+      <Card
         className={`p-4 bg-[var(--color-surface)] border border-[var(--color-border)] shadow-sm flex items-center gap-4 ${onClickFallosAuth ? 'cursor-pointer hover:bg-orange-50/50 dark:hover:bg-orange-900/10 transition-colors' : ''}`}
         onClick={onClickFallosAuth}
       >

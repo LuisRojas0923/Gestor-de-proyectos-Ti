@@ -1,3 +1,5 @@
+import type { AuditoriaEvento } from '../../../../../types/auditoria';
+
 /**
  * Utilidad para humanizar e interpretar términos técnicos del log de auditoría
  * convirtiéndolos en descripciones en español comprensibles para personas no técnicas.
@@ -121,20 +123,20 @@ export const humanizarModuloAccion = (label: string): string => {
 /**
  * Traduce una acción técnica agregando detalles específicos basados en el payload.
  */
-export const humanizarAccionDetallada = (row: any): string => {
+export const humanizarAccionDetallada = (row: AuditoriaEvento): string => {
   const modulo = (row.modulo || '').toLowerCase();
   const ruta = (row.ruta || '').toLowerCase();
   let datos = row.datos_nuevos;
 
   if (typeof datos === 'string') {
-    try { datos = JSON.parse(datos); } catch (e) { /* ignore */ }
+    try { datos = JSON.parse(datos); } catch { /* ignore */ }
   }
 
   // 1. Viáticos
   if (modulo === 'viaticos' && row.metodo_http === 'POST' && ruta.includes('/enviar')) {
     if (datos && datos.gastos && Array.isArray(datos.gastos) && datos.gastos.length > 0) {
       let totalValor = 0;
-      const descripciones = datos.gastos.map((g: any) => {
+      const descripciones = datos.gastos.map((g: { valorConFactura?: number, valorSinFactura?: number, cc?: string }) => {
         totalValor += (g.valorConFactura || 0) + (g.valorSinFactura || 0);
         return (g.cc || 'Gasto').toLowerCase();
       });

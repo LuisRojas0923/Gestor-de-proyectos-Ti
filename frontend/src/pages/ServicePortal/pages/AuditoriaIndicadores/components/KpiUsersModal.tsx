@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { MaterialCard as Card, Title, Text, Badge } from '../../../../../components/atoms';
-import { Modal, DataTable } from '../../../../../components/molecules';
+import { MaterialCard as Card, Text, Badge } from '../../../../../components/atoms';
+import { Modal, } from '../../../../../components/molecules';
 import { useApi } from '../../../../../hooks/useApi';
 import type { AuditoriaEvento } from '../../../../../types/auditoria';
 
@@ -14,7 +14,7 @@ interface KpiUsersModalProps {
 
 const KpiUsersModalContent: React.FC<Omit<KpiUsersModalProps, 'isOpen' | 'onClose'> & { isOpen: boolean }> = ({ tipo, fechaDesde, fechaHasta, isOpen }) => {
 
-  const { get } = useApi<any>();
+  const { get } = useApi<unknown>();
   const [eventos, setEventos] = useState<AuditoriaEvento[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -28,7 +28,7 @@ const KpiUsersModalContent: React.FC<Omit<KpiUsersModalProps, 'isOpen' | 'onClos
         if (fechaHasta) params.append('fecha_hasta', fechaHasta);
         params.append('page', '1');
         params.append('page_size', '100'); // limit to 100 to show top recent
-        
+
         if (tipo === 'denegados') {
           params.append('resultado', 'denegado');
         } else if (tipo === 'fallos_auth') {
@@ -37,12 +37,12 @@ const KpiUsersModalContent: React.FC<Omit<KpiUsersModalProps, 'isOpen' | 'onClos
 
         const url = `/auditoria/eventos?${params.toString()}`;
         const data = await get(url);
-        
+
         if (data && data.items) {
           let filtrados = data.items;
           if (tipo === 'fallos_auth') {
              // Excluir los exitosos para quedarnos solo con los fallos de auth
-             filtrados = filtrados.filter((e: any) => e.resultado !== 'exito');
+             filtrados = filtrados.filter((e: unknown) => e.resultado !== 'exito');
           }
           setEventos(filtrados);
         }
@@ -71,13 +71,11 @@ const KpiUsersModalContent: React.FC<Omit<KpiUsersModalProps, 'isOpen' | 'onClos
     acc[key].count += 1;
     if (evento.direccion_ip) acc[key].ultimosIps.add(evento.direccion_ip);
     return acc;
-  }, {} as Record<string, any>);
+  }, {} as Record<string, { count: number, ultimosIps: Set<string> }>);
 
   const dataArray = Object.values(agrupados).sort((a, b) => b.count - a.count);
 
-  const titulo = tipo === 'denegados' 
-    ? 'Usuarios con Accesos Denegados' 
-    : 'Usuarios con Fallos de Autenticación';
+
 
   return (
     <>

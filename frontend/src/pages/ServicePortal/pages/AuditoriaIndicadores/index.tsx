@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Title, Text, MaterialCard as Card, Button } from '../../../../components/atoms';
+import { Title, Text, Button } from '../../../../components/atoms';
 import { Callout } from '../../../../components/molecules';
 import { Activity, Loader2, RefreshCw } from 'lucide-react';
 import PeriodSelector from './components/PeriodSelector';
@@ -24,12 +24,9 @@ const AuditoriaIndicadores: React.FC = () => {
 
   const {
     estadisticas,
-    setEstadisticas,
     ultimosEventos,
     isLoading,
-    setIsLoading,
     error,
-    setError,
     periodo,
     setPeriodo,
     fechaDesde,
@@ -81,7 +78,7 @@ const AuditoriaIndicadores: React.FC = () => {
         </div>
       ) : estadisticas ? (
         <>
-          {/* Fila 1: KPI Cards */}
+          {/* Fila 1: KPI s */}
           <KpiCards
             stats={estadisticas}
             onClickDenegados={() => setKpiModalTipo('denegados')}

@@ -28,7 +28,7 @@ const TopRutasTable: React.FC<TopRutasTableProps> = ({ datos, onRouteClick }) =>
   const datosFiltrados = useMemo(() => {
     if (!datos) return [];
     if (filtroModulo === 'todos') return datos;
-    
+
     return datos.filter(row => {
       // Intentamos inferir el módulo basado en la ruta (ej. /api/v2/viaticos/...)
       const rutaNormalizada = (row.ruta || '').toLowerCase();
@@ -41,7 +41,7 @@ const TopRutasTable: React.FC<TopRutasTableProps> = ({ datos, onRouteClick }) =>
       if (filtroModulo === 'impuestos' && rutaNormalizada.includes('/impuestos')) return true;
       if (filtroModulo === 'comisiones' && rutaNormalizada.includes('/comisiones')) return true;
       if (filtroModulo === 'inventario' && rutaNormalizada.includes('/inventario')) return true;
-      
+
       return rutaNormalizada.includes(filtroModulo);
     });
   }, [datos, filtroModulo]);
@@ -124,7 +124,7 @@ const TopRutasTable: React.FC<TopRutasTableProps> = ({ datos, onRouteClick }) =>
             />
           </div>
         </div>
-        
+
         <div className="flex-1 min-h-0 border border-[var(--color-border)] rounded-lg overflow-hidden flex flex-col">
           <DataTable
             columns={columns}

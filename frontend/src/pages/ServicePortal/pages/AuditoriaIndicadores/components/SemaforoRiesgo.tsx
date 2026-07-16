@@ -17,7 +17,7 @@ const SemaforoRiesgo: React.FC<SemaforoRiesgoProps> = ({ stats }) => {
 
   const { nivel, significado, accion, motivo, colorClass, icon } = React.useMemo(() => {
     let nivel: NivelRiesgo = 'Bajo';
-    
+
     if (denegados >= 5 || fallidos >= 3) {
       nivel = 'Crítico';
     } else if (denegados >= 3 || fallosAuth >= 5 || fallidos >= 1) {
@@ -104,7 +104,7 @@ const SemaforoRiesgo: React.FC<SemaforoRiesgoProps> = ({ stats }) => {
               <Title variant="h5" className={`font-extrabold ${colorClass.text}`}>
                 Riesgo {nivel}
               </Title>
-              <Badge variant={colorClass.badge as any} size="sm" className="font-semibold px-2 py-0.5">
+              <Badge variant={colorClass.badge as 'success' | 'warning' | 'error' | 'default' | 'info'} size="sm" className="font-semibold px-2 py-0.5">
                 {significado.toUpperCase()}
               </Badge>
             </div>

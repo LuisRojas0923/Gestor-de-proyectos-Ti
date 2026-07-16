@@ -125,23 +125,23 @@ async def websocket_auditoria_dashboard(
     if not token:
         await websocket.close(code=1008, reason="Token faltante")
         return
-        
+
     payload = ServicioAuth.obtener_payload_token(token)
     if not payload:
         await websocket.close(code=1008, reason="Token inválido")
         return
-        
+
     cedula = payload.get("sub")
     if not cedula:
         await websocket.close(code=1008, reason="Token sin cedula")
         return
-        
+
     # 2. Validar RBAC para el módulo de auditoría
     usuario = await ServicioAuth.obtener_usuario_por_cedula(db, cedula)
     if not usuario:
         await websocket.close(code=1008, reason="Usuario no encontrado")
         return
-        
+
     permisos = await ServicioAuth.obtener_permisos_por_rol(db, usuario.rol)
     if MODULO_AUDITORIA not in permisos:
         await websocket.close(code=1008, reason="Sin permiso para auditoría")
@@ -159,4 +159,3 @@ async def websocket_auditoria_dashboard(
         pass
     finally:
         auditoria_ws_manager.disconnect(websocket)
-

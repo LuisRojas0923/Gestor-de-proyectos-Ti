@@ -16,7 +16,7 @@ const TopUsuariosTable: React.FC<TopUsuariosTableProps> = ({ datos, onUserClick 
     const safeDatos = datos || [];
     if (!searchTerm) return safeDatos;
     const term = searchTerm.toLowerCase();
-    return safeDatos.filter(user => 
+    return safeDatos.filter(user =>
       (user.usuario_nombre && user.usuario_nombre.toLowerCase().includes(term)) ||
       (user.usuario_id && user.usuario_id.toLowerCase().includes(term))
     );
@@ -47,7 +47,7 @@ const TopUsuariosTable: React.FC<TopUsuariosTableProps> = ({ datos, onUserClick 
       minWidth: '150px',
       render: (user) => {
         const date = user.ultimo_evento ? new Date(user.ultimo_evento) : null;
-        const formattedDate = date && !isNaN(date.getTime()) 
+        const formattedDate = date && !isNaN(date.getTime())
           ? date.toLocaleString('es-CO', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
           : 'N/A';
         return (
@@ -71,7 +71,7 @@ const TopUsuariosTable: React.FC<TopUsuariosTableProps> = ({ datos, onUserClick 
               <Text variant="caption" color="text-secondary">Usuarios con más interacciones</Text>
             </div>
           </div>
-          
+
           <div className="w-full sm:w-64">
             <Input
               id="buscar-usuario"
@@ -82,7 +82,7 @@ const TopUsuariosTable: React.FC<TopUsuariosTableProps> = ({ datos, onUserClick 
             />
           </div>
         </div>
-        
+
         <div className="flex-1 min-h-0 border border-[var(--color-border)] rounded-lg overflow-hidden flex flex-col">
           <DataTable
             columns={columns}

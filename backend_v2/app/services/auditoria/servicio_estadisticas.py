@@ -14,7 +14,7 @@ class ServicioAuditoriaEstadisticas:
         if fecha_desde and fecha_hasta:
             if fecha_desde > fecha_hasta:
                 raise ValueError("fecha_desde no puede ser posterior a fecha_hasta")
-            if (fecha_hasta - fecha_desde).days > max_dias:
+            if (fecha_hasta - fecha_desde) > timedelta(days=max_dias):
                 raise ValueError(f"El rango de fechas no puede superar {max_dias} días.")
 
     @staticmethod

@@ -57,9 +57,9 @@ export const OrigenDispositivo: React.FC<OrigenDispositivoProps> = ({ datos }) =
                 contentStyle={{ borderRadius: '12px', border: '1px solid var(--color-border)', backgroundColor: 'var(--color-surface)', color: 'var(--color-text-primary)' }}
                 itemStyle={{ color: 'var(--color-text-primary)' }}
               />
-              <Legend 
-                verticalAlign="bottom" 
-                height={36} 
+              <Legend
+                verticalAlign="bottom"
+                height={36}
                 iconType="circle"
                 formatter={(value) => <Text as="span" className="text-[var(--color-text-primary)] text-xs font-medium">{value}</Text>}
               />

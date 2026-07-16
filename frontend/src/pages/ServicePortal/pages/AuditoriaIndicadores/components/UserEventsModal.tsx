@@ -14,7 +14,7 @@ interface UserEventsModalProps {
 }
 
 const UserEventsModalContent: React.FC<Omit<UserEventsModalProps, 'isOpen' | 'onClose'> & { isOpen: boolean }> = ({ usuario, fechaDesde, fechaHasta, isOpen }) => {
-  const { get } = useApi<any>();
+  const { get } = useApi<unknown>();
   const [eventos, setEventos] = useState<AuditoriaEvento[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -53,7 +53,6 @@ const UserEventsModalContent: React.FC<Omit<UserEventsModalProps, 'isOpen' | 'on
     fetchEventos();
   }, [isOpen, usuario, fechaDesde, fechaHasta, get]);
 
-  const nombreMostrar = usuario?.usuario_nombre || usuario?.usuario_id || 'Desconocido';
 
   return (
     <>
@@ -71,8 +70,8 @@ const UserEventsModalContent: React.FC<Omit<UserEventsModalProps, 'isOpen' | 'on
 };
 
 const UserEventsModal: React.FC<UserEventsModalProps> = ({ isOpen, onClose, usuario, fechaDesde, fechaHasta }) => {
-  const nombreMostrar = usuario?.usuario_nombre || usuario?.usuario_id || 'Desconocido';
-  return (
+    const nombreMostrar = usuario?.usuario_nombre || 'Desconocido';
+    return (
     <Modal isOpen={isOpen} onClose={onClose} title={`Últimos Eventos: ${nombreMostrar}`} size="5xl">
       {isOpen && <UserEventsModalContent usuario={usuario} fechaDesde={fechaDesde} fechaHasta={fechaHasta} isOpen={isOpen} />}
     </Modal>

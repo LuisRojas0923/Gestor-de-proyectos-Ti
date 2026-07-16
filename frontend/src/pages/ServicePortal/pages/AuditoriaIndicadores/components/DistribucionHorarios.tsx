@@ -38,14 +38,14 @@ export const DistribucionHorarios: React.FC<DistribucionHorariosProps> = ({ dato
             <BarChart data={datos} layout="vertical" margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
               <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="var(--color-border)" opacity={0.5} />
               <XAxis type="number" stroke="var(--color-text-secondary)" fontSize={12} />
-              <YAxis 
-                dataKey="rango" 
-                type="category" 
-                stroke="var(--color-text-secondary)" 
-                fontSize={12} 
+              <YAxis
+                dataKey="rango"
+                type="category"
+                stroke="var(--color-text-secondary)"
+                fontSize={12}
                 width={160}
               />
-              <Tooltip 
+              <Tooltip
                 cursor={{ fill: 'var(--color-surface-variant)', opacity: 0.4 }}
                 contentStyle={{ borderRadius: '12px', border: '1px solid var(--color-border)', backgroundColor: 'var(--color-surface)', color: 'var(--color-text-primary)' }}
                 itemStyle={{ color: 'var(--color-text-primary)' }}

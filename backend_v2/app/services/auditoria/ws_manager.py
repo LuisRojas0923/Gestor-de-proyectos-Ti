@@ -26,7 +26,7 @@ class AuditoriaWSManager:
             except Exception as e:
                 logger.warning(f"Error enviando broadcast a WS: {e}")
                 disconnected.append(connection)
-        
+
         for conn in disconnected:
             self.disconnect(conn)
 

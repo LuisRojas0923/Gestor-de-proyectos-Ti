@@ -77,11 +77,11 @@ export const AlertasSeguridad: React.FC<AlertasSeguridadProps> = ({ datos }) => 
             </div>
           ) : (
             alertas.map(alerta => (
-              <div 
-                key={alerta.id} 
+              <div
+                key={alerta.id}
                 className={`p-3 rounded-lg border flex items-start gap-3 transition-colors ${
-                  alerta.tipo === 'error' 
-                    ? 'bg-red-50/20 border-red-500/20 text-red-500' 
+                  alerta.tipo === 'error'
+                    ? 'bg-red-50/20 border-red-500/20 text-red-500'
                     : 'bg-yellow-50/20 border-yellow-500/20 text-yellow-500'
                 }`}
               >

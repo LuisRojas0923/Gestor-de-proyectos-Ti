@@ -1,15 +1,15 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useApi } from '../../../../../hooks/useApi';
-import type { AuditoriaEstadisticas } from '../../../../../types/auditoria';
+import type { AuditoriaEstadisticas, AuditoriaEvento } from '../../../../../types/auditoria';
 
 export type RangoPeriodo = 'hoy' | '7dias' | '30dias' | 'personalizado';
 
 export function useAuditoriaStats() {
     const { get } = useApi<AuditoriaEstadisticas>();
-    const { get: getEventos } = useApi<any>(); // Para listar eventos
+    const { get: getEventos } = useApi<unknown>(); // Para listar eventos
 
     const [estadisticas, setEstadisticas] = useState<AuditoriaEstadisticas | null>(null);
-    const [ultimosEventos, setUltimosEventos] = useState<any[]>([]);
+    const [ultimosEventos, setUltimosEventos] = useState<AuditoriaEvento[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -92,7 +92,7 @@ export function useAuditoriaStats() {
 
     useEffect(() => {
         let socket: WebSocket | null = null;
-        let timeoutId: any = null;
+        let timeoutId: ReturnType<typeof setTimeout> | null = null;
 
         const conectar = () => {
             const token = localStorage.getItem('token');

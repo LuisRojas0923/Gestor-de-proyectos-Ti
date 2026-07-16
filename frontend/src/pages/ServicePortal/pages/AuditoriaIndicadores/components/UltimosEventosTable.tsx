@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { MaterialCard as Card, Title, Text, Badge, Button, Select, Input } from '../../../../../components/atoms';
-import { DataTable, Modal } from '../../../../../components/molecules';
+import { DataTable, } from '../../../../../components/molecules';
 import { ChevronDown, ChevronRight, Users, Search } from 'lucide-react';
 import type { AuditoriaEvento, ResultadoAuditoria } from '../../../../../types/auditoria';
 import { humanizarModulo, humanizarAccionDetallada, humanizarResultado } from '../utils/humanizer';
@@ -135,7 +135,6 @@ const MODULOS_DISPONIBLES = [
 
 const UltimosEventosTable: React.FC<UltimosEventosTableProps> = ({
   datos,
-  isLoading,
   hideSearch = false,
   hideModuleFilter = false,
   hideGroupButton = false,
@@ -269,7 +268,7 @@ const UltimosEventosTable: React.FC<UltimosEventosTableProps> = ({
       key: 'resultado',
       label: 'Resultado',
       render: (row: AuditoriaEvento) => (
-        <Badge variant={getResultColor(row.resultado) as any} size="sm">
+        <Badge variant={getResultColor(row.resultado) as 'success' | 'warning' | 'error' | 'default' | 'info'} size="sm">
           {humanizarResultado(row.resultado, row.codigo_respuesta).toUpperCase()}
         </Badge>
       )
@@ -293,7 +292,7 @@ const UltimosEventosTable: React.FC<UltimosEventosTableProps> = ({
         }
         return (
           <div className="flex flex-col gap-1 min-w-[150px]">
-            <Badge variant={getSeveridadColor(sev) as any} size="sm" className="w-fit font-bold">
+            <Badge variant={getSeveridadColor(sev) as 'success' | 'warning' | 'error' | 'default' | 'info'} size="sm" className="w-fit font-bold">
               {sev.toUpperCase()}
             </Badge>
             <div className="text-[10px] leading-tight text-[var(--color-text-secondary)]">
@@ -424,7 +423,7 @@ const UltimosEventosTable: React.FC<UltimosEventosTableProps> = ({
         </div>
       )}
 
-      {/* Modal de Detalles del Evento (Reutilizado del Sistema de Auditoría General) */}
+      {/* de Detalles del Evento (Reutilizado del Sistema de Auditoría General) */}
       <AuditoriaEventoDetalle
         evento={eventoSeleccionado}
         onCerrar={() => setEventoSeleccionado(null)}
