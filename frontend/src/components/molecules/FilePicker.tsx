@@ -63,11 +63,12 @@ const FilePicker: React.FC<FilePickerProps> = ({
                 type="file"
                 multiple={multiple}
                 accept={accept}
-                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                aria-label={placeholder}
+                className="absolute inset-0 z-10 h-full w-full opacity-0 cursor-pointer [&>div]:h-full"
                 onChange={onChange}
             />
             {children ? children : (
-                <div className={`flex items-center gap-2 rounded-lg border border-dashed transition-all cursor-pointer bg-slate-50 dark:bg-slate-900/50 overflow-hidden
+                <div className={`flex items-center gap-2 rounded-lg border border-dashed transition-all cursor-pointer bg-slate-50 dark:bg-slate-900/50 overflow-hidden group-focus-within:border-[var(--color-primary)] group-focus-within:ring-2 group-focus-within:ring-[var(--color-primary)]/20
                     ${isDragging ? 'border-[var(--color-primary)] bg-[var(--color-primary)]/5 scale-[1.01]' : 'border-slate-300 dark:border-slate-600 group-hover:border-[var(--color-primary)]'}
                     ${size === 'xs' ? 'p-1' : 'p-2'}`}>
                     <Upload className={`${size === 'xs' ? 'w-3.5 h-3.5' : 'w-4 h-4'} ${isDragging ? 'text-[var(--color-primary)] animate-bounce' : 'text-slate-400 group-hover:text-[var(--color-primary)]'} ml-1 shrink-0`} />

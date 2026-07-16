@@ -119,7 +119,6 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode, is
         sortState,
         setSort,
     } = useColumnFilters(tree, columnAccessors, `wbs_${developmentId}`);
-
     const flattenedFiltered = flattenTree(filteredData);
     const rowData: WbsRow[] = flattenedFiltered.map((n, i) => ({ ...n, _rowIndex: i + 1 }));
 
@@ -470,11 +469,12 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode, is
                         columnFilters={filters}
                         columnOptions={uniqueValues}
                         onFilterChange={(key, newSet) => setColumnFilter(key, newSet)}
+                        filterTextAlign="right"
+                        filterDropdownMaxWidth={320}
                         activeSortKey={sortState?.key ?? null}
                         activeSortDir={sortState?.dir ?? null}
                         onSort={setSort}
                         onRowClick={(row) => { setSelectedActivity(row); setDetailModalOpen(true); }}
-                        isLoading={false}
                         emptyMessage="Sin tareas aún. Usa «Agregar tarea» para comenzar."
                         emptyIcon={<ClipboardList size={40} className="opacity-40" />}
                         maxHeight="max-h-[calc(100vh-300px)]"
