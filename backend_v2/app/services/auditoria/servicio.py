@@ -161,12 +161,14 @@ class ServicioAuditoria:
             await db.execute(stmt)
             await db.commit()
 
-            # Notificar al dashboard de auditoría en tiempo real
+            # Notificar al dashboard de auditoría en tiempo real (Fire and forget)
             try:
+                import asyncio
                 from app.services.auditoria.ws_manager import auditoria_ws_manager
-                await auditoria_ws_manager.broadcast_update()
+                # create_task evita que la latencia del WS afecte el tiempo de respuesta de la API principal
+                asyncio.create_task(auditoria_ws_manager.broadcast_update())
             except Exception as ws_exc:
-                logger.warning("Error enviando actualización WS: %s", ws_exc)
+                logger.warning("Error programando actualización WS: %s", ws_exc)
         except Exception as exc:
             logger.error("Error registrando auditoría de acción: %s", exc)
             try:

@@ -19,15 +19,26 @@ class AuditoriaWSManager:
 
     async def broadcast_update(self):
         """Envía una señal a todos los clientes para que actualicen sus datos"""
-        disconnected = []
-        for connection in self.active_connections:
-            try:
-                await connection.send_json({"type": "UPDATE_INDICADORES"})
-            except Exception as e:
-                logger.warning(f"Error enviando broadcast a WS: {e}")
-                disconnected.append(connection)
+        if not self.active_connections:
+            return
 
-        for conn in disconnected:
-            self.disconnect(conn)
+        import asyncio
+        
+        async def send_with_timeout(connection: WebSocket):
+            try:
+                # Timeout estricto para evitar bloqueos por clientes lentos
+                await asyncio.wait_for(connection.send_json({"type": "UPDATE_INDICADORES"}), timeout=2.0)
+                return None
+            except Exception as e:
+                logger.warning(f"Error o timeout enviando broadcast a WS: {e}")
+                return connection
+
+        # Ejecutar todos los envíos en paralelo
+        results = await asyncio.gather(*(send_with_timeout(conn) for conn in self.active_connections), return_exceptions=True)
+
+        # Desconectar las conexiones que fallaron (ignorando excepciones generales que haya capturado gather)
+        for result in results:
+            if isinstance(result, WebSocket):
+                self.disconnect(result)
 
 auditoria_ws_manager = AuditoriaWSManager()
