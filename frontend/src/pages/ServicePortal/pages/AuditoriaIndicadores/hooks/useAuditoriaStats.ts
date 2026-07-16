@@ -52,6 +52,11 @@ export function useAuditoriaStats() {
         }
     }, [get, getEventos]);
 
+    const cargarRef = useRef(cargar);
+    useEffect(() => {
+        cargarRef.current = cargar;
+    }, [cargar]);
+
     useEffect(() => {
         const calcularFechas = () => {
             const hoy = new Date();
@@ -105,7 +110,7 @@ export function useAuditoriaStats() {
                     const data = JSON.parse(event.data);
                     if (data.type === 'UPDATE_INDICADORES') {
                         const { desde, hasta } = activeDatesRef.current;
-                        cargar(desde, hasta, true);
+                        cargarRef.current(desde, hasta, true);
                     }
                 } catch (e) {
                     console.error("Error parsing WS message:", e);
@@ -127,7 +132,7 @@ export function useAuditoriaStats() {
             if (socket) socket.close();
             if (timeoutId) clearTimeout(timeoutId);
         };
-    }, [cargar]);
+    }, []);
 
     return {
         estadisticas,

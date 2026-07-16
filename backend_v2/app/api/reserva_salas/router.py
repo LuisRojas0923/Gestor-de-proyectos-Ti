@@ -10,7 +10,7 @@ from datetime import datetime, time as dt_time, timezone, timedelta
 
 import logging
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 
@@ -241,6 +241,7 @@ async def listar_reservas(
 
 @router.post("/reservations", response_model=ReservationRead)
 async def crear_reserva(
+    request: Request,
     body: ReservationCreate,
     db: AsyncSession = Depends(obtener_db),
     usuario: Usuario = Depends(obtener_usuario_actual_db),
@@ -285,6 +286,15 @@ async def crear_reserva(
             raise HTTPException(
                 status_code=409, detail="La sala ya tiene una reserva en ese horario"
             )
+
+        # Verificar que la sala exista y obtener su nombre para auditoría
+        room_result = await db.execute(select(Room).where(Room.id == body.room_id))
+        room = room_result.scalar_one_or_none()
+        if not room:
+            raise HTTPException(status_code=404, detail="Sala no encontrada")
+
+        request.state.auditoria_datos_nuevos = body.model_dump()
+        request.state.auditoria_datos_nuevos["room_name"] = room.name
 
         reservation = Reservation(
             room_id=body.room_id,

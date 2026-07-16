@@ -71,7 +71,8 @@ _RUTAS_EXCLUIDAS = frozenset({
 
     # Polling automático de presencia en torre de control (no es acción de usuario)
     "/api/v2/panel-control/torre-control/heartbeat",
-
+    # Mantenimiento automático en segundo plano ejecutado al cargar el dashboard
+    "/api/v2/panel-control/mantenimiento/limpiar-tickets",
 })
 
 _CONTENT_TYPES_JSON = ("application/json", "application/json;", "text/json")

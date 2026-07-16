@@ -1,5 +1,6 @@
 """Servicio central de auditoría de acciones de usuario."""
 import logging
+import re
 from typing import Any, Dict, Optional
 
 from sqlalchemy import func, insert, select
@@ -22,23 +23,58 @@ _CLAVES_SENSIBLES = frozenset({
     "secret",
     "clave",
     "hash_contrasena",
+    "documento",
+    "cedula",
+    "imei",
+    "serial",
+})
+
+_CLAVES_SENSIBLES_LINEAS = frozenset({
+    "nombre",
+    "nombre_asociado",
+    "documento_asignado",
+    "documento_cobro",
 })
 
 
-def _enmascarar_valor(clave: str, valor: Any) -> Any:
-    if clave.lower() in _CLAVES_SENSIBLES:
+def _enmascarar_valor(clave: str, valor: Any, modulo: Optional[str]) -> Any:
+    claves_sensibles = _CLAVES_SENSIBLES
+    if modulo == "lineas_corporativas":
+        claves_sensibles = claves_sensibles | _CLAVES_SENSIBLES_LINEAS
+    if clave.lower() in claves_sensibles:
         return "[REDACTED]"
     if isinstance(valor, dict):
-        return _enmascarar_datos(valor)
+        return _enmascarar_datos(valor, modulo=modulo)
     if isinstance(valor, list):
-        return [_enmascarar_valor(clave, item) if not isinstance(item, dict) else _enmascarar_datos(item) for item in valor]
+        return [
+            _enmascarar_valor(clave, item, modulo)
+            if not isinstance(item, dict)
+            else _enmascarar_datos(item, modulo=modulo)
+            for item in valor
+        ]
     return valor
 
 
-def _enmascarar_datos(datos: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+def _enmascarar_datos(
+    datos: Optional[Dict[str, Any]], *, modulo: Optional[str] = None
+) -> Optional[Dict[str, Any]]:
     if not datos:
         return None
-    return {k: _enmascarar_valor(k, v) for k, v in datos.items()}
+    return {k: _enmascarar_valor(k, v, modulo) for k, v in datos.items()}
+
+
+def _anonimizar_identidad_entidad(
+    modulo: str,
+    entidad_tipo: Optional[str],
+    entidad_id: Optional[str],
+    ruta: Optional[str],
+) -> tuple[Optional[str], Optional[str]]:
+    if modulo != "lineas_corporativas" or entidad_tipo != "persona_linea":
+        return entidad_id, ruta
+    ruta_segura = re.sub(
+        r"(/personas/)[^/?]+", r"\1[REDACTED]", ruta or ""
+    ) or None
+    return "[REDACTED]", ruta_segura
 
 
 def inferir_accion_desde_metodo(metodo: str) -> AccionAuditoria:
@@ -57,7 +93,7 @@ def inferir_modulo_desde_ruta(ruta: str) -> str:
         return "comisiones"
     partes = [p for p in ruta.split("/") if p]
     if len(partes) >= 3 and partes[0] == "api" and partes[1] == "v2":
-        return partes[2]
+        return partes[2].replace("-", "_")
     if partes:
         return partes[0]
     return "sistema"
@@ -97,6 +133,9 @@ class ServicioAuditoria:
         """Inserta un evento de auditoría. Nunca propaga excepciones."""
         try:
             accion_val = accion.value if isinstance(accion, AccionAuditoria) else accion
+            entidad_id, ruta = _anonimizar_identidad_entidad(
+                modulo, entidad_tipo, entidad_id, ruta
+            )
             stmt = insert(AuditoriaAccionUsuario).values(
                 usuario_id=usuario_id,
                 usuario_nombre=usuario_nombre,
@@ -112,13 +151,13 @@ class ServicioAuditoria:
                 direccion_ip=direccion_ip,
                 agente_usuario=agente_usuario,
                 correlacion_id=correlacion_id,
-                datos_anteriores=_enmascarar_datos(datos_anteriores),
-                datos_nuevos=_enmascarar_datos(datos_nuevos),
-                metadatos=_enmascarar_datos(metadatos),
+                datos_anteriores=_enmascarar_datos(datos_anteriores, modulo=modulo),
+                datos_nuevos=_enmascarar_datos(datos_nuevos, modulo=modulo),
+                metadatos=_enmascarar_datos(metadatos, modulo=modulo),
             )
             await db.execute(stmt)
             await db.commit()
-
+            
             # Notificar al dashboard de auditoría en tiempo real
             try:
                 from app.services.auditoria.ws_manager import auditoria_ws_manager

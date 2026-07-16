@@ -189,6 +189,9 @@ export const humanizarAccionDetallada = (row: any): string => {
       if (row.metodo_http === 'DELETE' || row.accion === 'eliminar') {
         return `Eliminó la actividad${titulo} del proyecto`;
       }
+      if (ruta.includes('/archivo') && row.accion === 'exportar') {
+        return `Descargó un archivo adjunto de la actividad${titulo}`;
+      }
     }
 
     // Acciones específicas de Desarrollos (Proyectos)
@@ -237,6 +240,9 @@ export const humanizarAccionDetallada = (row: any): string => {
     if (ruta.includes('/archivos') && row.metodo_http === 'POST') {
       if (ruta.includes('/procesar')) return 'Confirmó y procesó el archivo de novedades';
       return 'Subió archivo base de nómina para validación';
+    }
+    if (ruta.includes('/archivos') && ruta.includes('/descargar')) {
+      return 'Descargó un archivo base de novedades de nómina';
     }
     if (ruta.includes('/exportar-solid') && row.metodo_http === 'POST') return 'Exportó novedades procesadas al ERP (SOLID)';
 
@@ -322,11 +328,19 @@ export const humanizarAccionDetallada = (row: any): string => {
   }
 
   // 11. Tickets de Soporte
-  if (modulo.includes('ticket') || modulo === 'sistemas') {
+  if (modulo.includes('ticket') || modulo === 'sistemas' || modulo === 'soporte') {
     if (row.accion === 'crear') {
       return datos?.asunto ? `Creó ticket de soporte: ${datos.asunto}` : 'Creó un nuevo ticket de soporte';
     }
     if (row.accion === 'actualizar') return 'Actualizó el estado o respondió un ticket';
+    if (ruta.includes('/adjuntos') && ruta.includes('/archivo')) return 'Descargó un archivo adjunto del ticket de soporte';
+  }
+
+  // 11.5. Panel de Control / Mantenimiento
+  if (modulo === 'panel_control' || modulo === 'panel-control') {
+    if (ruta.includes('/mantenimiento/limpiar-tickets')) {
+      return 'Ejecutó limpieza y mantenimiento de tickets de soporte';
+    }
   }
 
   // 12. Líneas Corporativas

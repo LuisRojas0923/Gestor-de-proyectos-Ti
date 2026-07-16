@@ -110,8 +110,38 @@ async def obtener_estadisticas_auditoria(
 from app.services.auditoria.ws_manager import auditoria_ws_manager
 
 @router.websocket("/ws/dashboard")
-async def websocket_auditoria_dashboard(websocket: WebSocket):
+async def websocket_auditoria_dashboard(
+    websocket: WebSocket,
+    token: Optional[str] = Query(None),
+    db: AsyncSession = Depends(obtener_db)
+):
     """Canal WebSocket para notificar actualizaciones al Dashboard de Auditoría"""
+    # 1. Validar Token de Autenticación
+    if not token:
+        await websocket.close(code=1008, reason="Token faltante")
+        return
+        
+    payload = ServicioAuth.obtener_payload_token(token)
+    if not payload:
+        await websocket.close(code=1008, reason="Token inválido")
+        return
+        
+    cedula = payload.get("sub")
+    if not cedula:
+        await websocket.close(code=1008, reason="Token sin cedula")
+        return
+        
+    # 2. Validar RBAC para el módulo de auditoría
+    usuario = await ServicioAuth.obtener_usuario_por_cedula(db, cedula)
+    if not usuario:
+        await websocket.close(code=1008, reason="Usuario no encontrado")
+        return
+        
+    permisos = await ServicioAuth.obtener_permisos_por_rol(db, usuario.rol)
+    if MODULO_AUDITORIA not in permisos:
+        await websocket.close(code=1008, reason="Sin permiso para auditoría")
+        return
+
     await auditoria_ws_manager.connect(websocket)
     try:
         while True:

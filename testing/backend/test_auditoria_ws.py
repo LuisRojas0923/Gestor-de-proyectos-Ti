@@ -14,8 +14,8 @@ def test_websocket_auditoria_dashboard_sin_token():
 
 def test_websocket_con_token_invalido():
     client = TestClient(app)
-    # The endpoint will close the websocket with code 4001 because the token is invalid.
+    # The endpoint will close the websocket with code 1008 because the token is invalid.
     with pytest.raises(WebSocketDisconnect) as exc_info:
         with client.websocket_connect("/api/v2/auditoria/ws/dashboard?token=invalido123") as websocket:
             websocket.receive_text()
-    assert exc_info.value.code == 4001
+    assert exc_info.value.code == 1008
