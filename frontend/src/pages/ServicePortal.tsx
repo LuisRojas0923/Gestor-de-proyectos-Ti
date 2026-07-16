@@ -44,7 +44,6 @@ import PolizasVehiculosPreview from './ServicePortal/pages/NOVEDADES_NOMINA/Poli
 import MedicinaPrepagadaPreview from './ServicePortal/pages/NOVEDADES_NOMINA/MedicinaPrepagadaPreview';
 import OtrosGerenciaPreview from './ServicePortal/pages/NOVEDADES_NOMINA/OtrosGerenciaPreview';
 import ControlDescuentosPreview from './ServicePortal/pages/NOVEDADES_NOMINA/ControlDescuentosPreview';
-import ControlDescuentosDashboard from './ServicePortal/pages/NOVEDADES_NOMINA/ControlDescuentosDashboard';
 import ControlDescuentosTabla from './ServicePortal/pages/NOVEDADES_NOMINA/ControlDescuentosTabla';
 import ControlDescuentosConceptos from './ServicePortal/pages/NOVEDADES_NOMINA/ControlDescuentosConceptos';
 import ControlDescuentosRegistro from './ServicePortal/pages/NOVEDADES_NOMINA/ControlDescuentosRegistro';

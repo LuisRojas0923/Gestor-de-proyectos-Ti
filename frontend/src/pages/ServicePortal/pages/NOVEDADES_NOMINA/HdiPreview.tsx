@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Title, Text, Button, Select, Input, Badge } from '../../../../components/atoms';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Upload, FileText, AlertTriangle, Search, Filter, History, ChevronRight, Database } from 'lucide-react';
+import { ArrowLeft, Upload, FileText, AlertTriangle, Search, History, ChevronRight, Database } from 'lucide-react';
 import axios from 'axios';
 import { API_CONFIG } from '../../../../config/api';
 import { useNotifications } from '../../../../components/notifications/NotificationsContext';
@@ -255,7 +255,7 @@ const HdiPreview: React.FC = () => {
                             <input id="file-upload" // @audit-ok
                                 type="file"
                                 multiple
-                                accept=".xlsx, .xls"
+                                accept=".xlsx"
                                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                                 onChange={handleFilesChange}
                             />
@@ -340,7 +340,7 @@ const HdiPreview: React.FC = () => {
                             </div>
                             <ul className="space-y-0.5 ml-6 list-disc">
                                 {data.warnings.map((w: string, i: number) => (
-                                    <li key={`${w.id || w.cedula || 'w'}-${i}`}>
+                                    <li key={`${w.cedula || 'w'}-${i}`}>
                                         <Text size="xs" className="text-amber-700 dark:text-amber-400 text-[10px]">{w}</Text>
                                     </li>
                                 ))}
@@ -503,7 +503,7 @@ const HdiPreview: React.FC = () => {
                                                 {formatCurrency(row.valor)}
                                             </td>
                                             <td className="p-2 text-center">
-                                                <Badge variant="info" size="xs">{row.concepto || row.CONCEPTO || 'N/A'}</Badge>
+                                                <Badge variant="info" size="xs">{row.concepto || 'N/A'}</Badge>
                                             </td>
                                         </tr>
                                     ))}
@@ -522,7 +522,7 @@ const HdiPreview: React.FC = () => {
                     </div>
                     <Title variant="h5" weight="bold" className="text-slate-400 dark:text-slate-700 mb-1 uppercase tracking-widest text-xs">Sin datos procesados</Title>
                     <Text size="xs" className="text-slate-400 dark:text-slate-600 max-w-xs">
-                        Selecciona y procesa archivos PDF para ver registros de {MESES[mes-1]} {anio}.
+                        Selecciona y procesa archivos Excel (.xlsx) para ver registros de {MESES[mes-1]} {anio}.
                     </Text>
                 </div>
             )}
