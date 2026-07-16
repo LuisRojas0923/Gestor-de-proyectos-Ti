@@ -43,10 +43,13 @@ Ubicación: `testing/backend/`
 | **Indicadores de Auditoría** | `test_auditoria_estadisticas.py` | Valida límites e integridad de rangos temporales del dashboard. | ✅ PASSED |
 | **RBAC de Auditoría** | `test_auditoria_estadisticas_rbac.py` | Autoriza el dashboard por permiso efectivo y rechaza accesos sin permiso. | ✅ PASSED |
 | **API de Auditoría** | `test_auditoria_estadisticas_http.py` | Contrato HTTP 401/403/200 del endpoint de indicadores. | ✅ PASSED |
-| **Diagnóstico de Estados** | `test_validate_estados.py` | Manejo seguro de resultados y errores DB del script diagnóstico. | ✅ PASSED |
 | **ETL Beneficiar** | `test_beneficiar_prima.py` | Prima opcional, meses ordinarios y rechazo de columnas obligatorias ausentes. | ✅ PASSED |
 | **ETL Grancoop** | `test_grancoop_nombre_matching.py` | CREDIPRIMA, NOMPRI estricto, sumatoria sin duplicar y límites PDF. | ✅ PASSED |
 | **Seguridad Cooperativas** | `test_cooperativas_archivos_seguridad.py` | Firmas, límites, nombres, permiso `nomina_novedades` y parser en proceso cancelable. | ✅ PASSED |
+| **HDI Grupos Q1/Q2** | `test_hdi_extractor_grupos.py` | Cálculo Q1 (primas semestrales), titular + dependiente, filtrado de tipos inválidos. | ✅ PASSED |
+| **HDI Excepciones** | `test_hdi_excepciones.py` | Retirado con SALDO_FAVOR: valor_rdc=0, colaborador asume 100%. | ✅ PASSED |
+| **ZIP Seguridad + SHA-256 + Rollback** | `test_nomina_zip_seguridad.py` | Path traversal en ZIP, duplicados, SHA-256 determinístico, rollback físico del temporal y atomicidad de publicación. | ✅ PASSED |
+| **HDI HTTP RBAC** | `test_hdi_http_rbac.py` | HTTP 401 (sin token), 403 (rol sin permiso), 200/400 (usuario autorizado con stub). | ✅ PASSED |
 
 ### 2. Frontend (Vitest)
 Ubicación: `frontend/src/`
