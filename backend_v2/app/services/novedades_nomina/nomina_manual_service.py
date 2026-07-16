@@ -63,7 +63,7 @@ class NominaManualService:
 
             # 4. Crear archivo "manual"
             archivo = await NominaService.crear_archivo_procesado(
-                session, f"manual_otros_gerencia_{mes}_{anio}.json", b"manual_entry",
+                session, f"manual_otros_gerencia_{mes}_{anio}.json", "manual_entry",
                 0, "json", mes, anio, categoria, subcategoria
             )
 
@@ -173,7 +173,7 @@ class NominaManualService:
 
             # 4. Crear archivo "manual"
             archivo = await NominaService.crear_archivo_procesado(
-                session, f"manual_embargos_{mes}_{anio}.json", b"manual_entry",
+                session, f"manual_embargos_{mes}_{anio}.json", "manual_entry",
                 0, "json", mes, anio, categoria, subcategoria
             )
 
@@ -305,7 +305,7 @@ class NominaManualService:
 
             # 4. Crear archivo "manual"
             archivo = await NominaService.crear_archivo_procesado(
-                session, f"manual_comisiones_{mes}_{anio}.json", b"manual_entry",
+                session, f"manual_comisiones_{mes}_{anio}.json", "manual_entry",
                 0, "json", mes, anio, categoria, subcategoria
             )
 

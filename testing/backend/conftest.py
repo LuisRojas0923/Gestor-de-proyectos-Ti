@@ -77,6 +77,7 @@ def limiter_reset():
     tests no deben requerir infra externa para correr.
     """
     from app.core.rate_limiter import limiter
+    limiter.enabled = False
     try:
         limiter.reset()
     except Exception:

@@ -48,7 +48,7 @@ class NominaService:
     async def crear_archivo_procesado(
         session: AsyncSession,
         nombre: str,
-        content_prefix: bytes,
+        hash_archivo: str,
         size: int,
         ext: str,
         mes: int,
@@ -61,7 +61,7 @@ class NominaService:
         return await NominaHelper.crear_archivo_procesado(
             session=session,
             nombre=nombre,
-            content_prefix=content_prefix,
+            hash_archivo=hash_archivo,
             size=size,
             ext=ext,
             mes=mes,
@@ -99,6 +99,30 @@ class NominaService:
             if extension.lower() in ["xlsx", "zip"]:
                 if not content.startswith(b"PK\x03\x04"):
                     raise HTTPException(status_code=400, detail="El archivo no es un Excel o ZIP válido (Firma OOXML incorrecta).")
+                
+                # Validar estructura y protección contra ZIP bombs
+                import zipfile
+                import io
+                try:
+                    with zipfile.ZipFile(io.BytesIO(content)) as zf:
+                        total_uncompressed = 0
+                        has_content_types = False
+                        for info in zf.infolist():
+                            total_uncompressed += info.file_size
+                            if info.compress_size > 0:
+                                ratio = info.file_size / info.compress_size
+                                if ratio > 100:
+                                    raise HTTPException(status_code=400, detail="Relación de compresión sospechosa (posible ZIP bomb).")
+                            if info.filename == "[Content_Types].xml":
+                                has_content_types = True
+                                
+                        if total_uncompressed > 15 * 1024 * 1024:
+                            raise HTTPException(status_code=400, detail="El tamaño descomprimido excede el límite seguro de 15MB.")
+                            
+                        if extension.lower() == "xlsx" and not has_content_types:
+                            raise HTTPException(status_code=400, detail="El archivo XLSX no contiene estructura OOXML válida.")
+                except zipfile.BadZipFile:
+                    raise HTTPException(status_code=400, detail="El archivo ZIP/XLSX está corrupto.")
             elif extension.lower() == "pdf":
                 if not content.startswith(b"%PDF-"):
                     raise HTTPException(status_code=400, detail="El archivo no es un PDF válido.")
@@ -107,12 +131,15 @@ class NominaService:
             original_filenames.append(getattr(f, "filename", "archivo"))
             
         import os
+        import tempfile
+        import shutil
         subcat_folder = subcategoria.lower().replace(" ", "_").replace("/", "_")
         STORAGE_DIR = os.path.join("uploads", "nomina", str(anio), str(mes), subcat_folder)
         os.makedirs(STORAGE_DIR, exist_ok=True)
         
         ruta_almacenamiento = "memory"
         nombre_archivo = f"{subcategoria.lower().replace(' ', '_')}_{mes}_{anio}.{extension}"
+        temp_file_path = None
         
         import zipfile
         import io
@@ -120,49 +147,57 @@ class NominaService:
         if archivos_binarios:
             if len(archivos_binarios) == 1:
                 contenido = archivos_binarios[0]
-                hash_str = hashlib.md5(contenido).hexdigest()
+                hash_str = hashlib.sha256(contenido).hexdigest()
                 nombre_archivo = original_filenames[0]
                 ext_real = nombre_archivo.split('.')[-1].lower() if '.' in nombre_archivo else extension
                 
                 ruta_almacenamiento = os.path.join(STORAGE_DIR, f"{hash_str}.{ext_real}")
                 
-                # Guardamos el archivo original intacto para descargas y auditoría
-                with open(ruta_almacenamiento, "wb") as f_out:
+                fd, temp_file_path = tempfile.mkstemp(suffix=f".{ext_real}", dir=STORAGE_DIR)
+                with os.fdopen(fd, "wb") as f_out:
                     f_out.write(contenido)
                     
-                archivo_preview = archivos_binarios[0][:1024]
                 tamaño_total = len(contenido)
             else:
                 # Empaquetar múltiples archivos en un ZIP
+                import zipfile
+                import io
                 zip_buffer = io.BytesIO()
                 with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zf:
                     for filename, content in zip(original_filenames, archivos_binarios):
                         zf.writestr(filename, content)
                 
                 contenido_zip = zip_buffer.getvalue()
-                hash_str = hashlib.md5(contenido_zip).hexdigest()
+                hash_str = hashlib.sha256(contenido_zip).hexdigest()
                 nombre_archivo = f"{subcategoria.replace(' ', '_')}_{mes}_{anio}.zip"
                 extension = "zip"
                 ext_real = "zip"
                 
                 ruta_almacenamiento = os.path.join(STORAGE_DIR, f"{hash_str}.zip")
-                with open(ruta_almacenamiento, "wb") as f_out:
+                fd, temp_file_path = tempfile.mkstemp(suffix=".zip", dir=STORAGE_DIR)
+                with os.fdopen(fd, "wb") as f_out:
                     f_out.write(contenido_zip)
                     
-                archivo_preview = contenido_zip[:1024]
                 tamaño_total = len(contenido_zip)
         
         # 2. Extraer datos usando la función específica en un hilo separado para no bloquear el event loop
         import asyncio
-        rows, summary, warnings_txt = await asyncio.to_thread(extractor_fn, archivos_binarios)
-        summary.update({"mes": mes, "anio": anio})
         
-        if not rows:
-            raise HTTPException(status_code=400, detail="El archivo provisto está vacío, no contiene datos válidos o su estructura es incorrecta. Abortando.")
+        def _limpiar_temp():
+            if temp_file_path and os.path.exists(temp_file_path):
+                try:
+                    os.remove(temp_file_path)
+                except Exception:
+                    pass
 
         # 3. Transacción y relectura
         from sqlalchemy import text
         try:
+            rows, summary, warnings_txt = await asyncio.to_thread(extractor_fn, archivos_binarios)
+            summary.update({"mes": mes, "anio": anio})
+            
+            if not rows:
+                raise HTTPException(status_code=400, detail="El archivo provisto está vacío, no contiene datos válidos o su estructura es incorrecta. Abortando.")
             # Advisory lock para prevenir concurrencia sobre el mismo periodo y subcategoría
             lock_name = f"nomina_{subcategoria}_{mes}_{anio}"
             await session.execute(text("SELECT pg_advisory_xact_lock(hashtext(:lock_name))").bindparams(lock_name=lock_name))
@@ -182,7 +217,7 @@ class NominaService:
             
             # 6. Crear entrada de archivo
             archivo = await NominaService.crear_archivo_procesado(
-                session, nombre_archivo, archivo_preview if archivos_binarios else b"", 
+                session, nombre_archivo, hash_str, 
                 tamaño_total if archivos_binarios else 0, extension, mes, anio, categoria, subcategoria, ruta_almacenamiento
             )
 
@@ -263,7 +298,13 @@ class NominaService:
             
             await session.commit()
             
-            # Retornar tanto 'filas' como 'rows' para máxima compatibilidad
+            # 9. Atomic publish: Mover el temporal a la ruta final
+            if temp_file_path and os.path.exists(temp_file_path):
+                if not os.path.exists(ruta_almacenamiento):
+                    shutil.move(temp_file_path, ruta_almacenamiento)
+                else:
+                    os.remove(temp_file_path)
+                    
             return {
                 "filas": filas_frontend,
                 "rows": filas_frontend,
@@ -275,13 +316,8 @@ class NominaService:
             
         except Exception as e:
             await session.rollback()
-            # Limpieza de archivo físico en caso de fallo
-            import os
-            if os.path.exists(ruta_almacenamiento):
-                try:
-                    os.remove(ruta_almacenamiento)
-                except:
-                    pass
+            _limpiar_temp()
+            # Ya no borramos ruta_almacenamiento para no corromper cargas previas con el mismo hash
             logger.error(f"FALLO CRÍTICO en flujo {subcategoria}: {str(e)}", exc_info=True)
             raise HTTPException(status_code=500, detail=f"Error en procesamiento: {str(e)}")
     @staticmethod
