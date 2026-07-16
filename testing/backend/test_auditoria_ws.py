@@ -30,7 +30,7 @@ async def test_validar_token_ws_mcp_revocado():
         mock_result = MagicMock()
         mock_result.scalars.return_value.first.return_value = None
         mock_db.execute.return_value = mock_result
-        
+
         usuario, error = await ServicioAuth.validar_token_ws(mock_db, "token")
         assert usuario is None
         assert "revocado" in error.lower()

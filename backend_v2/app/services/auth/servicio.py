@@ -273,11 +273,11 @@ class ServicioAuth:
         Retorna True si hubo reparación.
         """
         es_invalido = False
-        
+
         # 1. Detección por valor explícito heredado
         if usuario.hash_contrasena in ["N/A", "", "NULL", "PENDIENTE"]:
             es_invalido = True
-        
+
         # 2. Detección por validación de bcrypt (si no se detectó antes)
         if not es_invalido:
             try:
@@ -285,7 +285,7 @@ class ServicioAuth:
                 bcrypt.checkpw(b"test", usuario.hash_contrasena.encode("utf-8"))
             except (ValueError, TypeError):
                 es_invalido = True
-        
+
         if es_invalido:
             import logging
             logging.info(f"REPARACIÓN: Corrigiendo hash inválido para usuario {usuario.cedula}")
@@ -294,7 +294,7 @@ class ServicioAuth:
             await db.commit()
             await db.refresh(usuario)
             return True
-            
+
         return False
 
     @staticmethod
@@ -346,11 +346,11 @@ class ServicioAuth:
             val_viaticante = datos_erp.get("viaticante")
             usuario.viaticante = normalizar_bool_erp(val_viaticante)
             usuario.baseviaticos = datos_erp.get("baseviaticos")
-            
+
             # Sincronización de correo corporativo
             if datos_erp.get("correocorporativo"):
                 usuario.correo = datos_erp.get("correocorporativo").strip()
-            
+
             await db.commit()
             await db.refresh(usuario)
         return usuario

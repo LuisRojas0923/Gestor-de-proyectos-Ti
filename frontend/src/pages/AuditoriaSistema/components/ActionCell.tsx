@@ -9,16 +9,16 @@ interface ActionCellProps {
 
 export const ActionCell: React.FC<ActionCellProps> = ({ row }) => {
   const text = humanizarAccionDetallada(row);
-  
+
   return (
-    <div 
-      className="cursor-pointer group mt-0.5 w-full overflow-hidden" 
+    <div
+      className="cursor-pointer group mt-0.5 w-full overflow-hidden"
       title="Clic para ver detalle en la radiografía"
     >
-      <Text 
+      <Text
         as="div"
-        variant="caption" 
-        color="text-secondary" 
+        variant="caption"
+        color="text-secondary"
         className="uppercase text-[10px] tracking-wider transition-colors duration-200 group-hover:text-[var(--color-primary)] w-full block truncate"
       >
         {text}
@@ -26,4 +26,3 @@ export const ActionCell: React.FC<ActionCellProps> = ({ row }) => {
     </div>
   );
 };
-

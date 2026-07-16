@@ -23,7 +23,7 @@ class AuditoriaWSManager:
             return
 
         import asyncio
-        
+
         async def send_with_timeout(connection: WebSocket):
             try:
                 # Timeout estricto para evitar bloqueos por clientes lentos

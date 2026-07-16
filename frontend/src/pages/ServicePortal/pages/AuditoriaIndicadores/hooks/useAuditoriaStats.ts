@@ -93,8 +93,15 @@ export function useAuditoriaStats() {
     useEffect(() => {
         let socket: WebSocket | null = null;
         let timeoutId: ReturnType<typeof setTimeout> | null = null;
+        let retryCount = 0;
+        const maxRetries = 10;
+        const baseDelay = 1000;
+        const maxDelay = 30000;
+        let isUnmounted = false;
 
         const conectar = () => {
+            if (isUnmounted) return;
+
             const token = localStorage.getItem('token');
             const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
             const wsHost = window.location.host;
@@ -103,6 +110,10 @@ export function useAuditoriaStats() {
                 : `${wsProtocol}//${wsHost}/api/v2/auditoria/ws/dashboard`;
 
             socket = new WebSocket(wsUrl, token ? [token] : []);
+
+            socket.onopen = () => {
+                retryCount = 0; // Reset retries on successful connection
+            };
 
             socket.onmessage = (event) => {
                 try {
@@ -116,8 +127,23 @@ export function useAuditoriaStats() {
                 }
             };
 
-            socket.onclose = () => {
-                timeoutId = setTimeout(conectar, 5000);
+            socket.onclose = (event) => {
+                if (isUnmounted) return;
+
+                // 1008 = Policy Violation (invalid/expired token, no permission, etc.)
+                if (event.code === 1008) {
+                    console.warn("WebSocket cerrado por violación de política (1008). No se intentará reconectar.");
+                    return;
+                }
+
+                if (retryCount < maxRetries) {
+                    // Exponential backoff
+                    const delay = Math.min(baseDelay * Math.pow(2, retryCount), maxDelay);
+                    retryCount++;
+                    timeoutId = setTimeout(conectar, delay);
+                } else {
+                    console.error("Máximo número de reconexiones WS alcanzado.");
+                }
             };
 
             socket.onerror = () => {
@@ -128,6 +154,7 @@ export function useAuditoriaStats() {
         conectar();
 
         return () => {
+            isUnmounted = true;
             if (socket) {
                 socket.onclose = null; // Prevenir reconexión tras desmontar
                 socket.close();

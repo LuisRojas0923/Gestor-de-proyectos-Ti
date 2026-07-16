@@ -21,7 +21,7 @@ const mockGet = vi.fn().mockResolvedValue([
     estimated_end_date: '2025-02-01',
   }
 ]);
-const mockGetWithHeaders = vi.fn().mockResolvedValue({ 
+const mockGetWithHeaders = vi.fn().mockResolvedValue({
   data: [{
     id: 'FD-001',
     name: 'Test Development',
@@ -31,8 +31,8 @@ const mockGetWithHeaders = vi.fn().mockResolvedValue({
     current_stage: { stage_name: '1. Definición' },
     start_date: '2025-01-01',
     estimated_end_date: '2025-02-01',
-  }], 
-  headers: new Headers({ 'x-total-count': '1' }) 
+  }],
+  headers: new Headers({ 'x-total-count': '1' })
 });
 const mockDelete = vi.fn().mockResolvedValue({});
 const mockPut = vi.fn().mockResolvedValue({});

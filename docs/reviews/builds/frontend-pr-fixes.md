@@ -2,15 +2,15 @@
 
 ## Overview
 - **Date**: 2026-07-16
-- **Files Reviewed**: 
+- **Files Reviewed**:
   - `frontend/src/pages/AuditoriaSistema/components/AuditoriaEventoDetalle.tsx`
   - `frontend/src/tests/MyDevelopmentsRequirements.test.tsx`
   - `frontend/src/tests/MyDevelopmentsReview.test.tsx`
 
 ## Design System & Styling
 - **Status**: **PASS**
-- **Findings**: 
-  - `AuditoriaEventoDetalle.tsx` strictly imports atomic UI components: `Badge`, `Icon`, `MaterialCard` (as `Card`), `Text`, and `Modal`. 
+- **Findings**:
+  - `AuditoriaEventoDetalle.tsx` strictly imports atomic UI components: `Badge`, `Icon`, `MaterialCard` (as `Card`), `Text`, and `Modal`.
   - The styling enforces theming consistency through CSS variables (`--color-primary`, `--color-surface-variant`, `--color-border-subtle`, `--deep-navy`) rather than hardcoding static hex colors.
 
 ## Mobile-First & Responsiveness

@@ -9,7 +9,7 @@
 ## 2. Hallazgos y Brechas de Cobertura (Coverage Gaps)
 
 ### `RegisterSidebar.test.tsx`
-- **Gaps encontrados:** 
+- **Gaps encontrados:**
   - Faltan pruebas para las validaciones en cliente (`if formData.cedula.length < 5`, contraseñas que no coinciden, contraseña igual a cédula).
   - Falta prueba para la captura de errores genéricos de conexión (`catch` block que utiliza `getErrorMessage`).
 

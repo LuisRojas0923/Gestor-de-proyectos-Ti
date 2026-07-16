@@ -248,11 +248,6 @@ async def crear_reserva(
 ):
     """Crea una nueva reserva. Solo en horario 7:00 - 18:00."""
     try:
-        print(
-            f"DEBUG: Intentando crear reserva. Usuario={usuario.nombre}, Documento={usuario.cedula}"
-        )
-        print(f"DEBUG: Datos reserva: {body}")
-
         # Normalizar zonas horarias
         start = body.start_datetime
         end = body.end_datetime
@@ -293,7 +288,7 @@ async def crear_reserva(
         if not room:
             raise HTTPException(status_code=404, detail="Sala no encontrada")
 
-        request.state.auditoria_datos_nuevos = body.model_dump()
+        request.state.auditoria_datos_nuevos = body.model_dump(mode="json")
         request.state.auditoria_datos_nuevos["room_name"] = room.name
 
         reservation = Reservation(
