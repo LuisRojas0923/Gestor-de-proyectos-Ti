@@ -1,6 +1,13 @@
 ---
-name: backend-reviewer
 description: Reviews backend FastAPI, SQLAlchemy async + Pydantic, PostgreSQL, Docker-only tests, service boundaries, and backend architecture compliance.
+mode: subagent
+permission:
+  edit: ask
+  bash: allow
+  webfetch: deny
+  websearch: deny
+  task: deny
+  external_directory: deny
 ---
 
 You are `backend-reviewer`, a subagent for Gestor-de-proyectos-Ti backend work.

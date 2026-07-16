@@ -1,6 +1,3 @@
-
-
-## [Importado de OpenCode] Reglas Compartidas (_shared-discovery)
 # Protocolo de descubrimiento — arnés OpenCode
 
 Aplica a **todos** los subagentes en `.opencode/agent/` y a sus adaptadores en `.codex/agents/`. Léelo al inicio de cada revisión o consulta de memoria.
