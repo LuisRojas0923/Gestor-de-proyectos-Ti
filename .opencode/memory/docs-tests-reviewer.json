@@ -58,10 +58,35 @@
         "low": 1
       },
       "test_coverage_observations": "Nómina V2 no añade regresiones Vitest para límite de 50 y nulos. Auditoría añade solo 2 casos y los duplica fuera de testpaths; faltan RBAC, contrato completo de estadísticas, WebSocket, middleware, inventario, reporte de gastos, errores/concurrencia y frontend. No hay catálogo ni evidencia ejecutada."
+    },
+    {
+      "date": "2026-07-15",
+      "scope": "build de carga y descarga privada de evidencias WBS",
+      "outcome": "blocked",
+      "finding_count_by_severity": {
+        "blocking": 4,
+        "high": 4,
+        "medium": 5,
+        "low": 1
+      },
+      "test_coverage_observations": "Se recolectan 7 tests backend de evidencia y 16 de anulación; se reportan 7/7 y 16/16 passed, Vitest 2 passed y build passed. Faltan pruebas HTTP de POST/GET/DELETE, matriz completa de tipos y auditoría real, y pruebas del flujo multipart/reintento frontend. Infraestructura 1 pass/1 skip y regresiones 3 pass/3 skip quedan parciales por falta de token; lint global carece de baseline focalizado."
+    },
+    {
+      "date": "2026-07-15",
+      "scope": "re-review docs/tests de evidencias WBS tras lifecycle HTTP, middleware 413, RBAC, modal y runbook",
+      "outcome": "approved_with_risks",
+      "finding_count_by_severity": {
+        "blocking": 0,
+        "conditional_out_of_scope": 1,
+        "high": 0,
+        "medium": 7,
+        "low": 3
+      },
+      "test_coverage_observations": "Se recolectan 10 tests backend y se reportan 10 passed; cubren servicio, 413 previo al parser, lifecycle HTTP POST/GET/DELETE y RBAC. Frontend reporta 3 passed, incluido éxito parcial y reintento sin duplicar. Persisten gaps no bloqueantes de DB real/rollback/auditoría, matriz de formatos, carga exitosa/edición/refresh 401, health checks con skips y sync_docs."
     }
   ],
   "stats": {
-    "total_reviews": 4,
-    "last_review": "2026-07-10"
+    "total_reviews": 6,
+    "last_review": "2026-07-15"
   }
 }
