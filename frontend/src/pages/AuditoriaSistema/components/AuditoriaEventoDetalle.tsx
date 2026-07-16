@@ -12,6 +12,7 @@ import { Badge, Icon, MaterialCard as Card, Text } from '../../../components/ato
 import { Modal } from '../../../components/molecules';
 import type { AuditoriaEvento } from '../../../types/auditoria';
 import ComparacionAntesDespues from './ComparacionAntesDespues';
+import { humanizarAccionDetallada } from '../../ServicePortal/pages/AuditoriaIndicadores/utils/humanizer';
 
 interface Props {
   evento: AuditoriaEvento | null;
@@ -176,6 +177,16 @@ const AuditoriaEventoDetalle: React.FC<Props> = ({ evento, onCerrar }) => {
             {evento.datos_anteriores?.nombre != null && !evento.datos_nuevos?.nombre && (
               <CampoDetalle etiqueta="Nombre" valor={String(evento.datos_anteriores.nombre)} />
             )}
+          </div>
+          <div className="mt-4 col-span-2 sm:col-span-3">
+            <Text variant="caption" weight="bold" color="text-secondary" className="uppercase tracking-wider !text-[10px] mb-1 block">
+              Descripción de la acción
+            </Text>
+            <div className="p-3 bg-[var(--color-surface)] dark:bg-[var(--color-surface-hover)] border border-[var(--color-border-subtle)] rounded shadow-sm overflow-x-auto">
+              <Text variant="body2" className="whitespace-pre-wrap break-words font-mono text-[12px] text-[var(--color-text-primary)]">
+                {humanizarAccionDetallada(evento)}
+              </Text>
+            </div>
           </div>
         </section>
 

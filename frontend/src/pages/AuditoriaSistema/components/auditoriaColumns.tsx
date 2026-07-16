@@ -1,11 +1,11 @@
 import { Badge, Text } from '../../../components/atoms';
 import { DataTableColumn } from '../../../components/molecules/DataTable';
-import type { AuditoriaEvento, ResultadoAuditoria } from '../../../types/auditoria';
+import type { AuditoriaEvento } from '../../../types/auditoria';
 import {
   humanizarModulo,
-  humanizarAccionDetallada,
   humanizarResultado,
 } from '../../ServicePortal/pages/AuditoriaIndicadores/utils/humanizer';
+import { ActionCell } from './ActionCell';
 
 export const ACCIONES_OPCIONES = [
   'crear', 'actualizar', 'eliminar', 'consultar', 'exportar', 'login', 'logout', 'otro',
@@ -193,6 +193,7 @@ export function getAuditoriaColumns(): DataTableColumn<AuditoriaEvento>[] {
       key: 'modulo',
       label: 'Módulo / Acción',
       minWidth: '150px',
+      maxWidth: '220px',
       filterable: true,
       subFilters: [
         { key: 'modulo', label: 'Módulo' },
@@ -205,9 +206,7 @@ export function getAuditoriaColumns(): DataTableColumn<AuditoriaEvento>[] {
           <Text variant="body2" className="text-[var(--color-text-primary)] truncate">
             {humanizarModulo(row.modulo)}
           </Text>
-          <Text variant="caption" color="text-secondary" className="uppercase text-[10px] tracking-wider truncate" title={humanizarAccionDetallada(row)}>
-            {humanizarAccionDetallada(row)}
-          </Text>
+          <ActionCell row={row} />
         </div>
       ),
     },
@@ -260,7 +259,7 @@ export function getAuditoriaColumns(): DataTableColumn<AuditoriaEvento>[] {
         { key: 'resultado', label: 'Resultado' }
       ],
       render: (row) => (
-        <Badge variant={getResultColor(row.resultado) as any} size="sm">
+        <Badge variant={getResultColor(row.resultado) as "default" | "success" | "warning" | "error" | "info" | "primary"} size="sm" className="w-fit">
           {humanizarResultado(row.resultado, row.codigo_respuesta).toUpperCase()}
         </Badge>
       ),
@@ -285,7 +284,7 @@ export function getAuditoriaColumns(): DataTableColumn<AuditoriaEvento>[] {
         }
         return (
           <div className="flex flex-col gap-1 min-w-[150px]">
-            <Badge variant={getSeveridadColor(sev) as any} size="sm" className="w-fit font-bold">
+            <Badge variant={getSeveridadColor(sev) as "default" | "success" | "warning" | "error" | "info" | "primary"} size="sm" className="w-fit font-bold">
               {sev.toUpperCase()}
             </Badge>
             <div className="text-[10px] leading-tight text-[var(--color-text-secondary)]">
