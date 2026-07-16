@@ -46,7 +46,7 @@ describe('RegisterSidebar', () => {
 
         await waitFor(() => {
             expect(screen.getByText('¡Cuenta activada!')).toBeInTheDocument();
-            expect(screen.getByText(/Tu cuenta fue creada y habilitada correctamente/i)).toBeInTheDocument();
+            expect(screen.getByText(/Tu cuenta fue validada contra el ERP/i)).toBeInTheDocument();
         });
     });
 
