@@ -100,11 +100,14 @@ async def obtener_estadisticas_auditoria(
     _: Usuario = Depends(requiere_permiso_auditoria),
 ):
     """Retorna las estadísticas, KPIs y agrupaciones para el dashboard de auditoría."""
-    return await ServicioAuditoriaEstadisticas.obtener_estadisticas(
-        db,
-        fecha_desde=fecha_desde,
-        fecha_hasta=fecha_hasta
-    )
+    try:
+        return await ServicioAuditoriaEstadisticas.obtener_estadisticas(
+            db,
+            fecha_desde=fecha_desde,
+            fecha_hasta=fecha_hasta
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 from app.services.auditoria.ws_manager import auditoria_ws_manager
@@ -112,10 +115,12 @@ from app.services.auditoria.ws_manager import auditoria_ws_manager
 @router.websocket("/ws/dashboard")
 async def websocket_auditoria_dashboard(
     websocket: WebSocket,
-    token: Optional[str] = Query(None),
     db: AsyncSession = Depends(obtener_db)
 ):
     """Canal WebSocket para notificar actualizaciones al Dashboard de Auditoría"""
+    # 1. Extraer Token de subprotocols (evitando logs del query string)
+    subprotocols = websocket.scope.get("subprotocols", [])
+    token = subprotocols[0] if subprotocols else None
     # 1. Validar Token de Autenticación
     if not token:
         await websocket.close(code=1008, reason="Token faltante")
@@ -142,6 +147,7 @@ async def websocket_auditoria_dashboard(
         await websocket.close(code=1008, reason="Sin permiso para auditoría")
         return
 
+    await websocket.accept(subprotocol=token)
     await auditoria_ws_manager.connect(websocket)
     try:
         while True:

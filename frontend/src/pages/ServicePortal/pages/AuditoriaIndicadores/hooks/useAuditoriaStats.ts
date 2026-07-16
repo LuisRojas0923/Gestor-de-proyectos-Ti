@@ -96,14 +96,13 @@ export function useAuditoriaStats() {
 
         const conectar = () => {
             const token = localStorage.getItem('token');
-            const wsToken = token ? `?token=${token}` : '';
             const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
             const wsHost = window.location.host;
             const wsUrl = wsHost.includes('localhost')
-                ? `${wsProtocol}//localhost:8000/api/v2/auditoria/ws/dashboard${wsToken}`
-                : `${wsProtocol}//${wsHost}/api/v2/auditoria/ws/dashboard${wsToken}`;
+                ? `${wsProtocol}//localhost:8000/api/v2/auditoria/ws/dashboard`
+                : `${wsProtocol}//${wsHost}/api/v2/auditoria/ws/dashboard`;
 
-            socket = new WebSocket(wsUrl);
+            socket = new WebSocket(wsUrl, token ? [token] : []);
 
             socket.onmessage = (event) => {
                 try {
@@ -129,7 +128,10 @@ export function useAuditoriaStats() {
         conectar();
 
         return () => {
-            if (socket) socket.close();
+            if (socket) {
+                socket.onclose = null; // Prevenir reconexión tras desmontar
+                socket.close();
+            }
             if (timeoutId) clearTimeout(timeoutId);
         };
     }, []);
