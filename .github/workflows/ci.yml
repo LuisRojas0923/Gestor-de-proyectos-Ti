@@ -19,9 +19,9 @@ jobs:
       run: |
         cd backend_v2
         python -m pip install --upgrade pip
+        pip install -r requirements.txt
         pip install pytest pytest-asyncio pandas openpyxl
-        # En caso de necesitar más dependencias se instalan desde requirements.txt
     - name: Run Pytest
       run: |
         cd backend_v2
-        PYTHONPATH=. pytest tests/ -v
+        PYTHONPATH=. pytest tests/ ../testing/backend/ -v

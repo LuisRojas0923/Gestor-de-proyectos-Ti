@@ -155,9 +155,17 @@ class NominaService:
         import asyncio
         rows, summary, warnings_txt = await asyncio.to_thread(extractor_fn, archivos_binarios)
         summary.update({"mes": mes, "anio": anio})
+        
+        if not rows:
+            raise HTTPException(status_code=400, detail="El archivo provisto está vacío, no contiene datos válidos o su estructura es incorrecta. Abortando.")
 
         # 3. Transacción y relectura
+        from sqlalchemy import text
         try:
+            # Advisory lock para prevenir concurrencia sobre el mismo periodo y subcategoría
+            lock_name = f"nomina_{subcategoria}_{mes}_{anio}"
+            await session.execute(text("SELECT pg_advisory_xact_lock(hashtext(:lock_name))").bindparams(lock_name=lock_name))
+
             excepciones = await ExcepcionService.obtener_excepciones_activas(session, subcategoria)
             mapa_erp = await NominaService.get_mapa_erp(db_erp, rows, excepciones)
             
@@ -182,18 +190,7 @@ class NominaService:
                 session, archivo.id, mes, anio, rows, categoria, subcategoria_clean, mapa_erp, excepciones
             )
             
-            await session.commit()
-            
-        except Exception as e:
-            await session.rollback()
-            # Limpieza de archivo físico en caso de fallo
-            import os
-            if os.path.exists(ruta_almacenamiento):
-                os.remove(ruta_almacenamiento)
-            logger.error(f"Error procesando nómina. Rollback y limpieza ejecutados: {str(e)}")
-            raise HTTPException(status_code=500, detail=f"Error en procesamiento: {str(e)}")
-            
-        # 8. Formatear respuesta para el frontend (Compatible con múltiples versiones)
+            # 8. Formatear respuesta para el frontend (Compatible con múltiples versiones)
             filas_frontend = []
             warnings_detalle = []
             for r in registros:
@@ -262,6 +259,9 @@ class NominaService:
             })
 
             logger.info(f"ÉXITO: Procesados {len(registros)} registros para {subcategoria}")
+            
+            await session.commit()
+            
             # Retornar tanto 'filas' como 'rows' para máxima compatibilidad
             return {
                 "filas": filas_frontend,
@@ -274,8 +274,15 @@ class NominaService:
             
         except Exception as e:
             await session.rollback()
+            # Limpieza de archivo físico en caso de fallo
+            import os
+            if os.path.exists(ruta_almacenamiento):
+                try:
+                    os.remove(ruta_almacenamiento)
+                except:
+                    pass
             logger.error(f"FALLO CRÍTICO en flujo {subcategoria}: {str(e)}", exc_info=True)
-            raise e
+            raise HTTPException(status_code=500, detail=f"Error en procesamiento: {str(e)}")
     @staticmethod
     async def obtener_datos_periodo(
         session: AsyncSession,
