@@ -74,6 +74,10 @@ graphify-out/
 # Archivos cargados por el modulo de Nomina/Descuentos
 backend_v2/uploads/nomina/
 
+# Imagenes privadas generadas por asistencia y perfiles
+backend_v2/storage/asistencias/
+backend_v2/storage/perfiles/
+
 sesion.txt
 detalleactividades.txt
 implementation_plan.md
