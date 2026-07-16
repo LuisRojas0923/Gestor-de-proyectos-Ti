@@ -457,6 +457,53 @@ class ServicioAuth:
             except Exception:
                 pass
 
+    @staticmethod
+    async def validar_token_ws(
+        db: AsyncSession, token: str, modulo_requerido: Optional[str] = None
+    ) -> tuple[Optional[Usuario], Optional[str]]:
+        """
+        Validación canónica de tokens para WebSockets.
+        Verifica firmas, revocación de MCP y estado de inactividad del usuario.
+        Retorna (usuario, motivo_rechazo).
+        """
+        payload = ServicioAuth.obtener_payload_token(token)
+        if not payload:
+            return None, "Token inválido o expirado"
+
+        cedula = payload.get("sub")
+        if not cedula:
+            return None, "Token sin sujeto"
+
+        # Validación estricta para tokens MCP (evitar uso de sesiones revocadas)
+        if payload.get("token_type") == "mcp":
+            jti = payload.get("jti")
+            if not jti:
+                return None, "Token MCP sin jti"
+            from app.models.auth.usuario import Sesion
+            from app.utils_date import get_bogota_now
+            sesion = (
+                await db.execute(select(Sesion).where(Sesion.jti == jti, Sesion.tipo_sesion == "mcp"))
+            ).scalars().first()
+            if not sesion:
+                return None, "Token MCP revocado o expirado"
+            expira_naive = sesion.expira_en.replace(tzinfo=None) if sesion.expira_en else None
+            if sesion.fin_sesion is not None or (expira_naive and expira_naive < get_bogota_now()):
+                return None, "Token MCP revocado o expirado"
+
+        usuario = await ServicioAuth.obtener_usuario_por_cedula(db, cedula)
+        if not usuario:
+            return None, "Usuario no encontrado"
+
+        if not getattr(usuario, "esta_activo", True):
+            return None, "Usuario inactivo"
+
+        if modulo_requerido:
+            permisos = await ServicioAuth.obtener_permisos_por_rol(db, usuario.rol)
+            if modulo_requerido not in permisos:
+                return None, f"Sin permiso para {modulo_requerido}"
+
+        return usuario, None
+
     # ── Métodos delegados a módulos extraídos ──
     crear_analista_desde_erp = staticmethod(crear_analista_desde_erp)
     crear_usuario_portal_desde_erp = staticmethod(crear_usuario_portal_desde_erp)

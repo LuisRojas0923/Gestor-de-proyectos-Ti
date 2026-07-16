@@ -121,30 +121,15 @@ async def websocket_auditoria_dashboard(
     # 1. Extraer Token de subprotocols (evitando logs del query string)
     subprotocols = websocket.scope.get("subprotocols", [])
     token = subprotocols[0] if subprotocols else None
-    # 1. Validar Token de Autenticación
+
+    # 2. Validar Token de Autenticación de forma canónica
     if not token:
         await websocket.close(code=1008, reason="Token faltante")
         return
 
-    payload = ServicioAuth.obtener_payload_token(token)
-    if not payload:
-        await websocket.close(code=1008, reason="Token inválido")
-        return
-
-    cedula = payload.get("sub")
-    if not cedula:
-        await websocket.close(code=1008, reason="Token sin cedula")
-        return
-
-    # 2. Validar RBAC para el módulo de auditoría
-    usuario = await ServicioAuth.obtener_usuario_por_cedula(db, cedula)
+    usuario, error_reason = await ServicioAuth.validar_token_ws(db, token, modulo_requerido=MODULO_AUDITORIA)
     if not usuario:
-        await websocket.close(code=1008, reason="Usuario no encontrado")
-        return
-
-    permisos = await ServicioAuth.obtener_permisos_por_rol(db, usuario.rol)
-    if MODULO_AUDITORIA not in permisos:
-        await websocket.close(code=1008, reason="Sin permiso para auditoría")
+        await websocket.close(code=1008, reason=error_reason)
         return
 
     await websocket.accept(subprotocol=token)
