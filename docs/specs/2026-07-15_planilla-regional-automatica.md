@@ -1,8 +1,9 @@
 # Especificacion: Planilla Regional automatica
 
 **Fecha:** 2026-07-15
-**Estado:** Propuesta para aprobacion
+**Estado:** Aprobada contractualmente; pendiente de SHA y autorización de Fase 1P
 **Modulo:** Novedades de Nomina / Horas Extras
+**Decisiones y plan:** `docs/decisions/ADR-009-planilla-regional-item-versionado.md` y `docs/reviews/plans/2026-07-16_planilla-regional-automatica-ejecucion.md`. Seguridad operativa: `docs/specs/2026-07-16_planilla-regional-seguridad-operativa.md`.
 
 ## 1. Objetivo
 
@@ -25,7 +26,7 @@ Las filas se generan desde el Planificador semanal al guardar un borrador. Las c
 - Si cambia novedad u OT/CC, la fila anterior se archiva y la nueva recibe otro `ITEM`.
 - Inicialmente el cumplimiento proviene del horario registrado. La fuente se guarda para permitir integrar biometria en una fase posterior.
 - `SALARIO` usa las horas pactadas del dia.
-- `CMP`, `VAC`, `INC`, `LIC`, `REM`, `AUS`, `PNR`, `SAN`, `RET`, `ARL` y `DXT` reemplazan `SALARIO` ese dia.
+- `CMP`, `VAC`, `INC`, `LIC`, `REM`, `AUS`, `PNR`, `SAN`, `RETIRO`, `ARL` y `DEV_TARDANZA` reemplazan `SALARIO` ese día.
 - `BASE HORA = SALARIO / divisor legal vigente`, resuelto desde parametros del backend.
 - Varias OT/CC se prorratean segun horas asignadas. La suma debe cuadrar con las horas del dia; de lo contrario se bloquea el guardado.
 - Sin OT/CC explicita se usa el centro de costo contractual del ERP.
@@ -39,7 +40,7 @@ Las filas se generan desde el Planificador semanal al guardar un borrador. Las c
 - Las cargas manuales no pueden solaparse con fechas cubiertas por la generacion automatica.
 - Los historicos incompletos muestran los campos disponibles y dejan vacios los datos que el extractor anterior no conservo.
 - Un registro oficial no se modifica: un cambio posterior crea una correccion BORRADOR con nuevo ITEM.
-- Los codigos de salida son parametrizables; los conceptos internos del motor permanecen estables.
+- Los códigos de salida son parametrizables; `RETIRO` y `DEV_TARDANZA` producen inicialmente `RET` y `DXT` sin reinterpretar los conceptos históricos homónimos.
 
 ## 3. Grano De Datos
 
@@ -73,11 +74,13 @@ Agregar a `nomina_registros_normalizados`:
 |---|---|---|
 | `item_planilla` | `BIGINT NULL` | ITEM visible y permanente para planillas regionales. |
 | `origen_planilla` | `VARCHAR(20)` | `ARCHIVO`; permite union y evita borrado cruzado. |
-| `clave_planilla` | `VARCHAR(180) NULL` | Identidad agregada legacy para conservar ITEM en recargas. |
+| `clave_planilla` | `CHAR(64) NULL` | SHA-256 de identidad legacy canónica previa al enriquecimiento ERP. |
+| `huella_planilla` | `CHAR(64) NULL` | SHA-256 del contenido normalizado para detectar cambios reales. |
+| `calidad_clave_planilla` | `VARCHAR(30) NULL` | `CRUDA` o `PERSISTIDA_NO_RECONCILIABLE`. |
 | `estado_planilla` | `VARCHAR(20)` | `CONFIRMADO`, `ARCHIVADO` o `REEMPLAZADO`. |
 | `activo_planilla` | `BOOLEAN` | Excluye versiones legacy archivadas sin perder ITEM. |
 
-`item_planilla` es unico cuando no es NULL. `clave_planilla` tiene unicidad parcial `WHERE activo_planilla`. Las recargas manuales comparan la clave legacy `(periodo, cedula, empresa, sucursal, novedad)`. Una recarga identica conserva ITEM. Un cambio crea una nueva version/ITEM y marca la anterior `REEMPLAZADO`; una fila ausente queda `ARCHIVADO`. Toda quincena cuyo inicio sea igual o posterior a `FECHA_ACTIVACION_PLANILLA_REGIONAL` queda bloqueada para carga manual.
+`item_planilla` es único cuando no es NULL. La identidad preferida usa datos crudos previos a ERP. Una recarga con hashes iguales conserva ITEM; contenido distinto crea versión. Históricos sin crudo reciben ITEM pero quedan `PERSISTIDA_NO_RECONCILIABLE`: nunca se emparejan ni archivan automáticamente hasta remediación auditada. Solo un reemplazo completo confirmado archiva identidades `CRUDA` ausentes. Toda quincena que interseque activación bloquea carga manual.
 
 ### 4.3 Filas Automaticas
 
@@ -111,146 +114,11 @@ La fecha efectiva se persiste en `nomina_planilla_regional_configuracion`, singl
 
 ### 4.4 DDL Contractual
 
-La migracion implementa el siguiente contrato PostgreSQL completo:
+El contrato PostgreSQL completo se mantiene en `docs/specs/2026-07-16_planilla-regional-ddl.md`. Incluye tablas, columnas del Planificador, auditoría dedicada, índices, constraints y triggers idempotentes.
 
-```sql
-CREATE SEQUENCE IF NOT EXISTS nomina_planilla_regional_item_seq AS BIGINT;
+La migración converge desde tabla ausente, tabla parcial o definición anterior: inspecciona `pg_catalog`, agrega o corrige cada objeto de forma nombrada y nunca confía únicamente en `CREATE TABLE IF NOT EXISTS`.
 
-CREATE TABLE IF NOT EXISTS nomina_planilla_regional_item (
-    item BIGINT PRIMARY KEY DEFAULT nextval('nomina_planilla_regional_item_seq'),
-    origen VARCHAR(20) NOT NULL CHECK (origen IN ('ARCHIVO', 'PLANIFICADOR')),
-    registro_uuid UUID NOT NULL UNIQUE,
-    creado_en TIMESTAMPTZ NOT NULL DEFAULT now(),
-    UNIQUE (item, origen)
-);
-
-ALTER TABLE nomina_registros_normalizados
-    ADD COLUMN IF NOT EXISTS item_planilla BIGINT,
-    ADD COLUMN IF NOT EXISTS origen_planilla VARCHAR(20),
-    ADD COLUMN IF NOT EXISTS clave_planilla VARCHAR(180),
-    ADD COLUMN IF NOT EXISTS estado_planilla VARCHAR(20),
-    ADD COLUMN IF NOT EXISTS activo_planilla BOOLEAN;
-
-CREATE UNIQUE INDEX IF NOT EXISTS ux_nomina_normalizado_item_planilla
-    ON nomina_registros_normalizados (item_planilla)
-    WHERE item_planilla IS NOT NULL;
-CREATE UNIQUE INDEX IF NOT EXISTS ux_nomina_normalizado_clave_activa
-    ON nomina_registros_normalizados (clave_planilla)
-    WHERE activo_planilla IS TRUE;
-
-CREATE TABLE IF NOT EXISTS nomina_planilla_regional_fila (
-    id UUID PRIMARY KEY,
-    item BIGINT NOT NULL UNIQUE,
-    origen VARCHAR(20) NOT NULL DEFAULT 'PLANIFICADOR' CHECK (origen = 'PLANIFICADOR'),
-    version INTEGER NOT NULL CHECK (version > 0),
-    activo BOOLEAN NOT NULL DEFAULT TRUE,
-    reemplaza_item BIGINT NULL,
-    fuente_cumplimiento VARCHAR(20) NOT NULL CHECK (fuente_cumplimiento IN ('HORARIO', 'BIOMETRIA')),
-    estado VARCHAR(20) NOT NULL CHECK (estado IN ('BORRADOR', 'CONFIRMADO', 'PAGADO', 'COMPENSADO', 'ANULADO', 'ARCHIVADO', 'REEMPLAZADO')),
-    anio_calendario INTEGER NOT NULL,
-    mes INTEGER NOT NULL CHECK (mes BETWEEN 1 AND 12),
-    anio_iso INTEGER NOT NULL,
-    semana_iso INTEGER NOT NULL CHECK (semana_iso BETWEEN 1 AND 53),
-    quincena VARCHAR(2) NOT NULL CHECK (quincena IN ('1Q', '2Q')),
-    cedula VARCHAR(50) NOT NULL,
-    empleado VARCHAR(200) NOT NULL,
-    aplica_he BOOLEAN NOT NULL,
-    empresa VARCHAR(150) NOT NULL,
-    sucursal VARCHAR(150) NOT NULL,
-    fecha DATE NOT NULL,
-    ubicacion VARCHAR(2) NOT NULL CHECK (ubicacion IN ('OT', 'CC')),
-    ot_cc VARCHAR(50) NOT NULL,
-    sub_subc VARCHAR(50) NOT NULL DEFAULT '',
-    concepto_interno VARCHAR(20) NOT NULL CHECK (concepto_interno IN
-        ('SALARIO','HED','HEN','HF','HEFD','HEFN','RN','RF','CMP','VAC','INC','LIC','REM','AUS','PNR','SAN','RET','ARL','DXT')),
-    codigo_salida_snapshot VARCHAR(50) NOT NULL,
-    cantidad NUMERIC(10,4) NOT NULL CHECK (cantidad >= 0),
-    cantidad_horas NUMERIC(10,4) NOT NULL CHECK (cantidad_horas >= 0),
-    salario NUMERIC(16,2) NOT NULL CHECK (salario >= 0),
-    base_hora NUMERIC(16,6) NOT NULL CHECK (base_hora >= 0),
-    divisor_hora_snapshot NUMERIC(10,4) NOT NULL CHECK (divisor_hora_snapshot > 0),
-    parametro_vigente_desde_snapshot DATE NOT NULL,
-    parametro_vigente_hasta_snapshot DATE NULL,
-    especialidad_ot VARCHAR(150),
-    cliente VARCHAR(200),
-    observaciones TEXT,
-    responsable_id VARCHAR(50) NOT NULL REFERENCES usuarios(id),
-    responsable_nombre VARCHAR(200) NOT NULL,
-    encargados VARCHAR(200) NOT NULL,
-    calculo_id INTEGER REFERENCES nomina_calculo_semanal(id),
-    creado_en TIMESTAMPTZ NOT NULL DEFAULT now(),
-    actualizado_en TIMESTAMPTZ NOT NULL DEFAULT now(),
-    confirmado_en TIMESTAMPTZ,
-    FOREIGN KEY (item, origen)
-        REFERENCES nomina_planilla_regional_item (item, origen),
-    FOREIGN KEY (reemplaza_item)
-        REFERENCES nomina_planilla_regional_item (item),
-    CHECK (anio_calendario = EXTRACT(YEAR FROM fecha)),
-    CHECK (mes = EXTRACT(MONTH FROM fecha)),
-    CHECK (anio_iso = EXTRACT(ISOYEAR FROM fecha)),
-    CHECK (semana_iso = EXTRACT(WEEK FROM fecha)),
-    CHECK (quincena = CASE WHEN EXTRACT(DAY FROM fecha) <= 15 THEN '1Q' ELSE '2Q' END),
-    CHECK ((activo AND estado IN ('BORRADOR', 'CONFIRMADO', 'PAGADO', 'COMPENSADO'))
-        OR (NOT activo AND estado IN ('ARCHIVADO', 'REEMPLAZADO', 'ANULADO')))
-);
-
-CREATE UNIQUE INDEX IF NOT EXISTS ux_planilla_borrador_identidad
-    ON nomina_planilla_regional_fila
-       (cedula, fecha, ubicacion, ot_cc, sub_subc, concepto_interno)
-    WHERE activo IS TRUE AND estado = 'BORRADOR';
-
-CREATE INDEX IF NOT EXISTS ix_planilla_periodo
-    ON nomina_planilla_regional_fila (anio_calendario, mes, quincena);
-CREATE INDEX IF NOT EXISTS ix_planilla_cedula ON nomina_planilla_regional_fila (cedula);
-CREATE INDEX IF NOT EXISTS ix_planilla_fecha ON nomina_planilla_regional_fila (fecha);
-CREATE INDEX IF NOT EXISTS ix_planilla_estado ON nomina_planilla_regional_fila (estado);
-CREATE INDEX IF NOT EXISTS ix_planilla_origen ON nomina_planilla_regional_fila (origen);
-
-ALTER TABLE nomina_registros_normalizados
-    ADD CONSTRAINT ck_normalizado_origen_planilla
-        CHECK (origen_planilla IS NULL OR origen_planilla = 'ARCHIVO'),
-    ADD CONSTRAINT ck_normalizado_estado_planilla
-        CHECK (estado_planilla IS NULL OR estado_planilla IN ('CONFIRMADO', 'ARCHIVADO', 'REEMPLAZADO')),
-    ADD CONSTRAINT ck_normalizado_item_coherente
-        CHECK ((item_planilla IS NULL AND origen_planilla IS NULL AND clave_planilla IS NULL
-                AND estado_planilla IS NULL AND activo_planilla IS NULL)
-            OR (item_planilla IS NOT NULL AND origen_planilla = 'ARCHIVO'
-                AND clave_planilla IS NOT NULL AND estado_planilla IS NOT NULL
-                AND activo_planilla IS NOT NULL)),
-    ADD CONSTRAINT ck_normalizado_activo_estado
-        CHECK (activo_planilla IS NULL OR (activo_planilla AND estado_planilla = 'CONFIRMADO')
-            OR (NOT activo_planilla AND estado_planilla IN ('ARCHIVADO', 'REEMPLAZADO'))),
-    ADD CONSTRAINT fk_normalizado_item_origen
-        FOREIGN KEY (item_planilla, origen_planilla)
-        REFERENCES nomina_planilla_regional_item (item, origen);
-
-CREATE TABLE nomina_planilla_regional_configuracion (
-    id BOOLEAN PRIMARY KEY DEFAULT TRUE CHECK (id),
-    fecha_activacion DATE NOT NULL CHECK (EXTRACT(DAY FROM fecha_activacion) IN (1, 16)),
-    activada BOOLEAN NOT NULL DEFAULT FALSE,
-    activada_por VARCHAR(50) REFERENCES usuarios(id),
-    activada_en TIMESTAMPTZ,
-    CHECK ((NOT activada AND activada_por IS NULL AND activada_en IS NULL)
-        OR (activada AND activada_por IS NOT NULL AND activada_en IS NOT NULL))
-);
-
-CREATE EXTENSION IF NOT EXISTS btree_gist;
-CREATE TABLE nomina_planilla_regional_codigo (
-    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    concepto_interno VARCHAR(20) NOT NULL CHECK (concepto_interno IN
-        ('SALARIO','HED','HEN','HF','HEFD','HEFN','RN','RF','CMP','VAC','INC','LIC','REM','AUS','PNR','SAN','RET','ARL','DXT')),
-    codigo_salida VARCHAR(50) NOT NULL,
-    vigente_desde DATE NOT NULL,
-    vigente_hasta DATE,
-    creado_por VARCHAR(50) NOT NULL REFERENCES usuarios(id),
-    creado_en TIMESTAMPTZ NOT NULL DEFAULT now(),
-    CHECK (vigente_hasta IS NULL OR vigente_hasta > vigente_desde),
-    EXCLUDE USING gist
-        (concepto_interno WITH =, daterange(vigente_desde, vigente_hasta, '[)') WITH &&)
-);
-```
-
-Los `ALTER TABLE ... ADD CONSTRAINT` se ejecutan tras el backfill mediante bloques idempotentes que consultan `pg_constraint`. Un trigger `BEFORE UPDATE OR DELETE` de configuracion rechaza cambios cuando `OLD.activada`; la unica transicion permitida es `FALSE -> TRUE`. En codigos, un trigger solo permite cerrar una vigencia abierta sin cambiar concepto, codigo, inicio ni auditoria; prohibe DELETE y cualquier otra mutacion. La misma funcion transaccional cierra la vigencia y crea la sucesora. La migracion valida constraints, indices y triggers contra `pg_catalog`; SQLModel no es la fuente de verdad del DDL.
+Triggers separados impiden modificar ITEM/origen tanto en el registro global como en `nomina_registros_normalizados` y `nomina_planilla_regional_fila`. Configuración solo admite `FALSE -> TRUE`; códigos solo permite cerrar una vigencia dentro de la función que crea su sucesora. El runtime verifica `btree_gist`, pero nunca instala extensiones.
 
 ## 5. Contrato De Las Columnas
 
@@ -283,7 +151,7 @@ Las filas legacy activas se proyectan con su `estado_planilla` (`CONFIRMADO` por
 
 ## 5.1 Parametrizacion De Codigos
 
-Los conceptos internos son constantes (`SALARIO`, `HED`, `HEN`, `HF`, `HEFD`, `HEFN`, `RN`, `RF`, `CMP`, `VAC`, `INC`, `LIC`, `REM`, `AUS`, `PNR`, `SAN`, `RET`, `ARL`, `DXT`). La salida usa `nomina_planilla_regional_codigo`, una tabla versionada por vigencia con exclusion de intervalos solapados. Todos los conceptos tienen codigo de salida configurable; la tabla siguiente destaca los calculados por horario:
+Los conceptos internos nuevos son constantes (`SALARIO`, `HED`, `HEN`, `HF`, `HEFD`, `HEFN`, `RN`, `RF`, `CMP`, `VAC`, `INC`, `LIC`, `REM`, `AUS`, `PNR`, `SAN`, `RETIRO`, `ARL`, `DEV_TARDANZA`). La salida usa `nomina_planilla_regional_codigo`, versionada por vigencia. Los conceptos históricos `RET` (retardo) y `DXT` (descanso por tratamiento) permanecen sin cambios y nunca se convierten implícitamente.
 
 | Campo visible de configuracion | Valor inicial |
 |---|---|
@@ -297,30 +165,30 @@ Los conceptos internos son constantes (`SALARIO`, `HED`, `HEN`, `HF`, `HEFD`, `H
 | Codigo de recargo festivo | `RF` |
 | Codigo de compensatorio | `CMP` |
 
-Las novedades `VAC`, `INC`, `LIC`, `REM`, `AUS`, `PNR`, `SAN`, `RET`, `ARL` y `DXT` se siembran con el mismo codigo interno como valor de salida inicial. `RET` significa retiro de la empresa, `ARL` accidente laboral y `DXT` devuelto por tardanza. Las tres se registran en dias crudos, sin distribuir por OT y atribuidas al CC contractual para respetar el contrato de la planilla; el sistema de nomina destino aplica su liquidacion legal.
+Las novedades mantienen inicialmente su código interno como salida, excepto `RETIRO -> RET` y `DEV_TARDANZA -> DXT`. Junto con `ARL` se registran en días crudos, sin distribuir por OT y atribuidas al CC contractual; el sistema de nómina destino aplica su liquidación legal.
 
-La migracion corrige idempotentemente el catalogo operativo existente: `RET` pasa de retardo a retiro de empresa con unidad `DIAS`, categoria `AUSENCIA` y subcategoria `RETIRO`; `DXT` pasa de descanso por tratamiento a devuelto por tardanza con unidad `DIAS`, categoria `AUSENCIA` y subcategoria `TARDANZA`. `seed_horas_extras.py` adopta esas mismas definiciones para instalaciones nuevas. Planilla Regional no usa `factor_hora_ordinaria` para liquidarlas ni calcula efectos legales.
+La migración no actualiza ni renombra `RET`/`DXT`. Inserta `RETIRO` y `DEV_TARDANZA` como conceptos nuevos de unidad `DIAS`; el seed adopta ambas definiciones para instalaciones nuevas. Antes y después se verifica que eventos históricos con `RET`/`DXT` conserven categoría, unidad y descripción. Planilla Regional no usa `factor_hora_ordinaria` para liquidarlos ni calcula efectos legales.
 
 La pantalla de configuracion presenta los codigos junto a `Inicio jornada nocturna` y `Fin jornada nocturna`. Cambiar un codigo cierra la vigencia anterior y crea otra; solo afecta nuevas salidas. Cada fila guarda `concepto_interno`, `codigo_salida_snapshot`, divisor legal aplicado y vigencias usadas, por lo que no reinterpreta historicos.
 
 ## 6. Generacion Y Prorrateo
 
 1. Resolver empleados y datos contractuales ERP en lote, fuera de la transaccion PostgreSQL; prohibido N+1.
-2. Calcular la fecha real de cada dia de la semana ISO.
+2. Segmentar en medianoche y calcular la fecha real de cada tramo antes de resolver activación, quincena, vigencia o concepto.
 3. Validar jornada y distribucion OT/CC antes de persistir.
 4. Generar `SALARIO` si existe jornada y no hay novedad de reemplazo.
 5. Generar conceptos de HE/recargo usando un clasificador diario unico compartido por borrador, precalculo y confirmacion: `HED`, `HEN`, `HF`, `HEFD`, `HEFN`, `RN`, `RF`.
 6. Mantener novedades de ausencia/compensacion con su unidad correspondiente.
-7. Prorratear `cantidad` y `cantidad_horas` por `horas_ot / horas_totales_asignadas`; salario mensual y base hora se repiten como snapshots informativos, no se prorratean.
+7. Convertir porcentajes existentes a horas con `horas_pactadas * porcentaje / 100`, validarlos y prorratear `cantidad`/`cantidad_horas`; salario y base hora se repiten como snapshots.
 8. Redondear a cuatro decimales con `ROUND_HALF_UP` y aplicar el residuo a la ultima asignacion ordenada por `(ubicacion, ot_cc, sub_subc)`.
 9. Si no hay OT, crear una distribucion unica al CC contractual.
 10. Usar advisory lock por empleado/semana, savepoint por empleado y upsert PostgreSQL para evitar versiones concurrentes.
 11. Upsert de identidad BORRADOR sin cambiar ITEM; archivar identidades que desaparecieron.
 12. Si existe una version oficial, crear correccion BORRADOR con nuevo ITEM. Al confirmarla, la anterior pasa a `REEMPLAZADO` y queda almacenada para auditoria.
 
-`guardar_borrador_plan`, `confirmar_plan` y los workflows de pago/compensacion/anulacion se refactorizan para que el orquestador exterior sea el unico propietario de `commit`/`rollback`. Invocan respectivamente `sincronizar_filas_sin_commit`, `confirmar_filas_sin_commit` y `transicionar_filas_sin_commit`; estos hooks solo usan `flush` y savepoints y tienen prohibido ejecutar `commit`.
+`guardar_borrador_plan`, `confirmar_plan` y los workflows de pago/compensación/anulación se refactorizan para que el orquestador exterior sea el único propietario de `commit`/`rollback`. Todos sus callees, incluido costos OT, quedan libres de commits profundos; los hooks solo usan `flush` y savepoints.
 
-La obtencion de ITEM y el alta de la fila ocurren en una sola transaccion. Un `IntegrityError` por concurrencia relee la version ganadora bajo lock; nunca reserva otro ITEM para la misma version logica.
+La obtención de ITEM y el alta ocurren en una transacción. Ante `IntegrityError`, el código sale y revierte el savepoint fallido antes de releer la versión ganadora bajo lock; nunca continúa sobre una transacción abortada.
 
 Si salario, contrato activo o centro de costo de respaldo no pueden resolverse, el empleado queda en error y no genera filas incompletas.
 
@@ -347,9 +215,9 @@ La confirmacion actualiza `calculo_id`, estado y reemplazos dentro del mismo sav
 POST /api/v2/novedades-nomina/planillas-regionales/{quincena}/consultar
 ```
 
-El body contiene arrays multivalor para `estado`, `origen`, `empresa`, `sucursal`, `novedad` y filtros opcionales de fecha/identificador opaco, ademas de `limit`, `offset`, `orden`, `direccion` y busqueda global. La cedula cruda no viaja en URL.
+El body tipado contiene período, cursor, orden, búsqueda y filtros por las 22 columnas; `quincena` existe solo en el path. La cédula cruda no viaja en URL.
 
-Las facetas se calculan despues de aplicar alcance y filtros base, incluyen conteos, soportan busqueda remota y limitan valores de alta cardinalidad. La respuesta incluye filas, total, facetas, resumen y advertencias. Debe usar `Cache-Control: no-store, private` en exito y error.
+La respuesta de consulta incluye filas, total, cursores, resumen y advertencias, nunca facetas. `POST /planillas-regionales/{quincena}/faceta` calcula únicamente la faceta activa después de alcance y filtros base. Éxitos y errores usan `Cache-Control: no-store, private`.
 
 ### Exportacion oficial
 
@@ -367,23 +235,9 @@ POST /api/v2/novedades-nomina/planillas-regionales/{quincena}/exportar
 
 ### Contrato Tipado De Consulta
 
-`PlanillaRegionalConsultaIn`:
+El contrato completo de proyección, filtros por las 22 columnas, faceta remota, orden estable, paginación, carreras y accesibilidad está en `docs/specs/2026-07-16_planilla-regional-consulta-tabla.md`.
 
-- `mes: int`, `anio: int`, `limit: 1..100`, `offset >= 0`.
-- `estados`, `origenes`, `empresas`, `sucursales`, `novedades`: listas de hasta 50 valores.
-- `fecha_desde`, `fecha_hasta`, `item`, `busqueda` de maximo 100 caracteres.
-- `orden`: allowlist de columnas; `direccion`: `asc|desc`.
-- `faceta_campo` opcional y `faceta_busqueda` para buscar valores remotos, maximo 100 resultados.
-
-`PlanillaRegionalConsultaOut`:
-
-- `filas: PlanillaRegionalFilaRead[]`.
-- `total`, `limit`, `offset`.
-- `facetas: Record[campo, [{valor, conteo}]]`.
-- `resumen: {filas, empleados, horas, dias}` calculado despues del alcance.
-- `advertencias: [{codigo, mensaje}]` sin PII.
-
-El endpoint de exportacion recibe el mismo schema de filtros sin `limit/offset`, devuelve `Content-Disposition` y limita a 50.000 filas. Rate limit inicial: 5 exportaciones por minuto por usuario.
+Consulta y exportación comparten el mismo objeto `filtros`; exportación omite paginación/faceta, devuelve `Content-Disposition` y limita a 50.000 filas. La consulta normal no calcula facetas: el cliente solicita únicamente la faceta activa.
 
 ### Configuracion
 
@@ -404,38 +258,42 @@ Registrar en el manifiesto:
 - `nomina_horas_extras.planilla_regional.salario.consultar`.
 - `nomina_horas_extras.planilla_regional.cargar`.
 - `nomina_horas_extras.planilla_regional.configurar`.
+- `nomina_novedades.tabla_maestra.generar`.
+- `nomina_novedades.exportar_solid`.
 
-La consulta exige autenticacion y permiso `consultar`. El alcance por cedula se aplica antes de union, facetas, resumen, paginacion y exportacion; un alcance vacio devuelve cero filas. Sin permiso salarial se omiten `SALARIO` y `BASE HORA` del JSON y las celdas muestran `Restringido`. La exportacion exige la interseccion de consultar, exportar y salario. La carga manual exige `cargar`. Se crea una dependencia require-all; no se reutiliza el helper OR actual.
+Las rutas nuevas y ramas category-aware de Planilla Regional exigen autenticación y `nomina_novedades`. Consulta requiere `consultar`; carga `consultar + cargar`; exportación `consultar + exportar + salario.consultar`. El alcance se materializa antes de unión, búsqueda, facetas, resumen, paginación y exportación; `set()` devuelve cero y solo `None` representa bypass admin. El hardening global de categorías ajenas es prerrequisito separado y no se mezcla en este diff.
 
-El adaptador ERP usa `ERP_PLANILLA_DATABASE_URL`, engine y sesion exclusivos, creados/cerrados dentro del worker, transaccion `READ ONLY`, timeout y consultas SELECT allowlisted. Produccion falla cerrado si esa DSN no corresponde a una credencial dedicada de solo lectura. Se actualizan `config.py`, `database.py`, `.env.example` y archivos Compose. No se cachean salarios fuera del request ni se guardan datos de nomina en almacenamiento del navegador.
+El adaptador ERP usa `ERP_PLANILLA_DATABASE_URL`, engine y sesión exclusivos, transacción `READ ONLY`, TLS, timeout y SELECT allowlisted. `PlanillaRegionalSettings` es el SSOT aislado de la funcionalidad, sin instanciar configuraciones globales ni fallback. Producción verifica usuario y privilegios. No se cachean salarios fuera del request ni se guardan datos de nómina en el navegador.
 
-La auditoria append-only registra actor interno, accion, resultado, cantidad, permisos efectivos, correlation ID y HMAC de filtros con clave separada. No registra cedulas, nombres, salarios, observaciones, query strings ni contenido XLSX. Accesos por ITEM resuelven ITEM a cedula y responden 404 uniforme si no existe o no esta autorizado.
+La auditoría dedicada registra un DTO allowlisted con actor, acción, `estado_evento`, cantidad, permisos, correlation ID, `kid` y HMAC-SHA256. El middleware genérico excluye estas rutas y no captura bodies. No registra PII/XLSX. Exportación, carga, configuración y denegaciones fallan cerrado; consultas de solo lectura emiten alerta sin PII.
 
-Los endpoints legacy `datos`, `preview`, archivos, historial, `subcategorias/{subcat}`, `subcategorias/resumen` y `exportar-solid` quedan autenticados, con RBAC, alcance, `no-store` y errores saneados; no devuelven `str(e)`. La descarga del XLSX original no puede filtrarse por cedula y por ello exige simultaneamente `cargar` y rol administrativo. El resumen y exportar-solid aplican alcance antes de agregar/exportar.
+Cuando operan sobre subcategorías Planilla Regional, los endpoints legacy `datos`, `preview`, archivos, historial y resumen aplican autenticación, RBAC, alcance, `no-store` y errores saneados. Tabla Maestra/Solid usan permisos dedicados. Categorías ajenas conservan contrato durante este diff y su hardening global es prerrequisito separado.
 
 Matriz obligatoria para solicitudes cuya categoria/subcategoria sea Planilla Regional:
 
 | Metodo y ruta | Permisos require-all | Alcance y tratamiento |
 |---|---|---|
-| `GET planillas_regionales_1q|2q/datos` | `consultar` | Alcance antes de filas/resumen; sin permiso salario omite ambos campos. |
-| `POST planillas_regionales_1q|2q/preview` | `consultar + cargar` | Valida alcance de todas las cedulas antes de persistir. |
-| `POST /archivos` | `cargar` | Solo admite categoria/subcategoria autorizada y limites de archivo. |
-| `POST /archivos/{id}/procesar` | `consultar + cargar` | Resuelve primero categoria del archivo y luego autoriza. |
-| `GET /archivos/{id}/preview` | `consultar + cargar + rol admin` | El original no es segmentable; no se entrega a gestores parciales. |
-| `GET /archivos/{id}/descargar` | `cargar + rol admin` | Descarga original completa, auditada y `no-store`. |
+| `GET planillas_regionales_1q|2q/datos` | `consultar` | Alcance previo; sin permiso salario devuelve ambas claves en `null`. |
+| `POST planillas_regionales_1q|2q/preview` | `consultar + cargar + salario.consultar` | Valida alcance; preview no persiste ni archiva. |
+| `POST /archivos` | `consultar + cargar + salario.consultar` | Solo admite categoría/subcategoría autorizada y límites de archivo. |
+| `POST /archivos/{id}/procesar` | `consultar + cargar + salario.consultar` | Resuelve primero categoría del archivo y luego autoriza. |
+| `GET /archivos/{id}/preview` | `consultar + cargar + salario.consultar + rol admin` | El original no es segmentable; no se entrega a gestores parciales. |
+| `GET /archivos/{id}/descargar` | `consultar + cargar + salario.consultar + rol admin` | Descarga original completa, auditada y `no-store`. |
 | `GET /subcategorias/{subcat}` | `consultar` | Alcance antes de filas, totales y paginacion. |
-| `GET /subcategorias/resumen` | `consultar` | Solo agrega las cedulas autorizadas. |
+| `GET /subcategorias/resumen` | `consultar` | Solo agrega cédulas autorizadas y omite totales monetarios sin permiso salarial. |
 | `GET /historial` | `consultar` | Alcance previo; versiones inactivas solo para usuarios autorizados. |
-| `POST /exportar-solid` | `consultar + exportar + salario.consultar` | Alcance y allowlist antes de generar salida. |
-| `POST planillas-regionales/{q}/consultar` | `consultar` | Alcance previo; salario omitido sin permiso salarial. |
+| `POST /exportar-solid` | `nomina_novedades + nomina_novedades.exportar_solid` | Alcance y auditoría antes de generar salida mensual. |
+| `GET /tabla-maestra/validar` | permiso base | Solo disponibilidad, sin PII ni valores. |
+| `GET /tabla-maestra/generar` | `nomina_novedades + nomina_novedades.tabla_maestra.generar` | Alcance antes de filas y agregados. |
+| `POST planillas-regionales/{q}/consultar` | `consultar` | Alcance previo; salario/base hora presentes en `null` sin permiso. |
 | `POST planillas-regionales/{q}/exportar` | `consultar + exportar + salario.consultar` | Alcance previo y Excel oficial. |
 | `GET/POST planillas-regionales/configuracion/*` | `configurar` | Solo administradores funcionales; auditoria append-only. |
 
-Las rutas genericas conservan su autorizacion actual para otras categorias; la dependencia category-aware añade esta matriz cuando detecta `PLANILLAS REGIONALES 1Q/2Q`.
+En rutas compartidas, la rama Planilla exige permiso base/específicos después de derivar subcategoría desde allowlist canónica; las demás ramas no cambian. Nunca se confía en categoría enviada por cliente. La activación queda bloqueada hasta cerrar el hardening global separado o demostrar que ninguna ruta compartida permite eludir esta rama.
 
-`PLANILLA_AUDIT_HMAC_KEY` es un secreto independiente de minimo 32 bytes, obligatorio y fail-closed en produccion; admite clave actual/anterior durante rotacion y nunca reutiliza JWT. Se incorpora a config, `.env.example` y Compose.
+`PLANILLA_AUDIT_HMAC_KID` selecciona una clave de mínimo 32 bytes en el gestor externo de secretos. El keyring de verificación conserva claves retiradas por `kid` durante la retención de auditoría; ninguna reutiliza JWT ni se almacena en PostgreSQL, repr o logs. Producción falla cerrado si firma o keyring son inválidos.
 
-La carga manual acepta maximo 5 archivos `.xlsm`/`.xlsx`, 20 MB por archivo y 50 MB por request; valida extension, MIME, firma ZIP, cantidad/tamaño descomprimido, timeout de procesamiento y rechaza ZIP bombs. Los archivos se almacenan fuera de rutas servidas publicamente. `backend_v2/storage/` queda excluido de Git y nunca forma parte del commit.
+Límites, mounts, cuarentena, worker aislado, antimalware, cuotas independientes por usuario/IP, 404 uniforme, eventos de auditoría y rollout RBAC se definen de forma normativa en `docs/specs/2026-07-16_planilla-regional-seguridad-operativa.md`.
 
 ## 10. Interfaz
 
@@ -450,14 +308,14 @@ La carga manual acepta maximo 5 archivos `.xlsm`/`.xlsx`, 20 MB por archivo y 50
 - Mostrar `ESTADO` y `ORIGEN` como badges, aunque `ORIGEN` puede permanecer fuera del orden contractual del Excel.
 - En movil se priorizan ITEM, CEDULA, EMPLEADO, FECHA, NOVEDAD, HORAS y ESTADO; las demas quedan disponibles por scroll/selector de columnas.
 - CEDULA/EMPLEADO son sticky desde `md`; en movil no son sticky para no consumir el viewport.
-- `SALARIO` y `BASE HORA` son opcionales en el DTO y muestran `Restringido` sin permiso.
+- `SALARIO` y `BASE HORA` siempre existen en el DTO; valen `null` y muestran `Restringido` sin permiso.
 
 Estructura frontend prevista:
 
 - `PlanillaRegional/types.ts`.
 - `PlanillaRegional/columns.tsx`.
 - `PlanillaRegional/hooks/usePlanillaRegional.ts`.
-- `PlanillaRegional/services/planillaRegionalService.ts`.
+- `frontend/src/services/planillaRegionalService.ts`.
 - `PlanillaRegional/components/PlanillaRegionalTable.tsx`.
 - `PlanillaRegional/components/PlanillaRegionalToolbar.tsx`.
 - `PlanillaRegional/components/PlanillaRegionalResumen.tsx`.
@@ -466,11 +324,14 @@ Estructura frontend prevista:
 
 Los wrappers 1Q/2Q solo pasan `quincena`. Los endpoints se registran en `config/api.ts`. Se reutilizan `FilterDropdown`, `Button`, `Input`, `Select`, `Badge`, `MaterialCard`, `Callout` y `Skeleton/Spinner`, sin copiar HTML/colores legacy.
 
+Ruta y tarjeta exigen permiso base más `consultar`; carga añade `cargar`, salario añade `salario.consultar` y exportación exige los tres permisos específicos. Filas, facetas y exportación usan controladores de solicitud independientes. Cada faceta devuelve `valores`, `total` y `truncada`, autoexcluye su filtro y conserva seleccionados fuera del primer lote.
+
 ## 11. Convivencia Con Legacy
 
 - No se modifican ni eliminan archivos historicos.
 - No se reconstruyen periodos anteriores a la activacion.
 - La consulta combina `ARCHIVO` y `PLANIFICADOR`, pero no intenta deduplicar historicos que perdieron fecha/OT.
+- Una proyección combinada única alimenta consulta regional, Tabla Maestra y `exportar-solid`, excluyendo versiones inactivas.
 - Se bloquean cargas manuales que se solapen con la fecha de activacion automatica.
 - La recarga de periodos legacy conserva ITEM mediante su clave agregada.
 
@@ -496,6 +357,8 @@ Los wrappers 1Q/2Q solo pasan `quincena`. Los endpoints se registran en `config/
 18. El XLSX contiene 20 columnas, neutraliza formulas y solo usa la allowlist oficial.
 19. Cambiar despues salario/empresa/ciudad/area/CC en ERP, metadata OT, divisor o codigo configurado no altera ningun snapshot historico.
 20. Los hooks `*_sin_commit` no confirman transacciones y una falla revierte conjuntamente horario, calculo y planilla.
+21. Eventos históricos `RET`/`DXT` conservan su semántica y los conceptos nuevos usan esos valores solo como códigos de salida.
+22. Tabla Maestra y `exportar-solid` consumen automático y legacy activo sin incluir versiones archivadas.
 
 ### 12.1 Trazabilidad CA A Pruebas
 
@@ -523,10 +386,12 @@ En la columna comando, `B` equivale a `docker compose run --rm -T -v "${PWD}:/wo
 | CA_18 | `test_planilla_regional_exportacion.py::test_ca_18_xlsx_columnas_formulas_y_allowlist` | `B testing/backend/test_planilla_regional_exportacion.py::test_ca_18_xlsx_columnas_formulas_y_allowlist -q` |
 | CA_19 | `test_planilla_regional_erp.py::test_ca_19_snapshots_inmutables_tras_cambio_fuentes` | `B testing/backend/test_planilla_regional_erp.py::test_ca_19_snapshots_inmutables_tras_cambio_fuentes -q` |
 | CA_20 | `test_planilla_regional_persistencia.py::test_ca_20_hooks_sin_commit_y_rollback_conjunto` | `B testing/backend/test_planilla_regional_persistencia.py::test_ca_20_hooks_sin_commit_y_rollback_conjunto -q` |
+| CA_21 | `test_planilla_regional_migracion.py::test_ca_21_ret_dxt_historicos_conservan_semantica` | `B testing/backend/test_planilla_regional_migracion.py::test_ca_21_ret_dxt_historicos_conservan_semantica -q` |
+| CA_22 | `test_planilla_regional_tabla_maestra.py::test_ca_22_proyeccion_combinada_alimenta_consolidado` | `B testing/backend/test_planilla_regional_tabla_maestra.py::test_ca_22_proyeccion_combinada_alimenta_consolidado -q` |
 
 La suite `testing/backend/test_planilla_regional_erp.py` añade `test_erp_dsn_dedicada_es_distinta`, `test_erp_transaccion_read_only`, `test_erp_timeout_aplicado`, `test_erp_queries_allowlist`, `test_erp_resuelve_lote_sin_n_plus_one`, `test_erp_cierra_recursos_en_exito` y `test_erp_cierra_recursos_en_error`. Su comando es `B testing/backend/test_planilla_regional_erp.py -q`.
 
-`testing/backend/test_planilla_regional_migracion.py` añade `test_catalogo_operativo_migra_ret_dxt_idempotente`. `test_ca_04_ausencias_reemplazan_salario` parametriza todas las novedades de reemplazo, incluido `DXT`; `test_dxt_genera_una_fila_dias_en_cc_contractual_sin_prorrateo_ot` verifica que varias OT no distribuyan DXT. El snapshot de CA_17 cubre que cambiar su codigo de salida no reescriba historicos.
+`testing/backend/test_planilla_regional_migracion.py` prueba que la migración agrega `RETIRO`/`DEV_TARDANZA` sin mutar `RET`/`DXT` ni sus eventos. CA_04 parametriza los conceptos nuevos; `test_devuelto_tardanza_genera_una_fila_dias_en_cc_contractual` verifica que varias OT no lo distribuyan. CA_17 cubre que cambiar el código de salida no reescriba históricos.
 
 ## 13. Fuera De Alcance
 

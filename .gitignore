@@ -74,6 +74,9 @@ graphify-out/
 # Archivos cargados por el modulo de Nomina/Descuentos
 backend_v2/uploads/nomina/
 
+# Almacenamiento runtime sensible (biometria, cuarentena y perfiles)
+backend_v2/storage/
+
 sesion.txt
 detalleactividades.txt
 implementation_plan.md

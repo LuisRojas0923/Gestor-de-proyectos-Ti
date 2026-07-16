@@ -1,6 +1,7 @@
 # Reporte de Revision de Plan
 
 **Fecha:** 2026-07-15
+**Estado:** Supersedido por la rerevisión bloqueante del 2026-07-16 y el plan corregido por fases
 **Plan:** Planilla Regional automatica desde el Planificador
 **Autor del plan:** OpenCode
 **Modo:** plan
@@ -86,6 +87,8 @@ security-rbac-reviewer | Salario, alcance y exportacion | approved | no
 ```
 
 ## 9. Decision final
+
+> Esta decisión histórica quedó invalidada. La decisión vigente se registra en la rerevisión del 2026-07-16.
 
 - [ ] `aprobado`
 - [x] `aprobado_con_riesgos`
