@@ -9,6 +9,20 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: admin
+          POSTGRES_PASSWORD: adminpassword
+          POSTGRES_DB: gestor_proyectos_ti
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
     - uses: actions/checkout@v3
     - name: Set up Python 3.11
@@ -22,6 +36,9 @@ jobs:
         pip install -r requirements.txt
         pip install pytest pytest-asyncio pandas openpyxl
     - name: Run Pytest
+      env:
+        DATABASE_URL: postgresql+asyncpg://admin:adminpassword@localhost:5432/gestor_proyectos_ti
+        SECRET_KEY: testsecret
       run: |
         cd backend_v2
-        PYTHONPATH=. pytest tests/ ../testing/backend/ -v
+        PYTHONPATH=. pytest ../testing/backend/ -v
