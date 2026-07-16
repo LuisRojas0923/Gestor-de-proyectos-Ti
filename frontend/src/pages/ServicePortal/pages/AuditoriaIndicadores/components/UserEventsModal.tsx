@@ -13,7 +13,7 @@ interface UserEventsModalProps {
   fechaHasta?: string;
 }
 
-const UserEventsModal: React.FC<UserEventsModalProps> = ({ isOpen, onClose, usuario, fechaDesde, fechaHasta }) => {
+const UserEventsModalContent: React.FC<Omit<UserEventsModalProps, 'isOpen' | 'onClose'> & { isOpen: boolean }> = ({ usuario, fechaDesde, fechaHasta, isOpen }) => {
   const { get } = useApi<any>();
   const [eventos, setEventos] = useState<AuditoriaEvento[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -56,7 +56,7 @@ const UserEventsModal: React.FC<UserEventsModalProps> = ({ isOpen, onClose, usua
   const nombreMostrar = usuario?.usuario_nombre || usuario?.usuario_id || 'Desconocido';
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={`Últimos Eventos: ${nombreMostrar}`} size="5xl">
+    <>
       <div className="space-y-4">
         <Text variant="body2" color="text-secondary" className="mb-4">
           Esta vista muestra los últimos registros de actividad del usuario seleccionado.
@@ -66,6 +66,15 @@ const UserEventsModal: React.FC<UserEventsModalProps> = ({ isOpen, onClose, usua
             <UltimosEventosTable datos={eventos} isLoading={isLoading} hideSearch={true} hideGroupButton={true} />
         </div>
       </div>
+    </>
+  );
+};
+
+const UserEventsModal: React.FC<UserEventsModalProps> = ({ isOpen, onClose, usuario, fechaDesde, fechaHasta }) => {
+  const nombreMostrar = usuario?.usuario_nombre || usuario?.usuario_id || 'Desconocido';
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} title={`Últimos Eventos: ${nombreMostrar}`} size="5xl">
+      {isOpen && <UserEventsModalContent usuario={usuario} fechaDesde={fechaDesde} fechaHasta={fechaHasta} isOpen={isOpen} />}
     </Modal>
   );
 };

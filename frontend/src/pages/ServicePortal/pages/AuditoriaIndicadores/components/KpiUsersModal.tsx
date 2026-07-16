@@ -12,7 +12,8 @@ interface KpiUsersModalProps {
   fechaHasta?: string;
 }
 
-const KpiUsersModal: React.FC<KpiUsersModalProps> = ({ isOpen, onClose, tipo, fechaDesde, fechaHasta }) => {
+const KpiUsersModalContent: React.FC<Omit<KpiUsersModalProps, 'isOpen' | 'onClose'> & { isOpen: boolean }> = ({ tipo, fechaDesde, fechaHasta, isOpen }) => {
+
   const { get } = useApi<any>();
   const [eventos, setEventos] = useState<AuditoriaEvento[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -79,7 +80,7 @@ const KpiUsersModal: React.FC<KpiUsersModalProps> = ({ isOpen, onClose, tipo, fe
     : 'Usuarios con Fallos de Autenticación';
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={titulo} size="lg">
+    <>
       <div className="space-y-4">
         <Text variant="body2" color="text-secondary">
           Esta vista muestra los usuarios (o intentos de usuarios) que generaron estos eventos recientemente en el período seleccionado.
@@ -118,6 +119,17 @@ const KpiUsersModal: React.FC<KpiUsersModalProps> = ({ isOpen, onClose, tipo, fe
           </div>
         )}
       </div>
+    </>
+  );
+};
+
+const KpiUsersModal: React.FC<KpiUsersModalProps> = ({ isOpen, onClose, tipo, fechaDesde, fechaHasta }) => {
+  let titulo = 'Usuarios Críticos';
+  if (tipo === 'denegados') titulo = 'Top Usuarios: Accesos Denegados (403)';
+  if (tipo === 'fallos_auth') titulo = 'Top Usuarios: Fallos de Autenticación (401)';
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} title={titulo} size="5xl">
+      {isOpen && <KpiUsersModalContent tipo={tipo} fechaDesde={fechaDesde} fechaHasta={fechaHasta} isOpen={isOpen} />}
     </Modal>
   );
 };

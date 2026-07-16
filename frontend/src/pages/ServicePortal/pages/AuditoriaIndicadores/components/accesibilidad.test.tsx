@@ -48,6 +48,6 @@ describe('accesibilidad de indicadores de auditoría', () => {
     fireEvent.click(trigger);
 
     expect(trigger).toHaveAttribute('aria-expanded', 'true');
-    expect(screen.getByText('Inicio de sesión')).toBeInTheDocument();
+    expect(screen.getByText('Ingresó al sistema')).toBeInTheDocument();
   });
 });

@@ -63,6 +63,7 @@ const PeriodSelector: React.FC<PeriodSelectorProps> = ({
         <div className="flex items-center gap-2">
           <Input 
             type="date" 
+            aria-label="Fecha inicial"
             className="w-auto h-9 text-sm"
             value={fechaDesde}
             onChange={(e) => setFechaDesde(e.target.value)}
@@ -70,6 +71,7 @@ const PeriodSelector: React.FC<PeriodSelectorProps> = ({
           <Text variant="caption" color="text-secondary">a</Text>
           <Input 
             type="date" 
+            aria-label="Fecha final"
             className="w-auto h-9 text-sm"
             value={fechaHasta}
             onChange={(e) => setFechaHasta(e.target.value)}

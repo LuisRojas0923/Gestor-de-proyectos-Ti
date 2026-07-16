@@ -14,7 +14,7 @@ interface RouteEventsModalProps {
   fechaHasta?: string;
 }
 
-const RouteEventsModal: React.FC<RouteEventsModalProps> = ({ isOpen, onClose, rutaSeleccionada, fechaDesde, fechaHasta }) => {
+const RouteEventsModalContent: React.FC<Omit<RouteEventsModalProps, 'isOpen' | 'onClose'> & { isOpen: boolean }> = ({ rutaSeleccionada, fechaDesde, fechaHasta, isOpen }) => {
   const { get } = useApi<any>();
   const [eventos, setEventos] = useState<AuditoriaEvento[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -54,7 +54,7 @@ const RouteEventsModal: React.FC<RouteEventsModalProps> = ({ isOpen, onClose, ru
   const titulo = rutaSeleccionada ? `${humanizarAccion(rutaSeleccionada.accion)}: ${humanizarRuta(rutaSeleccionada.ruta)}` : 'Acción';
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={`Eventos: ${titulo}`} size="5xl">
+    <>
       <div className="space-y-4">
         <div className="space-y-1 mb-4">
           <Text variant="body2" color="text-secondary">
@@ -69,6 +69,15 @@ const RouteEventsModal: React.FC<RouteEventsModalProps> = ({ isOpen, onClose, ru
             <UltimosEventosTable datos={eventos} isLoading={isLoading} hideModuleFilter={true} />
         </div>
       </div>
+    </>
+  );
+};
+
+const RouteEventsModal: React.FC<RouteEventsModalProps> = ({ isOpen, onClose, rutaSeleccionada, fechaDesde, fechaHasta }) => {
+  const titulo = rutaSeleccionada ? `${humanizarAccion(rutaSeleccionada.accion)}: ${humanizarRuta(rutaSeleccionada.ruta)}` : 'Acción';
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} title={`Eventos: ${titulo}`} size="5xl">
+      {isOpen && <RouteEventsModalContent rutaSeleccionada={rutaSeleccionada} fechaDesde={fechaDesde} fechaHasta={fechaHasta} isOpen={isOpen} />}
     </Modal>
   );
 };

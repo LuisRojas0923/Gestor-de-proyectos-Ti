@@ -108,8 +108,12 @@ const EventosPorModulo: React.FC<EventosPorModuloProps> = ({ datos }) => {
 
                 return (
                   <div key={index} className="flex flex-col gap-1.5">
-                    <div 
-                      className={`flex justify-between items-end ${hasEvents ? 'cursor-pointer group' : ''}`}
+                    <button 
+                      type="button"
+                      aria-expanded={isExpanded}
+                      aria-controls={`eventos-modulo-${index}`}
+                      aria-label={`Ver eventos de ${item.modulo}`}
+                      className={`w-full flex justify-between items-end ${hasEvents ? 'cursor-pointer group' : ''}`}
                       onClick={() => hasEvents && toggleExpand(index)}
                     >
                       <div className="flex items-center gap-2 flex-1 min-w-0">
@@ -139,13 +143,13 @@ const EventosPorModulo: React.FC<EventosPorModuloProps> = ({ datos }) => {
                           </Text>
                         </div>
                       </div>
-                    </div>
+                    </button>
                     
                     <ProgressBar progress={porcentaje} variant="primary" className="h-1.5" />
 
                     {/* Acordeón de detalles */}
                     {isExpanded && hasEvents && (
-                      <div className="mt-2 pl-6 pr-2 py-2 bg-[var(--color-surface-variant)] bg-opacity-30 rounded-lg border border-[var(--color-border)] border-opacity-50 space-y-3 max-h-48 overflow-y-auto custom-scrollbar">
+                      <div id={`eventos-modulo-${index}`} className="mt-2 pl-6 pr-2 py-2 bg-[var(--color-surface-variant)] bg-opacity-30 rounded-lg border border-[var(--color-border)] border-opacity-50 space-y-3 max-h-48 overflow-y-auto custom-scrollbar">
                         <Text variant="caption" className="font-semibold text-[var(--color-primary)] block mb-1 sticky top-0 bg-[var(--color-surface-variant)] z-10 py-1">Últimas interacciones:</Text>
                         {item.ultimos_eventos!.map((evento) => {
                           let fechaFormateada = 'N/A';
