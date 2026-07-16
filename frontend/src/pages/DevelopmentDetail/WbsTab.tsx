@@ -470,11 +470,11 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode, is
                         columnOptions={uniqueValues}
                         onFilterChange={(key, newSet) => setColumnFilter(key, newSet)}
                         filterTextAlign="right"
+                        filterDropdownMaxWidth={320}
                         activeSortKey={sortState?.key ?? null}
                         activeSortDir={sortState?.dir ?? null}
                         onSort={setSort}
                         onRowClick={(row) => { setSelectedActivity(row); setDetailModalOpen(true); }}
-                        isLoading={false}
                         emptyMessage="Sin tareas aún. Usa «Agregar tarea» para comenzar."
                         emptyIcon={<ClipboardList size={40} className="opacity-40" />}
                         maxHeight="max-h-[calc(100vh-300px)]"

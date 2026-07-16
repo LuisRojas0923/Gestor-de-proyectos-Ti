@@ -10,11 +10,11 @@
 
 ## 1. Objetivo
 
-Alinear a la derecha los textos de `FilterDropdown` únicamente en el WBS, corregir el área clicable de `FilePicker` y confirmar que un ejecutor autorizado puede cargar evidencia sin ser creador de la tarea.
+Alinear a la derecha los textos de `FilterDropdown` únicamente en el WBS, mantener checkbox y texto como un bloque, limitar el ancho del popover, corregir el área clicable de `FilePicker` y confirmar que un ejecutor autorizado puede cargar evidencia sin ser creador de la tarea.
 
 ## 2. No-objetivos
 
-- No cambiar la posición del popover.
+- No cambiar la lógica de apertura vertical del popover.
 - No retirar la autorización por recurso ni modificar RBAC.
 - No modificar `movil/` ni `modulo_actividades_fork/`.
 
@@ -29,9 +29,10 @@ Alinear a la derecha los textos de `FilterDropdown` únicamente en el WBS, corre
 ## 4. Pasos de implementación
 
 1. Exponer alineación de texto configurable con izquierda como valor predeterminado.
-2. Activar alineación derecha únicamente desde `WbsTab`.
-3. Mantener con altura completa el wrapper interno del input de archivo.
-4. Añadir pruebas frontend y backend de regresión.
+2. Activar alineación derecha y ancho máximo de 320 px únicamente desde `WbsTab`.
+3. Alinear checkbox y texto como grupo y limitar el ancho al viewport con margen de 12 px.
+4. Mantener con altura completa el wrapper interno del input de archivo.
+5. Añadir pruebas frontend y backend de regresión.
 
 ## 5. Comandos de validación
 
@@ -61,6 +62,7 @@ Alinear a la derecha los textos de `FilterDropdown` únicamente en el WBS, corre
 |---|---|---|---|
 | scope-reviewer | Validar alcance | Bloqueo inicial resuelto al confirmar worktree sobre `main` | No |
 | frontend-reviewer | UI, accesibilidad y sistema de diseño | Aprobado con riesgos mitigados | No |
+| frontend-table-specialist | Geometría y UX del filtro | Aprobado con riesgos mitigados | No |
 | backend-reviewer | Autorización y async | Aprobado con riesgos | No |
 | mobile-reviewer | Descartar impacto móvil | Aprobado | No |
 | docs-tests-reviewer | Validar evidencia y documentación | Bloqueo resuelto con reporte de build | No |
@@ -74,4 +76,4 @@ Alinear a la derecha los textos de `FilterDropdown` únicamente en el WBS, corre
 
 ## 10. Notas adicionales
 
-El trabajo se ejecuta en `fix/actividades-filtros-evidencias`, dentro de un worktree creado desde `main`.
+El seguimiento de ancho y agrupación se ejecuta en `fix/wbs-filter-dropdown-layout`, dentro de un worktree creado desde `origin/main`.

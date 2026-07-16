@@ -58,7 +58,7 @@ Ubicación: `frontend/src/`
 | **Anulación WBS** | `pages/DevelopmentDetail/DeleteActivityModal.test.tsx` | Modal confirma anulación lógica y evita copy de eliminación física. | ✅ PASSED |
 | **Descarga Evidencias WBS** | `services/ActivityEvidenceService.test.ts` | Clasificación de enlaces legados y descarga autenticada de archivos internos. | ✅ PASSED |
 | **Carga Evidencias WBS** | `pages/DevelopmentDetail/WbsNodeModal.test.tsx` | Éxito parcial, mensaje de error y reintento de carga sin duplicar la actividad. | ✅ PASSED |
-| **Selector y filtros WBS** | `components/molecules/__tests__/{FilePicker,DataTable}.test.tsx` | Área completa del selector de archivos y alineación configurable de textos del filtro. | ✅ PASSED |
+| **Selector y filtros WBS** | `components/molecules/__tests__/{FilePicker,DataTable}.test.tsx` | Área completa del selector, agrupación checkbox-texto, ancho máximo y reajuste responsivo con margen. | ✅ PASSED |
 | **Indicadores de Auditoría** | `pages/ServicePortal/pages/AuditoriaIndicadores/index.test.tsx` | Estados de éxito, error y actualización manual del dashboard. | ✅ PASSED |
 | **Organigrama interactivo** | `pages/OrganizationalHierarchy/*.test.tsx` y `utils.test.ts` | Expansión inicial, paneo móvil, layout aislado y controles accesibles. | ✅ PASSED |
 | **Líneas Corporativas** | `components/atoms/SearchableSelect.test.tsx`, `components/molecules/__tests__/{DataTable,Modal}.test.tsx`, `pages/CorporateLines/**/*.test.tsx` | Teclado, tabla/filtros accesibles, modales, confirmaciones, reintentos y estados de gestores. | ✅ PASSED |

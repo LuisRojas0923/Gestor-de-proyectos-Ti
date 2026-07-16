@@ -44,6 +44,7 @@ export interface DataTableProps<T> {
     columnOptions?: Record<string, string[]>;
     onFilterChange?: (columnKey: string, filter: Set<string>) => void;
     filterTextAlign?: 'left' | 'right';
+    filterDropdownMaxWidth?: number;
 
     activeSortKey?: string | null;
     activeSortDir?: 'asc' | 'desc' | null;
@@ -80,6 +81,7 @@ export function DataTable<T>({
     columnOptions = {},
     onFilterChange,
     filterTextAlign = 'left',
+    filterDropdownMaxWidth,
     activeSortKey,
     activeSortDir,
     onSort,
@@ -283,6 +285,7 @@ export function DataTable<T>({
                         setFilterSearchTerm('');
                     }}
                     optionTextAlign={filterTextAlign}
+                    maxWidth={filterDropdownMaxWidth}
                 />
             )}
 

@@ -29,7 +29,7 @@
 | backend-reviewer | Aprobado | No | La prueba HTTP usa un ejecutor distinto del creador sin simular el permiso por recurso. |
 | mobile-reviewer | Aprobado | No | El HTML corresponde únicamente al frontend web. |
 | security-rbac-reviewer | Riesgo histórico documentado | No para este diff | El endpoint conserva autenticación, RBAC y doble autorización por recurso. |
-| docs-tests-reviewer | Pendiente de cierre sobre este reporte | No | Catálogo y evidencia de comandos incluidos. |
+| docs-tests-reviewer | Aprobado con riesgos | No | Catálogo y evidencia de comandos incluidos. |
 
 ## 3. Hallazgos bloqueantes
 
@@ -72,3 +72,26 @@ Ninguno introducido por el build.
 |---|---|---|
 | Migrar autorización histórica basada en nombres a identificadores únicos | Equipo backend/seguridad | Por definir |
 | Corregir deuda global de lint y pruebas no relacionadas | Equipo frontend | Por definir |
+
+## 9. Seguimiento: ancho y agrupación del filtro
+
+Se confirmó que la columna WBS `Tarea`, con mínimo de 420 px y crecimiento flexible, expandía el popover. La alineación previa aplicaba `flex-1` al texto y dejaba el checkbox en el extremo contrario.
+
+Cambios del seguimiento:
+
+- `FilterDropdown` calcula un ancho efectivo único, limitado por prop y viewport.
+- El ancho y la posición se recalculan con `resize` y `visualViewport.resize` mientras el filtro está abierto.
+- WBS configura un máximo de 320 px; otros consumidores conservan su comportamiento predeterminado.
+- Checkbox y texto forman un bloque `inline-flex` alineado completo a izquierda o derecha.
+- Las etiquetas truncadas conservan nombre accesible completo y atributo `title`.
+- `WbsTab.tsx` permanece en 550 líneas al retirar `isLoading={false}`, que era redundante.
+
+Evidencia adicional:
+
+- `npm run test -- --run src/components/molecules/__tests__/DataTable.test.tsx` — PASS, 5 pruebas.
+- Ancla de 420 px — popover WBS de 320 px.
+- Viewport de 320 px — popover de 296 px con margen lateral de 12 px.
+- Redimensionamiento con el popover abierto — PASS, recalcula ancho y posición.
+- Build de producción — PASS.
+- ESLint de archivos modificados — 0 errores y 7 advertencias preexistentes en `WbsTab.tsx`.
+- Suite frontend global — 129 aprobadas, 2 omitidas y los mismos 6 fallos ajenos en 3 archivos.
