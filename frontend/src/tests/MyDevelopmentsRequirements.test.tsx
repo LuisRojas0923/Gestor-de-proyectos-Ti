@@ -21,25 +21,28 @@ const mockGet = vi.fn().mockResolvedValue([
     estimated_end_date: '2025-02-01',
   }
 ]);
+const mockGetWithHeaders = vi.fn().mockResolvedValue({ 
+  data: [{
+    id: 'FD-001',
+    name: 'Test Development',
+    provider: 'Test Provider',
+    main_responsible: 'Test User',
+    general_status: 'En curso',
+    current_stage: { stage_name: '1. Definición' },
+    start_date: '2025-01-01',
+    estimated_end_date: '2025-02-01',
+  }], 
+  headers: new Headers({ 'x-total-count': '1' }) 
+});
 const mockDelete = vi.fn().mockResolvedValue({});
+const mockPut = vi.fn().mockResolvedValue({});
 
 vi.mock('../hooks/useApi', () => ({
   useApi: () => ({
     get: mockGet,
-    getWithHeaders: vi.fn().mockResolvedValue({ 
-      data: [{
-        id: 'FD-001',
-        name: 'Test Development',
-        provider: 'Test Provider',
-        main_responsible: 'Test User',
-        general_status: 'En curso',
-        current_stage: { stage_name: '1. Definición' },
-        start_date: '2025-01-01',
-        estimated_end_date: '2025-02-01',
-      }], 
-      headers: new Headers({ 'x-total-count': '1' }) 
-    }),
+    getWithHeaders: mockGetWithHeaders,
     delete: mockDelete,
+    put: mockPut,
   }),
 }));
 
@@ -155,6 +158,6 @@ describe('MyDevelopments - Page Rendering', () => {
 
     // Verify action buttons exist
     expect(screen.getByTitle('Actualizar')).toBeInTheDocument();
-    expect(screen.getByTitle('Eliminar')).toBeInTheDocument();
+    expect(screen.getByTitle('Anular')).toBeInTheDocument();
   });
 });
