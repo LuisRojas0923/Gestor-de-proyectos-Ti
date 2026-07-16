@@ -148,7 +148,11 @@ class NominaService:
             if len(archivos_binarios) == 1:
                 contenido = archivos_binarios[0]
                 hash_str = hashlib.sha256(contenido).hexdigest()
-                nombre_archivo = original_filenames[0]
+                # Normalizar a basename seguro antes de persisitir
+                raw_name = original_filenames[0]
+                nombre_archivo = os.path.basename(str(raw_name).replace('\\', '/'))
+                if not nombre_archivo or nombre_archivo in ('.', '..'):
+                    nombre_archivo = f"archivo.{extension}"
                 ext_real = nombre_archivo.split('.')[-1].lower() if '.' in nombre_archivo else extension
                 
                 ruta_almacenamiento = os.path.join(STORAGE_DIR, f"{hash_str}.{ext_real}")
@@ -162,10 +166,28 @@ class NominaService:
                 # Empaquetar múltiples archivos en un ZIP
                 import zipfile
                 import io
+                import os
+                
                 zip_buffer = io.BytesIO()
+                seen_names = set()
+                
                 with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zf:
-                    for filename, content in zip(original_filenames, archivos_binarios):
-                        zf.writestr(filename, content)
+                    for raw_filename, content in zip(original_filenames, archivos_binarios):
+                        # 1. Normalizar a basename seguro
+                        safe_name = os.path.basename(str(raw_filename).replace('\\', '/'))
+                        if not safe_name or safe_name in ('.', '..'):
+                            safe_name = "archivo_desconocido"
+                            
+                        # 2. Prevenir duplicados en el ZIP
+                        base_name, ext = os.path.splitext(safe_name)
+                        final_name = safe_name
+                        counter = 1
+                        while final_name in seen_names:
+                            final_name = f"{base_name}_{counter}{ext}"
+                            counter += 1
+                        seen_names.add(final_name)
+                        
+                        zf.writestr(final_name, content)
                 
                 contenido_zip = zip_buffer.getvalue()
                 hash_str = hashlib.sha256(contenido_zip).hexdigest()
