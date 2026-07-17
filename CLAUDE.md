@@ -134,3 +134,11 @@ Docs extendida en `/docs/`:
 - `GUIA_DESARROLLO.md` — configuración de dev, auth GitHub, resolución de conflictos, queries comunes
 - `GUIA_MANTENIMIENTO.md` — procedimientos de mantenimiento
 - `DESPLIEGUE_PRUEBAS3.md` — entorno de despliegue Pruebas3
+
+### Arnés Google Antigravity
+
+- `.agent/rules/`, `.agent/skills/` y `.agent/workflows/` contienen los adaptadores versionados del workspace.
+- `.opencode/agent/` permanece como fuente canónica de routing, checklists y formatos de salida.
+- Los workflows `/prepare-pr` y `/validate-pr` preparan y revisan cambios; la validación de ramas no confiables se ejecuta desde un checkout base confiable.
+- Ejecutar `py -3.12 scripts/validate_antigravity_harness.py` tras cambios propios del arnés.
+- Ver `docs/GUIA_ANTIGRAVITY.md` para activación, límites de seguridad y mantenimiento.
