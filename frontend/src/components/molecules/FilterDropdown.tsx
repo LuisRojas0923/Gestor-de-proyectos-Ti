@@ -25,6 +25,7 @@ interface FilterDropdownProps {
     tempValue?: string[];
     onToggleOption?: (value: string) => void;
     onClearSelection?: () => void;
+    optionTextAlign?: 'left' | 'right';
 
     // Props para Range (Numeric/Date)
     rangeValue?: { min: string | number; max: string | number };
@@ -37,6 +38,7 @@ interface FilterDropdownProps {
     onApply?: () => void;
     placeholder?: string;
     triggerHeight?: number;
+    maxWidth?: number;
     subFilters?: { key: string; label: string }[];
     activeSubFilter?: string;
     onSubFilterChange?: (key: string) => void;
@@ -63,10 +65,12 @@ export const FilterDropdown: React.FC<FilterDropdownProps> = (props) => {
         onApply,
         placeholder = 'Buscar...',
         triggerHeight = 40,
+        maxWidth,
         subFilters,
         activeSubFilter,
         onSubFilterChange,
         onClearSelection,
+        optionTextAlign = 'left',
     } = props;
 
     const [internalIsOpen, setInternalIsOpen] = useState(false);
@@ -92,13 +96,31 @@ export const FilterDropdown: React.FC<FilterDropdownProps> = (props) => {
 
     const [position, setPosition] = useState<{ top: number; left: number } | null>(null);
     const [maxHeight, setMaxHeight] = useState<string>('450px');
+    const [viewportSize, setViewportSize] = useState(() => ({
+        width: window.innerWidth,
+        height: window.innerHeight,
+    }));
     const anchorTop = effectiveAnchor?.top;
     const anchorLeft = effectiveAnchor?.left;
 
     useEffect(() => {
+        if (!effectiveIsOpen) return;
+        const updateViewportSize = () => setViewportSize({
+            width: window.innerWidth,
+            height: window.innerHeight,
+        });
+        updateViewportSize();
+        window.addEventListener('resize', updateViewportSize);
+        window.visualViewport?.addEventListener('resize', updateViewportSize);
+        return () => {
+            window.removeEventListener('resize', updateViewportSize);
+            window.visualViewport?.removeEventListener('resize', updateViewportSize);
+        };
+    }, [effectiveIsOpen]);
+
+    useEffect(() => {
         if (effectiveIsOpen && anchorTop !== undefined && anchorLeft !== undefined) {
-            const windowHeight = window.innerHeight;
-            const spaceBelow = windowHeight - anchorTop - 20;
+            const spaceBelow = viewportSize.height - anchorTop - 20;
 
             if (spaceBelow < 300 && anchorTop > 300) {
                 setPosition({
@@ -111,7 +133,7 @@ export const FilterDropdown: React.FC<FilterDropdownProps> = (props) => {
                 setMaxHeight(`${Math.min(450, spaceBelow)}px`);
             }
         }
-    }, [effectiveIsOpen, anchorTop, anchorLeft, triggerHeight]);
+    }, [effectiveIsOpen, anchorTop, anchorLeft, triggerHeight, viewportSize.height]);
 
     const toggleSimple = (e: React.MouseEvent) => {
         e.stopPropagation();
@@ -216,17 +238,25 @@ export const FilterDropdown: React.FC<FilterDropdownProps> = (props) => {
         ? (currentOptions.length > 0 && currentSelected.length === currentOptions.length)
         : (propIsAllSelected ?? (currentOptions.length > 0 && currentSelected.length === currentOptions.length));
 
+    const viewportMargin = 12;
+    const availableWidth = Math.max(viewportSize.width - viewportMargin * 2, 0);
+    const minimumWidth = Math.min(280, availableWidth);
+    const dropdownWidth = Math.min(
+        Math.max(effectiveAnchor.width, minimumWidth),
+        maxWidth ?? Number.POSITIVE_INFINITY,
+        availableWidth
+    );
     const dynamicStyle: React.CSSProperties = {
         top: position.top,
-        left: Math.min(position.left, window.innerWidth - Math.max(effectiveAnchor.width, 280) - 20),
-        width: Math.max(effectiveAnchor.width, 280),
+        left: Math.max(viewportMargin, Math.min(position.left, viewportSize.width - dropdownWidth - viewportMargin)),
+        width: dropdownWidth,
         maxHeight: maxHeight
     };
 
     return createPortal(
         <div
             ref={dropdownRef}
-            className="fixed z-[9999] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 flex flex-col min-w-[280px]"
+            className="fixed z-[9999] min-w-0 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 flex flex-col"
             style={dynamicStyle}
             role="dialog"
             aria-label={title || 'Filtrar columna'}
@@ -279,7 +309,7 @@ export const FilterDropdown: React.FC<FilterDropdownProps> = (props) => {
                         {/* Ordenación */}
                         {!isSimpleMode && onSort && (
                             <div className="flex items-center gap-1.5 px-3 py-2 border-b border-slate-100 dark:border-slate-800">
-                                <Text variant="caption" className="text-[9px] uppercase tracking-wider text-slate-400 dark:text-slate-500 mr-auto">
+                                <Text variant="caption" align={optionTextAlign} className="flex-1 text-[9px] uppercase tracking-wider text-slate-400 dark:text-slate-500">
                                     Ordenar
                                 </Text>
                                 <Button
@@ -320,7 +350,7 @@ export const FilterDropdown: React.FC<FilterDropdownProps> = (props) => {
                                 aria-label={`Buscar valores de ${title || 'la columna'}`}
                                 onChange={(e) => handleSearch(e.target.value)}
                                 autoFocus
-                                className="[&_input]:h-8 [&_input]:text-[11px] [&_input]:bg-slate-100 dark:[&_input]:bg-slate-800 [&_input]:border-none"
+                                className={`[&_input]:h-8 [&_input]:text-[11px] [&_input]:bg-slate-100 dark:[&_input]:bg-slate-800 [&_input]:border-none ${optionTextAlign === 'right' ? 'text-right' : ''}`}
                             />
                         </div>
 
@@ -330,12 +360,14 @@ export const FilterDropdown: React.FC<FilterDropdownProps> = (props) => {
                             onClick={handleSelectAll}
                             aria-pressed={isAllSelected}
                             fullWidth
-                            className="flex items-center gap-2 px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer border-b border-slate-100 dark:border-slate-800 transition-colors"
+                            className={`flex items-center px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer border-b border-slate-100 dark:border-slate-800 transition-colors ${optionTextAlign === 'right' ? '!justify-end' : '!justify-start'}`}
                         >
-                            <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center transition-colors ${isAllSelected ? 'bg-primary-500 border-primary-500' : 'border-slate-300 dark:border-slate-600'}`}>
-                                {isAllSelected && <Check className="w-2.5 h-2.5 text-white" />}
+                            <div className="inline-flex w-fit max-w-full min-w-0 items-center gap-2">
+                                <div aria-hidden="true" className={`w-3.5 h-3.5 shrink-0 rounded border flex items-center justify-center transition-colors ${isAllSelected ? 'bg-primary-500 border-primary-500' : 'border-slate-300 dark:border-slate-600'}`}>
+                                    {isAllSelected && <Check className="w-2.5 h-2.5 text-white" />}
+                                </div>
+                                <Text variant="caption" weight="bold" align={optionTextAlign} className="min-w-0 text-[11px] truncate">Seleccionar Todos</Text>
                             </div>
-                            <Text variant="caption" weight="bold" className="text-[11px]">Seleccionar Todos</Text>
                         </Button>
 
                         <div className="py-1">
@@ -347,12 +379,14 @@ export const FilterDropdown: React.FC<FilterDropdownProps> = (props) => {
                                     fullWidth
                                     aria-pressed={currentSelected.includes(opt.value)}
                                     onClick={() => handleToggle(opt.value)}
-                                    className="flex items-center gap-2 px-3 py-1.5 hover:bg-primary-50 dark:hover:bg-primary-900/10 cursor-pointer"
+                                    className={`flex items-center px-3 py-1.5 hover:bg-primary-50 dark:hover:bg-primary-900/10 cursor-pointer ${optionTextAlign === 'right' ? '!justify-end' : '!justify-start'}`}
                                 >
-                                    <div className={`w-4 h-4 rounded border flex items-center justify-center ${currentSelected.includes(opt.value) ? 'bg-primary-500 border-primary-500' : 'border-slate-300 dark:border-slate-600'}`}>
-                                        {currentSelected.includes(opt.value) && <Check className="w-3 h-3 text-white" />}
+                                    <div className="inline-flex w-fit max-w-full min-w-0 items-center gap-2">
+                                        <div aria-hidden="true" className={`w-4 h-4 shrink-0 rounded border flex items-center justify-center ${currentSelected.includes(opt.value) ? 'bg-primary-500 border-primary-500' : 'border-slate-300 dark:border-slate-600'}`}>
+                                            {currentSelected.includes(opt.value) && <Check className="w-3 h-3 text-white" />}
+                                        </div>
+                                        <Text variant="caption" align={optionTextAlign} className="min-w-0 text-[11px] truncate" title={opt.label || '(Vacío)'}>{opt.label || '(Vacío)'}</Text>
                                     </div>
-                                    <Text variant="caption" className="text-[11px] truncate">{opt.label || '(Vacío)'}</Text>
                                 </Button>
                             ))}
                         </div>

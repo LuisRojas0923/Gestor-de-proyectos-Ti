@@ -154,8 +154,17 @@ async def test_endpoints_http_cubren_carga_descarga_y_eliminacion(tmp_path, monk
     from app.core.middleware.limite_carga_actividad import LimiteCargaActividadMiddleware
     from app.core.rate_limiter import limiter
     from app.database import obtener_db
+    from app.services.desarrollos import actividad_access_service as modulo_acceso
 
-    actividad = SimpleNamespace(id=42, anulada=False, archivo_url=None)
+    actividad = SimpleNamespace(
+        id=42,
+        anulada=False,
+        archivo_url=None,
+        responsable_id="USR-SUPERVISOR",
+        asignado_a_id="USR-1",
+        delegado_por_id="USR-CREADOR",
+        desarrollo_id="DEV-1",
+    )
 
     class Resultado:
         def scalar_one_or_none(self):
@@ -178,7 +187,11 @@ async def test_endpoints_http_cubren_carga_descarga_y_eliminacion(tmp_path, monk
     db = DbFalsa()
     monkeypatch.setattr(modulo.config, "storage_path", str(tmp_path))
     monkeypatch.setattr(modulo.config, "storage_max_size_mb", 1)
-    monkeypatch.setattr(modulo, "usuario_puede_modificar_actividad", AsyncMock(return_value=True))
+    monkeypatch.setattr(
+        modulo_acceso.JerarquiaService,
+        "obtener_ids_y_nombres_subordinados",
+        AsyncMock(return_value={"ids": [], "nombres": []}),
+    )
     monkeypatch.setattr(modulo, "usuario_puede_acceder_actividad", AsyncMock(return_value=True))
     monkeypatch.setattr(limiter, "enabled", False)
 
