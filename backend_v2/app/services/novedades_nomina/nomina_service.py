@@ -244,7 +244,7 @@ class NominaService:
             lock_name = f"nomina_{subcategoria}_{mes}_{anio}"
             await session.execute(text("SELECT pg_advisory_xact_lock(hashtext(:lock_name))").bindparams(lock_name=lock_name))
 
-            excepciones = await ExcepcionService.obtener_excepciones_activas(session, subcategoria)
+            excepciones = await ExcepcionService.obtener_excepciones_activas(session, subcategoria, include_agotado=True)
             mapa_erp = await NominaService.get_mapa_erp(db_erp, rows, excepciones)
 
             # 4. Borrar antiguos para evitar duplicados en el mismo periodo/subcat

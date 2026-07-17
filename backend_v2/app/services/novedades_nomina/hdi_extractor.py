@@ -70,20 +70,22 @@ def extraer_hdi(
             excede_filas = False
             for sheet_name in wb_check.sheetnames:
                 ws = wb_check[sheet_name]
-                if ws.max_row is not None and ws.max_row > MAX_FILAS_POR_HOJA:
-                    warnings.append(
-                        f"Hoja '{sheet_name}' tiene {ws.max_row} filas, "
-                        f"excede el límite de {MAX_FILAS_POR_HOJA}. Se omite el archivo."
-                    )
-                    excede_filas = True
+                row_count = 0
+                for _ in ws.iter_rows():
+                    row_count += 1
+                    if row_count > MAX_FILAS_POR_HOJA:
+                        warnings.append(f"Hoja '{sheet_name}' excede el límite de {MAX_FILAS_POR_HOJA} filas. Se omite el archivo.")
+                        excede_filas = True
+                        break
+                if excede_filas:
                     break
             wb_check.close()
 
             if excede_filas:
                 continue
 
-            # Leer el Excel omitiendo la primera fila de título "RELACION DE ASEGURADOS"
-            df = pd.read_excel(io.BytesIO(contenido), skiprows=1)
+            # Leer el Excel omitiendo la primera fila de título y limitando a MAX_FILAS_POR_HOJA
+            df = pd.read_excel(io.BytesIO(contenido), skiprows=1, nrows=MAX_FILAS_POR_HOJA)
 
             # Eliminar la primera columna si viene vacía (Unnamed: 0)
             if df.columns[0].startswith("Unnamed:"):

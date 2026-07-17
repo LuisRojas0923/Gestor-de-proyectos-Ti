@@ -55,7 +55,7 @@ class NominaManualService:
             await session.execute(text("SELECT pg_advisory_xact_lock(hashtext(:lock_name))").bindparams(lock_name=lock_name))
 
             # 2. Obtener info ERP
-            excepciones = await ExcepcionService.obtener_excepciones_activas(session, subcategoria)
+            excepciones = await ExcepcionService.obtener_excepciones_activas(session, subcategoria, include_agotado=True)
             mapa_erp = await NominaService.get_mapa_erp(db_erp, rows, excepciones)
 
 
@@ -170,7 +170,7 @@ class NominaManualService:
             await session.execute(text("SELECT pg_advisory_xact_lock(hashtext(:lock_name))").bindparams(lock_name=lock_name))
 
             # 2. Obtener info ERP
-            excepciones = await ExcepcionService.obtener_excepciones_activas(session, subcategoria)
+            excepciones = await ExcepcionService.obtener_excepciones_activas(session, subcategoria, include_agotado=True)
             mapa_erp = await NominaService.get_mapa_erp(db_erp, rows, excepciones)
 
 

@@ -70,9 +70,11 @@ const API_BASE_URL = API_CONFIG.BASE_URL;
 
 interface Reporte {
     reporte_id: string;
+    titulo: string;
+    fecha_solicitud: string;
     estado: string;
+    total_estimado: number;
     readonly?: boolean;
-    [key: string]: unknown;
 }
 
 interface LineaRespuesta {

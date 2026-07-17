@@ -90,8 +90,12 @@ class NominaHelper:
                     # RE-EVALUAR: ¿El titular tiene un beneficio propio?
                     ex = mapa_ex.get(cedula_final)
                     if not ex or ex.tipo == 'PAGO_TERCERO':
-                        estado_val = "EXCEPCION_PAGO_TERCERO"
-                        observacion_ex = f"Pago asumido por titular{msg_origen}"
+                        if info_original and str(info_original.get("estado", "")).strip().upper() == "ACTIVO":
+                            estado_val = "EXCEPCION_PAGO_TERCERO"
+                            observacion_ex = f"Pago asumido por titular{msg_origen}"
+                        else:
+                            estado_val = "ERROR_ERP_AUSENTE"
+                            observacion_ex = f"Titular {cedula_final} no está activo en ERP{msg_origen}"
 
                 # --- FASE 2: Aplicación del beneficio final (Sea del original o heredado) ---
                 if ex:
@@ -138,8 +142,17 @@ class NominaHelper:
                             estado_val = "ERROR_PORCENTAJE_NO_ACTIVO"
                             observacion_ex = "Porcentaje empresa requiere empleado activo en ERP"
                     elif ex.tipo == 'RETIRADO_AUTORIZADO':
-                        estado_val = "EXCEPCION_AUTORIZADA"
-                        observacion_ex = f"Retirado Autorizado: {ex.observacion}"
+                        info_target = mapa_erp.get(cedula_final)
+                        es_retirado = (
+                            info_target is not None
+                            and str(info_target.get("estado", "")).strip().upper() == "RETIRADO"
+                        )
+                        if es_retirado:
+                            estado_val = "EXCEPCION_AUTORIZADA"
+                            observacion_ex = f"Retirado Autorizado: {ex.observacion}"
+                        else:
+                            estado_val = "ERROR_RETIRADO_ACTIVO"
+                            observacion_ex = "Retirado Autorizado solo aplica a personal RETIRADO"
                     elif ex.tipo == 'CONTRATISTAS':
                         estado_val = "EXCEPCION_AUTORIZADA"
                         observacion_ex = f"Contratista: {ex.observacion}"
@@ -160,10 +173,10 @@ class NominaHelper:
                             valor_orig = valor_final  # siempre 100% para retirados
                             valor_cobrar = await ExcepcionService.aplicar_saldo_favor(session, ex, valor_orig, mes, anio)
                             if subcategoria == "SEGUROS HDI":
-                                # RDC siempre 0 para retirados; valor_colaborador = total original (contabilidad)
+                                # RDC siempre 0 para retirados; valor_colaborador = remanente tras consumir saldo
                                 valor_rdc_final = 0.0
-                                valor_colaborador_final = valor_final  # valor original sin descuento (contable)
-                                # valor_final permanece igual para registro contable; saldo se consume en historial
+                                valor_colaborador_final = valor_cobrar
+                                # valor_final permanece igual para registro contable
                             else:
                                 valor_final = valor_cobrar
                             estado_val = "EXCEPCION_SALDO_FAVOR"

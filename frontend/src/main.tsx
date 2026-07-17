@@ -4,13 +4,16 @@ import App from './App.tsx';
 import './index.css';
 import axios from 'axios';
 
-const _API_ALLOWED_ORIGIN = (() => {
+const viteApiUrl = import.meta.env.VITE_API_BASE_URL || '';
+const _API_BASE = (() => {
   try {
-    return new URL(import.meta.env.VITE_API_BASE_URL || window.location.origin);
+    return new URL(viteApiUrl, window.location.origin);
   } catch {
     return new URL(window.location.origin);
   }
 })();
+// Asegurar slash al final para comparación estricta de rutas
+const _API_PREFIX = _API_BASE.pathname.endsWith('/') ? _API_BASE.pathname : `${_API_BASE.pathname}/`;
 
 axios.interceptors.request.use((config) => {
   const token = localStorage.getItem('token');
@@ -22,8 +25,10 @@ axios.interceptors.request.use((config) => {
     const effective = new URL(config.url || '', base);
 
     // Only attach token if same origin AND path is under the allowed API prefix
-    const sameOrigin = effective.origin === _API_ALLOWED_ORIGIN.origin;
-    const underApiPath = effective.pathname.startsWith(_API_ALLOWED_ORIGIN.pathname);
+    const sameOrigin = effective.origin === _API_BASE.origin;
+    // Agrega slash al path efectivo si no lo tiene (para comparar /api/v2 con /api/v2/)
+    const pathWithSlash = effective.pathname.endsWith('/') ? effective.pathname : `${effective.pathname}/`;
+    const underApiPath = pathWithSlash.startsWith(_API_PREFIX) || effective.pathname === _API_BASE.pathname;
 
     if (sameOrigin && underApiPath) {
       config.headers.Authorization = `Bearer ${token}`;

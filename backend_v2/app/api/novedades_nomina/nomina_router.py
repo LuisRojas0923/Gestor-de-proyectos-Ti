@@ -12,6 +12,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ...database import obtener_db, obtener_erp_db_opcional
 from .dependencies import requiere_permiso_nomina_novedades
 from ...services.erp.empleados_service import EmpleadosService
+from ...models.auth.usuario import Usuario
+from ...services.auth.servicio import ServicioAuth
 from ...models.novedades_nomina.nomina import (
     NominaArchivo, NominaRegistroCrudo, NominaRegistroNormalizado,
     NominaUploadResponse, NominaResumenSubcat
@@ -64,7 +66,14 @@ async def cargar_archivo(
     session: AsyncSession = Depends(obtener_db)
 ):
     """Carga un archivo y guarda sus metadatos"""
-    content = await file.read()
+    # Límite de 15MB en memoria para evitar DoS
+    MAX_FILE_SIZE = 15 * 1024 * 1024
+    content = bytearray()
+    while chunk := await file.read(1024 * 1024):
+        content.extend(chunk)
+        if len(content) > MAX_FILE_SIZE:
+            raise HTTPException(status_code=413, detail="Archivo excede el tamaño máximo permitido de 15MB")
+    
     file_hash = hashlib.sha256(content).hexdigest()
     
     # Guardar en disco (siempre, por si se perdió físicamente)
@@ -184,9 +193,16 @@ async def obtener_preview(
     archivo_id: int, 
     skip: int = 0, 
     limit: int = 50, 
-    session: AsyncSession = Depends(obtener_db)
+    session: AsyncSession = Depends(obtener_db),
+    usuario: Usuario = Depends(requiere_permiso_nomina_novedades)
 ):
     """Devuelve los registros normalizados de un archivo (paginado)"""
+    archivo = await session.get(NominaArchivo, archivo_id)
+    if archivo and archivo.subcategoria == "COMISIONES":
+        permisos = await ServicioAuth.obtener_permisos_por_rol(session, usuario.rol)
+        if "comisiones" not in permisos:
+            raise HTTPException(status_code=403, detail="Sin permiso para comisiones")
+
     statement = select(NominaRegistroNormalizado).where(NominaRegistroNormalizado.archivo_id == archivo_id).offset(skip).limit(limit)
     try:
         result = await session.execute(statement)
@@ -197,7 +213,8 @@ async def obtener_preview(
 @router.get("/archivos/{archivo_id}/descargar")
 async def descargar_archivo(
     archivo_id: int, 
-    session: AsyncSession = Depends(obtener_db)
+    session: AsyncSession = Depends(obtener_db),
+    usuario: Usuario = Depends(requiere_permiso_nomina_novedades)
 ):
     """Descarga el archivo original cargado"""
     try:
@@ -207,6 +224,11 @@ async def descargar_archivo(
 
     if not archivo:
         raise HTTPException(status_code=404, detail="Archivo no encontrado en base de datos")
+
+    if archivo.subcategoria == "COMISIONES":
+        permisos = await ServicioAuth.obtener_permisos_por_rol(session, usuario.rol)
+        if "comisiones" not in permisos:
+            raise HTTPException(status_code=403, detail="Sin permiso para comisiones")
     
     if not os.path.exists(archivo.ruta_almacenamiento):
         raise HTTPException(status_code=404, detail="El archivo físico no se encuentra en el servidor")
@@ -221,9 +243,13 @@ async def descargar_archivo(
 async def obtener_resumen_mensual(
     mes: int, 
     año: int, 
-    session: AsyncSession = Depends(obtener_db)
+    session: AsyncSession = Depends(obtener_db),
+    usuario: Usuario = Depends(requiere_permiso_nomina_novedades)
 ):
     """Resumen mensual por subcategoría con conteos y totales"""
+    permisos = await ServicioAuth.obtener_permisos_por_rol(session, usuario.rol)
+    tiene_comisiones = "comisiones" in permisos
+
     # Consulta agrupada
     statement = select(
         NominaRegistroNormalizado.subcategoria_final.label("subcategoria"),
@@ -232,7 +258,12 @@ async def obtener_resumen_mensual(
     ).where(
         NominaRegistroNormalizado.mes_fact == mes,
         NominaRegistroNormalizado.año_fact == año
-    ).group_by(NominaRegistroNormalizado.subcategoria_final)
+    )
+
+    if not tiene_comisiones:
+        statement = statement.where(NominaRegistroNormalizado.subcategoria_final != "COMISIONES")
+
+    statement = statement.group_by(NominaRegistroNormalizado.subcategoria_final)
     
     try:
         result = await session.execute(statement)
@@ -248,9 +279,15 @@ async def obtener_detalles_subcategoria(
     año: int, 
     skip: int = 0, 
     limit: int = 100,
-    session: AsyncSession = Depends(obtener_db)
+    session: AsyncSession = Depends(obtener_db),
+    usuario: Usuario = Depends(requiere_permiso_nomina_novedades)
 ):
     """Devuelve registros mensuales de una subcategoría específica"""
+    if subcat.upper() == "COMISIONES":
+        permisos = await ServicioAuth.obtener_permisos_por_rol(session, usuario.rol)
+        if "comisiones" not in permisos:
+            raise HTTPException(status_code=403, detail="Sin permiso para comisiones")
+
     statement = select(NominaRegistroNormalizado).where(
         NominaRegistroNormalizado.subcategoria_final == subcat,
         NominaRegistroNormalizado.mes_fact == mes,

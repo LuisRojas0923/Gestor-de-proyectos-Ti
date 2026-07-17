@@ -56,8 +56,8 @@ async def test_hdi_excepcion_saldo_favor_retirado(db_session):
     Expectativas:
     - estado_validacion == EXCEPCION_SALDO_FAVOR
     - valor_rdc == 0.0  (retirado no recibe subsidio de empresa)
-    - valor == 24922.0  (valor contable original: el total va al estado del colaborador)
-    - valor_colaborador == 24922.0  (100% a cargo del colaborador, monto histórico)
+    - valor == 24922.0 (monto original)
+    - valor_colaborador == 0.0  (descuento cubierto por SALDO_FAVOR)
     - El historial de la excepción consume el saldo (verificado por estado de excepción)
     """
     archivo = _make_archivo(db_session, "test_hdi_retirado.xlsx")
@@ -109,7 +109,7 @@ async def test_hdi_excepcion_saldo_favor_retirado(db_session):
 
     # Valor contable = valor original (para que no figure $0 en la nómina)
     assert reg.valor == 24922.0, f"valor esperado 24922.0, obtenido {reg.valor}"
-    assert reg.valor_colaborador == 24922.0, f"valor_colaborador esperado 24922.0, obtenido {reg.valor_colaborador}"
+    assert reg.valor_colaborador == 0.0, f"valor_colaborador esperado 0.0, obtenido {reg.valor_colaborador}"
 
     assert reg.estado_validacion == "EXCEPCION_SALDO_FAVOR"
     assert "Saldo favor aplicado" in reg.observaciones

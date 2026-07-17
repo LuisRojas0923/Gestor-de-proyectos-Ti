@@ -75,13 +75,18 @@ class ExcepcionService:
     @staticmethod
     async def aplicar_saldo_favor(session: AsyncSession, excepcion: NominaExcepcion, valor_cobro: float, mes: int, anio: int) -> float:
         """
-        Aplica un saldo a favor a un cobro, disminuyendo el saldo actual.
-        Implementa idempotencia: si ya se aplicó en el mismo periodo, revierte antes de aplicar.
+        Aplica un saldo a favor al cobro actual.
+        Reduce el saldo_actual de la excepción de manera concurrente.
         Retorna el valor_final_a_cobrar.
         """
+        # 0. Recargar la excepción con FOR UPDATE para evitar race conditions
+        stmt_ex = select(NominaExcepcion).where(NominaExcepcion.id == excepcion.id).with_for_update()
+        result_ex = await session.execute(stmt_ex)
+        excepcion_locked = result_ex.scalar_one()
+
         # 1. Buscar si ya se aplicó en este mes/año para esta excepción
         stmt = select(NominaExcepcionHistorial).where(
-            NominaExcepcionHistorial.excepcion_id == excepcion.id,
+            NominaExcepcionHistorial.excepcion_id == excepcion_locked.id,
             NominaExcepcionHistorial.mes == mes,
             NominaExcepcionHistorial.anio == anio
         )
@@ -90,28 +95,28 @@ class ExcepcionService:
 
         if historial_previo:
             # Revertir saldo anterior al saldo_actual de la excepción
-            excepcion.saldo_actual += historial_previo.valor_aplicado
+            excepcion_locked.saldo_actual += historial_previo.valor_aplicado
             # Borrar historial previo para reemplazarlo
             await session.delete(historial_previo)
 
         # 2. Calcular descuento (Opción A: Restar lo que se pueda hasta llegar a 0)
-        descuento = min(valor_cobro, excepcion.saldo_actual)
+        descuento = min(valor_cobro, excepcion_locked.saldo_actual)
         valor_final = valor_cobro - descuento
 
         # 3. Actualizar saldo y estado
-        excepcion.saldo_actual -= descuento
-        if excepcion.saldo_actual <= 0:
-            excepcion.saldo_actual = 0
-            excepcion.estado = "AGOTADO"
+        excepcion_locked.saldo_actual -= descuento
+        if excepcion_locked.saldo_actual <= 0:
+            excepcion_locked.saldo_actual = 0
+            excepcion_locked.estado = "AGOTADO"
         else:
-            excepcion.estado = "ACTIVO"
+            excepcion_locked.estado = "ACTIVO"
 
-        excepcion.actualizado_en = datetime.now()
+        excepcion_locked.actualizado_en = datetime.now()
 
         # 4. Registrar nuevo historial si hubo descuento
         if descuento > 0:
             nuevo_hist = NominaExcepcionHistorial(
-                excepcion_id=excepcion.id,
+                excepcion_id=excepcion_locked.id,
                 mes=mes,
                 anio=anio,
                 valor_aplicado=descuento,
@@ -119,5 +124,5 @@ class ExcepcionService:
             )
             session.add(nuevo_hist)
 
-        session.add(excepcion)
+        session.add(excepcion_locked)
         return valor_final
