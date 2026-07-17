@@ -41,4 +41,5 @@ jobs:
         SECRET_KEY: testsecret
       run: |
         cd backend_v2
+        PYTHONPATH=. python -c "import asyncio; from app.database import init_db; asyncio.run(init_db())"
         PYTHONPATH=. pytest ../testing/backend/ -v
