@@ -100,6 +100,7 @@ const AuditoriaIndicadores: React.FC = () => {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
             <TopUsuariosTable
               datos={estadisticas.top_usuarios || []}
+              onUserClick={setSelectedUser}
             />
             <TopRutasTable
               datos={estadisticas.top_rutas || []}

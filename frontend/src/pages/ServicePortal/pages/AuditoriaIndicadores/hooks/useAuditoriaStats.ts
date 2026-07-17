@@ -119,12 +119,17 @@ export function useAuditoriaStats() {
                 }, 5000);
             };
 
+            let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+
             socket.onmessage = (event) => {
                 try {
                     const data = JSON.parse(event.data);
                     if (data.type === 'UPDATE_INDICADORES') {
-                        const { desde, hasta } = activeDatesRef.current;
-                        cargarRef.current(desde, hasta, true);
+                        if (debounceTimer) clearTimeout(debounceTimer);
+                        debounceTimer = setTimeout(() => {
+                            const { desde, hasta } = activeDatesRef.current;
+                            cargarRef.current(desde, hasta, true);
+                        }, 1500); // 1.5s debounce
                     }
                 } catch (e) {
                     console.error("Error parsing WS message:", e);

@@ -78,6 +78,9 @@ async def test_middleware_auditoria_creacion_reserva(override_get_db, db_session
     from app.models.auditoria.accion_usuario import AuditoriaAccionUsuario
     from sqlmodel import select
 
+    # Refrescar la transacción para asegurar visibilidad determinista del commit hecho por el middleware en otra sesión
+    await db_session.commit()
+
     result = await db_session.execute(
         select(AuditoriaAccionUsuario)
         .where(AuditoriaAccionUsuario.ruta == "/api/v2/reserva-salas/reservations")

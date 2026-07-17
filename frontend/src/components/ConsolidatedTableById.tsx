@@ -43,13 +43,6 @@ const getStatusVariant = (estado: string): 'error' | 'warning' | 'success' | 'de
     return 'default';
 };
 
-const getProgressColor = (pct: number) => {
-    if (pct >= 75) return 'bg-emerald-500';
-    if (pct >= 50) return 'bg-blue-500';
-    if (pct >= 25) return 'bg-yellow-500';
-    if (pct > 0) return 'bg-orange-400';
-    return 'bg-gray-200 dark:bg-gray-700';
-};
 
 const getProgressWidthClass = (pct: number) => {
     if (pct >= 100) return 'w-full';
@@ -75,9 +68,6 @@ const ConsolidatedTableById: React.FC<{ desarrolloId: string }> = ({ desarrolloI
     const [error, setError] = useState<string | null>(null);
 
     const [columnFilters, setColumnFilters] = useState<Record<string, Set<string>>>({});
-    const [filterSearchTerm, setFilterSearchTerm] = useState('');
-    const [activeFilter, setActiveFilter] = useState<string | null>(null);
-    const [anchorRect, setAnchorRect] = useState<DOMRect | null>(null);
     const filterRefs = useRef<Record<string, HTMLButtonElement | null>>({});
 
     useEffect(() => {
@@ -118,7 +108,7 @@ const ConsolidatedTableById: React.FC<{ desarrolloId: string }> = ({ desarrolloI
         };
     }, [data]);
 
-    const columnOptions = (key: string) => uniqueValues[key as keyof typeof uniqueValues] || [];
+
 
     const getProgressBucket = (pct: number): string => {
         if (pct === 0) return 'Sin progreso (0%)';

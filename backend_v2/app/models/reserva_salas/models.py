@@ -6,7 +6,7 @@ import uuid
 from typing import Optional, List
 from datetime import datetime, date, time
 from sqlmodel import SQLModel, Field, Relationship
-from sqlalchemy import Column, Text, DateTime
+from sqlalchemy import Column, Text, DateTime, Index
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID, ARRAY, JSONB
 from sqlalchemy import text
 
@@ -18,6 +18,7 @@ def _uuid_pk():
 class Room(SQLModel, table=True):
     """Salas disponibles para reserva"""
     __tablename__ = "rooms"
+    __table_args__ = {'extend_existing': True}
 
     id: Optional[uuid.UUID] = Field(default=None, sa_column=_uuid_pk())
     name: str = Field(max_length=255)
@@ -34,6 +35,7 @@ class Room(SQLModel, table=True):
 class ReservationSeries(SQLModel, table=True):
     """Series de reservas repetitivas (uso futuro)"""
     __tablename__ = "reservation_series"
+    __table_args__ = {'extend_existing': True}
 
     id: Optional[uuid.UUID] = Field(default=None, sa_column=_uuid_pk())
     room_id: uuid.UUID = Field(foreign_key="rooms.id")
@@ -75,12 +77,18 @@ class Reservation(SQLModel, table=True):
         sa_column=Column(DateTime(timezone=True), server_default=text("now()")),
     )
 
+    __table_args__ = (
+        Index("idx_reservation_room_time", "room_id", "start_datetime", "end_datetime"),
+        {"extend_existing": True},
+    )
+
     room: Optional[Room] = Relationship(back_populates="reservations")
 
 
 class ReservationAudit(SQLModel, table=True):
     """Auditoría de cambios en reservas"""
     __tablename__ = "reservation_audit"
+    __table_args__ = {'extend_existing': True}
 
     id: Optional[int] = Field(default=None, primary_key=True)
     reservation_id: uuid.UUID = Field(foreign_key="reservations.id")

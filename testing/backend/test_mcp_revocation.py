@@ -150,6 +150,7 @@ class TestRevocarTokenMcpCasosNegativos:
             usuario_id=usuario_mcp.id,
             token_sesion="fake-web-token-a-revocar",
             tipo_sesion="web",
+            jti="mock-jti-web",
             expira_en=get_bogota_now() + timedelta(hours=8),
         )
         db_session.add(sesion_web)

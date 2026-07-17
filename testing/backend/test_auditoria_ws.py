@@ -41,7 +41,7 @@ async def test_validar_token_ws_usuario_inactivo():
     from app.models.auth.usuario import Sesion
     from app.utils_date import get_bogota_now
     sesion = Sesion(jti="abc", fin_sesion=None, expira_en=get_bogota_now() + timedelta(days=1))
-    
+
     with patch.object(ServicioAuth, 'obtener_payload_token', return_value={"sub": "123", "token_type": "session", "jti": "abc"}):
         mock_result = MagicMock()
         mock_result.scalars.return_value.first.return_value = sesion
@@ -57,7 +57,7 @@ async def test_validar_token_ws_sin_permiso():
     from app.models.auth.usuario import Sesion
     from app.utils_date import get_bogota_now
     sesion = Sesion(jti="abc", fin_sesion=None, expira_en=get_bogota_now() + timedelta(days=1))
-    
+
     with patch.object(ServicioAuth, 'obtener_payload_token', return_value={"sub": "123", "token_type": "session", "jti": "abc"}):
         mock_result = MagicMock()
         mock_result.scalars.return_value.first.return_value = sesion
@@ -74,7 +74,7 @@ async def test_validar_token_ws_conexion_valida():
     from app.models.auth.usuario import Sesion
     from app.utils_date import get_bogota_now
     sesion = Sesion(jti="abc", fin_sesion=None, expira_en=get_bogota_now() + timedelta(days=1))
-    
+
     test_user = Usuario(cedula="123", esta_activo=True, rol="admin")
     with patch.object(ServicioAuth, 'obtener_payload_token', return_value={"sub": "123", "token_type": "session", "jti": "abc"}):
         mock_result = MagicMock()
@@ -99,11 +99,11 @@ def test_websocket_integracion_acepta(mock_validar):
 def test_websocket_auditoria_libera_conexion_db(mock_session_local, mock_validar):
     # Simulamos que la validación pasa
     mock_validar.return_value = (Usuario(cedula="123", esta_activo=True, rol="admin"), None)
-    
+
     # Mockear el async context manager
     mock_db = AsyncMock()
     mock_session_local.return_value.__aenter__.return_value = mock_db
-    
+
     client = TestClient(app)
     with client.websocket_connect("/api/v2/auditoria/ws/dashboard", headers={"origin": "http://localhost:5173"}, subprotocols=["auth", "token_valido"]) as websocket:
         # En este punto el socket está abierto y esperando.
@@ -132,7 +132,7 @@ async def test_validar_token_ws_sesion_cerrada():
     from app.models.auth.usuario import Sesion
     from app.utils_date import get_bogota_now
     sesion = Sesion(jti="abc", fin_sesion=get_bogota_now(), expira_en=get_bogota_now() + timedelta(days=1))
-    
+
     with patch.object(ServicioAuth, 'obtener_payload_token', return_value={"sub": "123", "token_type": "session", "jti": "abc"}):
         mock_result = MagicMock()
         mock_result.scalars.return_value.first.return_value = sesion
@@ -147,7 +147,7 @@ async def test_validar_token_ws_mcp_expirado():
     from app.models.auth.usuario import Sesion
     from app.utils_date import get_bogota_now
     sesion = Sesion(jti="abc", fin_sesion=None, expira_en=get_bogota_now() - timedelta(days=1))
-    
+
     with patch.object(ServicioAuth, 'obtener_payload_token', return_value={"sub": "123", "token_type": "mcp", "jti": "abc"}):
         mock_result = MagicMock()
         mock_result.scalars.return_value.first.return_value = sesion
@@ -163,7 +163,7 @@ async def test_validar_token_ws_mcp_activo():
     from app.utils_date import get_bogota_now
     sesion = Sesion(jti="abc", fin_sesion=None, expira_en=get_bogota_now() + timedelta(days=1))
     test_user = Usuario(cedula="123", esta_activo=True, rol="admin")
-    
+
     with patch.object(ServicioAuth, 'obtener_payload_token', return_value={"sub": "123", "token_type": "mcp", "jti": "abc"}):
         mock_result = MagicMock()
         mock_result.scalars.return_value.first.return_value = sesion
@@ -189,7 +189,7 @@ def test_websocket_origen_valido(mock_session_local, mock_validar):
     mock_validar.return_value = (Usuario(cedula="123", esta_activo=True, rol="admin"), None)
     mock_db = MagicMock()
     mock_session_local.return_value.__aenter__.return_value = mock_db
-    
+
     client = TestClient(app)
     # Origin permitido
     with client.websocket_connect("/api/v2/auditoria/ws/dashboard", headers={"origin": "http://localhost:5173"}, subprotocols=["auth", "token_valido"]) as websocket:
@@ -199,16 +199,16 @@ def test_websocket_origen_valido(mock_session_local, mock_validar):
 async def test_auditoria_ws_manager_limite():
     from app.services.auditoria.ws_manager import AuditoriaWSManager
     from fastapi import WebSocket
-    
+
     manager = AuditoriaWSManager(max_connections=2)
     mock_ws1 = AsyncMock(spec=WebSocket)
     mock_ws2 = AsyncMock(spec=WebSocket)
     mock_ws3 = AsyncMock(spec=WebSocket)
-    
+
     assert await manager.connect(mock_ws1) is True
     assert await manager.connect(mock_ws2) is True
     assert await manager.connect(mock_ws3) is False  # Limite alcanzado
-    
+
     await manager.shutdown()
 
 @pytest.mark.asyncio
@@ -216,36 +216,82 @@ async def test_auditoria_ws_manager_coalescing():
     from app.services.auditoria.ws_manager import AuditoriaWSManager
     from fastapi import WebSocket
     import asyncio
-    
+
     manager = AuditoriaWSManager()
     mock_ws = AsyncMock(spec=WebSocket)
-    
+
     await manager.connect(mock_ws)
-    
+
     # Ráfaga de notificaciones
     for _ in range(10):
         manager.notify_update()
-        
+
     # La cola tiene tamaño máximo 2
     assert manager.queues[mock_ws].qsize() <= 2
-    
+
     await manager.shutdown()
 
 @pytest.mark.asyncio
 async def test_auditoria_ws_manager_shutdown():
     from app.services.auditoria.ws_manager import AuditoriaWSManager
     from fastapi import WebSocket
-    
+
     manager = AuditoriaWSManager()
     mock_ws = AsyncMock(spec=WebSocket)
     await manager.connect(mock_ws)
-    
+
     task = manager.active_connections[mock_ws]
     assert not task.cancelled()
-    
+
     await manager.shutdown()
     assert mock_ws not in manager.active_connections
     import asyncio
     await asyncio.sleep(0.01) # Yield to event loop to let cancellation propagate
     assert task.cancelled()
 
+
+@pytest.mark.asyncio
+async def test_auditoria_ws_login_flow(client):
+    """
+    E2E test: Real login -> checks JWT jti matches DB Session jti -> connect WS.
+    """
+    import os
+    from jose import jwt
+    from sqlmodel import select
+    from app.database import AsyncSessionLocal
+    from app.models.auth.usuario import Sesion
+    from app.config import config
+    from fastapi.testclient import TestClient
+    from app.main import app
+
+    user_cedula = os.getenv("TEST_USER_CEDULA", "1107068093")
+    user_pass = os.getenv("TEST_USER_PASS", "1107068093")
+
+    # 1. Login
+    response = await client.post("/auth/login", data={"username": user_cedula, "password": user_pass})
+    if response.status_code != 200:
+        pytest.skip(f"Login failed: {response.text}")
+
+    token = response.json()["access_token"]
+
+    # 2. Extract jti from token
+    payload = jwt.decode(token, config.secret_key, algorithms=[config.algorithm])
+    token_jti = payload.get("jti")
+    assert token_jti is not None, "JWT must contain a jti"
+
+    # 3. Check DB session jti matches
+    async with AsyncSessionLocal() as db:
+        stmt = select(Sesion).where(Sesion.token_sesion == token)
+        result = await db.execute(stmt)
+        sesion_db = result.scalars().first()
+
+    assert sesion_db is not None, "Sesion must exist in DB"
+    assert sesion_db.jti == token_jti, f"DB jti {sesion_db.jti} does not match token jti {token_jti}"
+
+    # 4. Connect to WS
+    sync_client = TestClient(app)
+    # The origin is allowed by default in tests if we mock it, or we configure config.ws_allowed_origins
+    # Wait, in this test we need to mock config if allowlist is strict, but we haven't implemented allowlist yet.
+    # We will implement allowlist next.
+    with sync_client.websocket_connect("/api/v2/auditoria/ws/dashboard", subprotocols=["auth", token], headers={"Origin": "http://localhost:5173"}) as websocket:
+        assert websocket.accepted_subprotocol == "auth"

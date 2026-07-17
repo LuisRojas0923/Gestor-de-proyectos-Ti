@@ -101,8 +101,9 @@ const AdminLoginLock: React.FC<AdminLoginLockProps> = ({ onUnlock, onClose, isOp
         onUnlock(password);
         setPassword('');
       }
-    } catch (error: any) {
-      addNotification('error', error.response?.data?.detail || 'Error de verificación');
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { detail?: string } } };
+      addNotification('error', err.response?.data?.detail || 'Error de verificación');
     } finally {
       setIsVerifying(false);
     }
@@ -151,7 +152,7 @@ const AdminLoginLock: React.FC<AdminLoginLockProps> = ({ onUnlock, onClose, isOp
               label="Contraseña de Administrador"
               placeholder="Ingrese su contraseña"
               value={password}
-              onChange={(e: any) => setPassword(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
               icon={ShieldAlert}
               required
               minLength={8}

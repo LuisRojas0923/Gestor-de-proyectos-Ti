@@ -18,7 +18,7 @@ class AuditoriaWSManager:
 
         queue = asyncio.Queue(maxsize=2)
         worker_task = asyncio.create_task(self._worker(websocket, queue))
-        
+
         self.active_connections[websocket] = worker_task
         self.queues[websocket] = queue
         logger.info(f"Dashboard de Auditoría conectado vía WS. Conexiones activas: {len(self.active_connections)}")

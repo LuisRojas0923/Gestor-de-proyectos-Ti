@@ -136,6 +136,7 @@ async def test_invalidar_sesiones_cierra_sesiones_activas(db_session, usuario_es
         Sesion(
             usuario_id=_ID_ESCALADO,
             token_sesion=f"token-test-{i}",
+            jti=f"mock-jti-{i}",
             expira_en=datetime.now() + timedelta(hours=1)
         )
         for i in range(2)
@@ -167,6 +168,7 @@ async def test_invalidar_sesiones_idempotente(db_session, usuario_escalado):
     sesion = Sesion(
         usuario_id=_ID_ESCALADO,
         token_sesion="token-idempotente",
+        jti="mock-jti-idem",
         expira_en=datetime.now() + timedelta(hours=1)
     )
     db_session.add(sesion)

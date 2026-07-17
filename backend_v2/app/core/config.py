@@ -35,6 +35,7 @@ class Settings(BaseSettings):
     jwt_algoritmo: str = "HS256"
 
     cors_origenes_permitidos: str = "*"
+    ws_origenes_permitidos: str = "http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000,http://127.0.0.1:3000"
 
     # Auth: contraseña temporal del portal para usuarios JIT.
     # En producción NO puede estar vacía ni ser el literal "PORTAL_PENDING_PWD".

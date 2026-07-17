@@ -112,22 +112,20 @@ async def obtener_estadisticas_auditoria(
 
 from app.services.auditoria.ws_manager import auditoria_ws_manager
 
-import re
-
-ALLOWED_ORIGINS = [
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-]
-ALLOWED_ORIGIN_REGEX = re.compile(r"https?://(localhost|127\.0\.0\.1|192\.168\.\d+\.\d+|172\.(1[6-9]|2\d|3[01])\.\d+\.\d+|10\.\d+\.\d+\.\d+)(:\d+)?")
+from app.core.config import obtener_configuracion
 
 def origin_valido(origin: str) -> bool:
     if not origin:
         return False
-    if origin in ALLOWED_ORIGINS:
-        return True
-    return bool(ALLOWED_ORIGIN_REGEX.match(origin))
+    config_core = obtener_configuracion()
+    allowed = [o.strip() for o in config_core.ws_origenes_permitidos.split(",") if o.strip()]
+    
+    # Permitir orígenes de desarrollo local de Vite de forma resiliente
+    # ya que localmente el puerto puede cambiar y es un entorno controlado.
+    if hasattr(config_core, "entorno") and getattr(config_core, "entorno", "development") != "production":
+        allowed.extend(["http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:5174", "http://localhost:8000"])
+        
+    return origin in allowed
 
 @router.websocket("/ws/dashboard")
 async def websocket_auditoria_dashboard(
@@ -151,7 +149,7 @@ async def websocket_auditoria_dashboard(
 
     async with AsyncSessionLocal() as db:
         usuario, error_reason = await ServicioAuth.validar_token_ws(db, token, modulo_requerido=MODULO_AUDITORIA)
-    
+
     if not usuario:
         await websocket.close(code=1008, reason=error_reason)
         return
@@ -159,23 +157,30 @@ async def websocket_auditoria_dashboard(
     # 3. Aceptar conexión con protocolo seguro en lugar de retornar el token
     subprotocolo_aceptado = "auth" if "auth" in subprotocols else None
     await websocket.accept(subprotocol=subprotocolo_aceptado)
-    
+
     if not await auditoria_ws_manager.connect(websocket):
         await websocket.close(code=1013, reason="Demasiadas conexiones activas. Intente más tarde.")
         return
     try:
         import asyncio
+        import time
+        revalidation_interval = 60.0
+        deadline = time.monotonic() + revalidation_interval
+
         while True:
+            timeout_val = max(0.1, deadline - time.monotonic())
             try:
-                # Esperar mensajes o timeout de 60s para forzar revalidación
-                await asyncio.wait_for(websocket.receive_text(), timeout=60.0)
+                await asyncio.wait_for(websocket.receive_text(), timeout=timeout_val)
             except asyncio.TimeoutError:
-                # Revalidar el token (requiere conexión temporal nueva)
+                pass
+
+            if time.monotonic() >= deadline:
                 async with AsyncSessionLocal() as db_reval:
                     re_user, re_error = await ServicioAuth.validar_token_ws(db_reval, token, modulo_requerido=MODULO_AUDITORIA)
                     if not re_user:
                         await websocket.close(code=1008, reason=re_error)
                         return
+                deadline = time.monotonic() + revalidation_interval
     except WebSocketDisconnect:
         pass
     except Exception:

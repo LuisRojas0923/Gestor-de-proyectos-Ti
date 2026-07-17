@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Button, Input, Select, Title, Text, Textarea } from '../atoms';
+import { Button, Input, Select, Text, Textarea } from '../atoms';
 import Modal from './Modal';
-import { Info, Cpu, Users, Calendar, ChevronRight, ChevronLeft, CheckCircle2 } from 'lucide-react';
+import { Info, Cpu, Users, ChevronRight, ChevronLeft, CheckCircle2 } from 'lucide-react';
 
 interface DevelopmentData {
   id: string;

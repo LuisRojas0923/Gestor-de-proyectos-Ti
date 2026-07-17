@@ -24,7 +24,14 @@ class ServicioAuditoriaEstadisticas:
         defecto_dias: int = 7
     ) -> tuple[datetime, datetime]:
         """Asegura que siempre exista un rango válido y seguro."""
-        hasta = fecha_hasta or datetime.utcnow()
+        from datetime import timezone
+        # Convertir a offset-naive (UTC) porque la DB usa TIMESTAMP WITHOUT TIME ZONE
+        if fecha_hasta and fecha_hasta.tzinfo is not None:
+            fecha_hasta = fecha_hasta.astimezone(timezone.utc).replace(tzinfo=None)
+        if fecha_desde and fecha_desde.tzinfo is not None:
+            fecha_desde = fecha_desde.astimezone(timezone.utc).replace(tzinfo=None)
+
+        hasta = fecha_hasta or datetime.now(timezone.utc).replace(tzinfo=None)
         desde = fecha_desde or (hasta - timedelta(days=defecto_dias))
 
         # Validar consistencia
@@ -113,7 +120,17 @@ class ServicioAuditoriaEstadisticas:
 
         # PRE-CARGA: Obtener los top 5 eventos recientes por cada módulo en una sola consulta
         subq = select(
-            AuditoriaAccionUsuario,
+            AuditoriaAccionUsuario.id,
+            AuditoriaAccionUsuario.timestamp,
+            AuditoriaAccionUsuario.usuario_id,
+            AuditoriaAccionUsuario.usuario_nombre,
+            AuditoriaAccionUsuario.modulo,
+            AuditoriaAccionUsuario.accion,
+            AuditoriaAccionUsuario.resultado,
+            AuditoriaAccionUsuario.metodo_http,
+            AuditoriaAccionUsuario.ruta,
+            AuditoriaAccionUsuario.datos_nuevos,
+            AuditoriaAccionUsuario.metadatos,
             func.row_number().over(
                 partition_by=AuditoriaAccionUsuario.modulo,
                 order_by=desc(AuditoriaAccionUsuario.timestamp)
@@ -121,20 +138,45 @@ class ServicioAuditoriaEstadisticas:
         )
         if filtros:
             subq = subq.where(*filtros)
-            
+
         if modulos_top:
             subq = subq.where(AuditoriaAccionUsuario.modulo.in_(modulos_top))
         else:
             subq = subq.where(False)
 
         subq = subq.subquery()
-        from sqlalchemy.orm import aliased
-        AliasAccion = aliased(AuditoriaAccionUsuario, subq)
-        eventos_stmt = select(AliasAccion).where(subq.c.rn <= 5)
+        eventos_stmt = select(
+            subq.c.id,
+            subq.c.timestamp,
+            subq.c.usuario_id,
+            subq.c.usuario_nombre,
+            subq.c.modulo,
+            subq.c.accion,
+            subq.c.resultado,
+            subq.c.metodo_http,
+            subq.c.ruta,
+            subq.c.datos_nuevos,
+            subq.c.metadatos
+        ).where(subq.c.rn <= 5)
 
-        ultimos_todos = (await db.execute(eventos_stmt)).scalars().all()
+        ultimos_todos_rows = (await db.execute(eventos_stmt)).all()
+
+        from app.models.auditoria.accion_usuario import AuditoriaEventoResumen
         ultimos_por_modulo = {}
-        for ev in ultimos_todos:
+        for row in ultimos_todos_rows:
+            ev = AuditoriaEventoResumen(
+                id=row.id,
+                timestamp=row.timestamp,
+                usuario_id=row.usuario_id,
+                usuario_nombre=row.usuario_nombre,
+                modulo=row.modulo,
+                accion=row.accion,
+                resultado=row.resultado,
+                metodo_http=row.metodo_http,
+                ruta=row.ruta,
+                datos_nuevos=row.datos_nuevos,
+                metadatos=row.metadatos
+            )
             mod = ev.modulo or 'Desconocido'
             if mod not in ultimos_por_modulo:
                 ultimos_por_modulo[mod] = []

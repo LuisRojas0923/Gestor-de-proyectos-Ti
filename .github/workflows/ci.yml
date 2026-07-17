@@ -52,18 +52,18 @@ jobs:
         REDIS_URL: redis://localhost:6379/0
       run: |
         cd backend_v2
-        
+
         # Iniciar DB y migrar/sembrar básico
         PYTHONPATH=. python -c "import asyncio; from app.database import init_db; asyncio.run(init_db())"
-        
+
         # Levantar la API en vivo para tests in-process y E2E
         PYTHONPATH=. uvicorn app.main:app --host 127.0.0.1 --port 8000 &
-        
+
         # Esperar al health check
         echo "Waiting for API to start..."
         timeout 30 bash -c 'until curl -s http://127.0.0.1:8000/docs > /dev/null; do sleep 1; done' || (echo "API failed to start"; exit 1)
         echo "API started successfully."
-        
+
         # Ejecutar Pytest (In-process & E2E combinados)
         PYTHONPATH=. pytest ../testing/backend/ -v
 

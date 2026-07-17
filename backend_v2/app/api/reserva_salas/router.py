@@ -13,6 +13,7 @@ import logging
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
+from sqlalchemy.exc import IntegrityError
 
 from app.database import obtener_db
 from app.api.auth.router import obtener_usuario_actual_db
@@ -262,19 +263,9 @@ async def crear_reserva(
                 detail="Las reservas solo están permitidas entre las 7:00 AM y las 6:00 PM (18:00).",
             )
 
-        # Verificar solapamientos (misma sala, mismo horario)
-        overlap_result = await db.execute(
-            select(Reservation).where(
-                Reservation.room_id == body.room_id,
-                Reservation.status == "ACTIVE",
-                Reservation.start_datetime < end,
-                Reservation.end_datetime > start,
-            )
-        )
-        if overlap_result.scalars().first() is not None:
-            raise HTTPException(
-                status_code=409, detail="La sala ya tiene una reserva en ese horario"
-            )
+        # La exclusión de solapamientos se delega completamente a PostgreSQL
+        # mediante la restricción EXCLUDE USING gist en la base de datos.
+        # Si hay conflicto, lanzará un IntegrityError que se traduce a 409 más abajo.
 
         # Verificar que la sala exista y obtener su nombre para auditoría
         room_result = await db.execute(select(Room).where(Room.id == body.room_id))
@@ -300,6 +291,10 @@ async def crear_reserva(
         return ReservationRead.model_validate(reservation)
     except HTTPException:
         raise
+    except IntegrityError as e:
+        await db.rollback()
+        logging.error(f"IntegrityError en POST /reservations: {e}")
+        raise HTTPException(status_code=409, detail="La sala ya tiene una reserva en ese horario (Conflicto de integridad)")
     except Exception as e:
         await db.rollback()
         logging.error(f"Error en POST /reservations: {e}")

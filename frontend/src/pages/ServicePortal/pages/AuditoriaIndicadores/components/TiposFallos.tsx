@@ -20,7 +20,7 @@ const getFalloColor = (tipo: string) => {
 };
 
 // Tooltip personalizado para mostrar la especificación detallada de los fallos
-const CustomTooltip = ({ active, payload }: any) => {
+const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: Array<{ name: string; value: number; color: string }> }) => {
   if (active && payload && payload.length) {
     const data = payload[0].payload;
     const detalles = data.detalles || {};

@@ -149,7 +149,7 @@ CREATE TABLE IF NOT EXISTS categorias_ticket (
 CREATE TABLE IF NOT EXISTS tickets (
     id VARCHAR(50) PRIMARY KEY,
     categoria_id VARCHAR(50) NOT NULL REFERENCES categorias_ticket(id),
-    
+
     -- Datos del Solicitante
     creador_id VARCHAR(50) NOT NULL,
     nombre_creador VARCHAR(255),
@@ -157,25 +157,25 @@ CREATE TABLE IF NOT EXISTS tickets (
     area_creador VARCHAR(100),
     cargo_creador VARCHAR(100),
     sede_creador VARCHAR(100),
-    
+
     -- Detalles del Ticket
     asunto VARCHAR(255) NOT NULL,
     descripcion TEXT NOT NULL,
     prioridad VARCHAR(20) DEFAULT 'Media',
     estado VARCHAR(50) DEFAULT 'Nuevo',
     sub_estado VARCHAR(50) DEFAULT 'Asignado', -- Agregado de add_sub_estado.sql
-    
+
     -- Gestión
     asignado_a VARCHAR(255),
     diagnostico TEXT,
     resolucion TEXT,
     notas TEXT,
     horas_tiempo_empleado DECIMAL(8, 2),
-    
+
     -- Relaciones Opcionales
     desarrollo_id VARCHAR(50) REFERENCES desarrollos(id),
     datos_extra JSONB,
-    
+
     -- Tiempos
     fecha_entrega_ideal TIMESTAMPTZ,
     resuelto_en TIMESTAMPTZ,
@@ -187,12 +187,12 @@ CREATE TABLE IF NOT EXISTS tickets (
 CREATE TABLE IF NOT EXISTS solicitudes_desarrollo (
     id SERIAL PRIMARY KEY,
     ticket_id VARCHAR(50) NOT NULL REFERENCES tickets(id) ON DELETE CASCADE,
-    
+
     que_necesita TEXT,
     porque TEXT,
     paraque TEXT,
     justificacion_ia TEXT,
-    
+
     creado_en TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -276,6 +276,18 @@ CREATE TABLE IF NOT EXISTS reservations (
     updated_at TIMESTAMPTZ DEFAULT NOW(),
     CONSTRAINT valid_range CHECK (end_datetime > start_datetime)
 );
+
+-- Extension btree_gist required for exclusion constraints mixing =, && on tstzrange
+CREATE EXTENSION IF NOT EXISTS btree_gist;
+
+-- Exclusion constraint to prevent overlapping active reservations for the same room
+ALTER TABLE reservations
+    ADD CONSTRAINT exclude_overlapping_reservations
+    EXCLUDE USING gist (
+        room_id WITH =,
+        tstzrange(start_datetime, end_datetime, '()') WITH &&
+    )
+    WHERE (status = 'ACTIVE');
 
 CREATE INDEX IF NOT EXISTS idx_reservations_room_id ON reservations(room_id);
 CREATE INDEX IF NOT EXISTS idx_reservations_status ON reservations(status);

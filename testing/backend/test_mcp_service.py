@@ -225,6 +225,7 @@ class TestListarTokensMcpActivos:
             usuario_id=usuario_mcp.id,
             token_sesion="fake-web-token",
             tipo_sesion="web",
+            jti="mock-jti-web-2",
             expira_en=get_bogota_now() + timedelta(hours=8),
         )
         db_session.add(sesion_web)

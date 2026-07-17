@@ -207,8 +207,12 @@ async def login(
         # Stamp last_ip en el JWT: la IP real de la conexión (no el XFF claim).
         # El key func de endpoints autenticados usa este claim para validar
         # que el XFF no haya sido manipulado entre logins.
+        import uuid
+        nuevo_jti = str(uuid.uuid4())
+
         token_acceso = ServicioAuth.crear_token_acceso(
             datos={"sub": usuario.cedula, "rol": usuario.rol},
+            jti=nuevo_jti,
             last_ip=request.client.host if request.client else None,
         )
 
@@ -220,6 +224,7 @@ async def login(
             rol_usuario=usuario.rol,
             direccion_ip=request.client.host if request.client else None,
             agente_usuario=request.headers.get("user-agent"),
+            jti=nuevo_jti,
         )
 
         await _auditar_login(

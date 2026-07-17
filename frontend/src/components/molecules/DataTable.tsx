@@ -153,7 +153,7 @@ export function DataTable<T>({
             const col = columns.find(c => c.key === key);
             const firstSubKey = col?.subFilters && col.subFilters.length > 0 ? col.subFilters[0].key : key;
             setActiveSubFilter(firstSubKey);
-            
+
             const initialTemp: Record<string, Set<string>> = {};
             if (col?.subFilters && col.subFilters.length > 0) {
                 col.subFilters.forEach(sub => {
@@ -378,11 +378,33 @@ export function DataTable<T>({
                                     data-datatable-row="true"
                                     role="row"
                                     key={keyExtractor(row)}
-                                    onClick={() => onRowClick?.(row)}
+                                    onClick={(e) => {
+                                        if (onRowClick) {
+                                            const target = e.target as HTMLElement;
+                                            if (target.tagName !== 'BUTTON' && target.tagName !== 'INPUT' && target.closest('button') === null) {
+                                                e.stopPropagation();
+                                                onRowClick(row);
+                                            }
+                                        }
+                                    }}
                                     onKeyDown={(e) => {
                                         if (onRowClick && (e.key === 'Enter' || e.key === ' ')) {
-                                            e.preventDefault();
-                                            onRowClick(row);
+                                            const target = e.target as HTMLElement;
+                                            const role = target.getAttribute('role');
+                                            // Solo activar si el enter se hizo directamente en la fila
+                                            // o no proviene de elementos interactivos anidados
+                                            if (
+                                                target.tagName !== 'BUTTON' &&
+                                                target.tagName !== 'INPUT' &&
+                                                target.tagName !== 'SELECT' &&
+                                                target.tagName !== 'TEXTAREA' &&
+                                                target.tagName !== 'A' &&
+                                                role !== 'button' &&
+                                                target.closest('button') === null
+                                            ) {
+                                                e.preventDefault();
+                                                onRowClick(row);
+                                            }
                                         }
                                     }}
                                     tabIndex={onRowClick ? 0 : undefined}
