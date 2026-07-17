@@ -380,10 +380,16 @@ const UltimosEventosTable: React.FC<UltimosEventosTableProps> = ({
           keyExtractor={(row) => row.id.toString()}
           emptyMessage="No se encontraron eventos en este período."
           onRowClick={(row) => onVerDetalle ? onVerDetalle(row) : setEventoSeleccionado(row)}
+          isLoading={isLoading}
         />
       ) : (
         <div className="flex flex-col gap-3">
-          {groupedData.length === 0 ? (
+          {isLoading ? (
+            <div className="flex-1 flex flex-col items-center justify-center gap-3 py-10" role="status" aria-live="polite">
+                <div className="animate-spin w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full" />
+                <Text variant="body2" color="text-secondary" weight="medium">Cargando...</Text>
+            </div>
+          ) : groupedData.length === 0 ? (
             <div className="text-center p-4 text-[var(--color-text-secondary)] text-sm">
               No se encontraron eventos en este período.
             </div>
@@ -393,8 +399,16 @@ const UltimosEventosTable: React.FC<UltimosEventosTableProps> = ({
               return (
                 <div key={group.usuario_id || Math.random().toString()} className="border border-[var(--color-border)] rounded-lg overflow-hidden bg-[var(--color-surface)]">
                   <div
-                    className="p-3 bg-[var(--color-surface-variant)] flex items-center justify-between cursor-pointer hover:opacity-80 transition-opacity"
+                    role="button"
+                    tabIndex={0}
+                    className="p-3 bg-[var(--color-surface-variant)] flex items-center justify-between cursor-pointer hover:opacity-80 transition-opacity focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
                     onClick={() => toggleUser(group.usuario_id)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        toggleUser(group.usuario_id);
+                      }
+                    }}
                   >
                     <div className="flex items-center gap-3">
                       {isExpanded ? <ChevronDown className="w-5 h-5 text-[var(--color-text-secondary)]" /> : <ChevronRight className="w-5 h-5 text-[var(--color-text-secondary)]" />}

@@ -151,6 +151,66 @@ describe('DataTable — accesibilidad de filtros', () => {
   });
 });
 
+describe('DataTable — accesibilidad de fila', () => {
+  it('puede disparar onRowClick con Enter y Space cuando tiene el foco', () => {
+    const onRowClick = vi.fn();
+    render(
+      <DataTable<Row>
+        columns={columns}
+        data={rows}
+        keyExtractor={row => row.id}
+        onRowClick={onRowClick}
+      />
+    );
+    
+    // El índice 1 es la primera fila de datos (0 es el header)
+    const firstRow = screen.getAllByRole('row')[1];
+    
+    expect(firstRow).toHaveAttribute('tabIndex', '0');
+    expect(firstRow).toHaveClass('cursor-pointer');
+    
+    firstRow.focus();
+    expect(firstRow).toHaveFocus();
+    
+    fireEvent.keyDown(firstRow, { key: 'Enter' });
+    expect(onRowClick).toHaveBeenCalledWith(rows[0]);
+    
+    fireEvent.keyDown(firstRow, { key: ' ' });
+    expect(onRowClick).toHaveBeenCalledTimes(2);
+  });
+  
+  it('no tiene cursor-pointer ni tabIndex si onRowClick no esta provisto', () => {
+    render(
+      <DataTable<Row>
+        columns={columns}
+        data={rows}
+        keyExtractor={row => row.id}
+      />
+    );
+    
+    const firstRow = screen.getAllByRole('row')[1];
+    expect(firstRow).not.toHaveAttribute('tabIndex');
+    expect(firstRow).not.toHaveClass('cursor-pointer');
+  });
+});
+
+describe('DataTable — responsive', () => {
+  it('aplica overflow-x-auto para el contenedor principal simulando scrolls en pantallas chicas', () => {
+    render(
+      <DataTable<Row>
+        columns={columns}
+        data={rows}
+        keyExtractor={row => row.id}
+      />
+    );
+    
+    const wrapper = screen.getByRole('table');
+    expect(wrapper).toHaveClass('overflow-x-auto');
+    expect(wrapper).toHaveClass('overflow-y-hidden');
+    expect(wrapper.className).toContain('min-h-[100px]');
+  });
+});
+
 function createRect(width: number, left: number): DOMRect {
   return {
     width,

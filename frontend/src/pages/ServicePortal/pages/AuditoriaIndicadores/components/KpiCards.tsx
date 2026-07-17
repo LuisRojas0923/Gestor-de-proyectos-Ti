@@ -54,7 +54,15 @@ const KpiCards: React.FC<KpiCardsProps> = ({ stats, onClickDenegados, onClickFal
       </Card>
 
       <Card
-        className={`p-4 bg-[var(--color-surface)] border border-[var(--color-border)] shadow-sm flex items-center gap-4 ${onClickDenegados ? 'cursor-pointer hover:bg-red-50/50 dark:hover:bg-red-900/10 transition-colors' : ''}`}
+        role={onClickDenegados ? "button" : undefined}
+        tabIndex={onClickDenegados ? 0 : undefined}
+        onKeyDown={(e) => {
+          if (onClickDenegados && (e.key === 'Enter' || e.key === ' ')) {
+            e.preventDefault();
+            onClickDenegados();
+          }
+        }}
+        className={`p-4 bg-[var(--color-surface)] border border-[var(--color-border)] shadow-sm flex items-center gap-4 ${onClickDenegados ? 'cursor-pointer hover:bg-red-50/50 dark:hover:bg-red-900/10 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500' : ''}`}
         onClick={onClickDenegados}
       >
         <div className="w-12 h-12 rounded-xl bg-red-50 dark:bg-red-950/30 flex items-center justify-center text-red-600 dark:text-red-400">
@@ -71,7 +79,15 @@ const KpiCards: React.FC<KpiCardsProps> = ({ stats, onClickDenegados, onClickFal
       </Card>
 
       <Card
-        className={`p-4 bg-[var(--color-surface)] border border-[var(--color-border)] shadow-sm flex items-center gap-4 ${onClickFallosAuth ? 'cursor-pointer hover:bg-orange-50/50 dark:hover:bg-orange-900/10 transition-colors' : ''}`}
+        role={onClickFallosAuth ? "button" : undefined}
+        tabIndex={onClickFallosAuth ? 0 : undefined}
+        onKeyDown={(e) => {
+          if (onClickFallosAuth && (e.key === 'Enter' || e.key === ' ')) {
+            e.preventDefault();
+            onClickFallosAuth();
+          }
+        }}
+        className={`p-4 bg-[var(--color-surface)] border border-[var(--color-border)] shadow-sm flex items-center gap-4 ${onClickFallosAuth ? 'cursor-pointer hover:bg-orange-50/50 dark:hover:bg-orange-900/10 transition-colors focus:outline-none focus:ring-2 focus:ring-orange-500' : ''}`}
         onClick={onClickFallosAuth}
       >
         <div className="w-12 h-12 rounded-xl bg-orange-50 dark:bg-orange-950/30 flex items-center justify-center text-orange-600 dark:text-orange-400">

@@ -379,6 +379,13 @@ export function DataTable<T>({
                                     role="row"
                                     key={keyExtractor(row)}
                                     onClick={() => onRowClick?.(row)}
+                                    onKeyDown={(e) => {
+                                        if (onRowClick && (e.key === 'Enter' || e.key === ' ')) {
+                                            e.preventDefault();
+                                            onRowClick(row);
+                                        }
+                                    }}
+                                    tabIndex={onRowClick ? 0 : undefined}
                                     onDragOver={(e) => {
                                         if (!isRowDraggable || draggedRowIndex === null) return;
                                         e.preventDefault();
@@ -391,7 +398,7 @@ export function DataTable<T>({
                                         setDraggedRowIndex(null);
                                         setDragOverRowIndex(null);
                                     }}
-                                    className={`group relative grid col-span-full grid-cols-subgrid border-b border-[var(--color-border)] hover:bg-[var(--color-surface-variant)] transition-all duration-200 cursor-pointer ${getRowClassName?.(row) ?? ''} ${dragOverRowIndex === rowIndex ? 'my-1 bg-[var(--color-primary)]/8 ring-1 ring-inset ring-[var(--color-primary)]/25 before:absolute before:-top-1 before:left-3 before:right-3 before:h-0.5 before:rounded-full before:bg-[var(--color-primary)] before:shadow-sm before:content-[""]' : ''} ${draggedRowIndex === rowIndex ? 'scale-[0.985] border-dashed bg-[var(--color-surface-variant)]/50 opacity-35 ring-1 ring-inset ring-[var(--color-primary)]/25' : ''}`}
+                                    className={`group relative grid col-span-full grid-cols-subgrid border-b border-[var(--color-border)] transition-all duration-200 ${onRowClick ? 'cursor-pointer hover:bg-[var(--color-surface-variant)] focus:outline-none focus:bg-[var(--color-surface-variant)]' : ''} ${getRowClassName?.(row) ?? ''} ${dragOverRowIndex === rowIndex ? 'my-1 bg-[var(--color-primary)]/8 ring-1 ring-inset ring-[var(--color-primary)]/25 before:absolute before:-top-1 before:left-3 before:right-3 before:h-0.5 before:rounded-full before:bg-[var(--color-primary)] before:shadow-sm before:content-[""]' : ''} ${draggedRowIndex === rowIndex ? 'scale-[0.985] border-dashed bg-[var(--color-surface-variant)]/50 opacity-35 ring-1 ring-inset ring-[var(--color-primary)]/25' : ''}`}
                                     onMouseEnter={(e) => onMouseEnterRow?.(row, e)}
                                     onMouseLeave={onMouseLeaveRow}
                                 >
