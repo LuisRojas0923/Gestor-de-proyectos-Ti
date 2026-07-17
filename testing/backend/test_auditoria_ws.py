@@ -195,3 +195,57 @@ def test_websocket_origen_valido(mock_session_local, mock_validar):
     with client.websocket_connect("/api/v2/auditoria/ws/dashboard", headers={"origin": "http://localhost:5173"}, subprotocols=["auth", "token_valido"]) as websocket:
         assert websocket.accepted_subprotocol == "auth"
 
+@pytest.mark.asyncio
+async def test_auditoria_ws_manager_limite():
+    from app.services.auditoria.ws_manager import AuditoriaWSManager
+    from fastapi import WebSocket
+    
+    manager = AuditoriaWSManager(max_connections=2)
+    mock_ws1 = AsyncMock(spec=WebSocket)
+    mock_ws2 = AsyncMock(spec=WebSocket)
+    mock_ws3 = AsyncMock(spec=WebSocket)
+    
+    assert await manager.connect(mock_ws1) is True
+    assert await manager.connect(mock_ws2) is True
+    assert await manager.connect(mock_ws3) is False  # Limite alcanzado
+    
+    await manager.shutdown()
+
+@pytest.mark.asyncio
+async def test_auditoria_ws_manager_coalescing():
+    from app.services.auditoria.ws_manager import AuditoriaWSManager
+    from fastapi import WebSocket
+    import asyncio
+    
+    manager = AuditoriaWSManager()
+    mock_ws = AsyncMock(spec=WebSocket)
+    
+    await manager.connect(mock_ws)
+    
+    # Ráfaga de notificaciones
+    for _ in range(10):
+        manager.notify_update()
+        
+    # La cola tiene tamaño máximo 2
+    assert manager.queues[mock_ws].qsize() <= 2
+    
+    await manager.shutdown()
+
+@pytest.mark.asyncio
+async def test_auditoria_ws_manager_shutdown():
+    from app.services.auditoria.ws_manager import AuditoriaWSManager
+    from fastapi import WebSocket
+    
+    manager = AuditoriaWSManager()
+    mock_ws = AsyncMock(spec=WebSocket)
+    await manager.connect(mock_ws)
+    
+    task = manager.active_connections[mock_ws]
+    assert not task.cancelled()
+    
+    await manager.shutdown()
+    assert mock_ws not in manager.active_connections
+    import asyncio
+    await asyncio.sleep(0.01) # Yield to event loop to let cancellation propagate
+    assert task.cancelled()
+

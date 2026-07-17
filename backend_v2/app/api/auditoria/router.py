@@ -159,7 +159,10 @@ async def websocket_auditoria_dashboard(
     # 3. Aceptar conexión con protocolo seguro en lugar de retornar el token
     subprotocolo_aceptado = "auth" if "auth" in subprotocols else None
     await websocket.accept(subprotocol=subprotocolo_aceptado)
-    await auditoria_ws_manager.connect(websocket)
+    
+    if not await auditoria_ws_manager.connect(websocket):
+        await websocket.close(code=1013, reason="Demasiadas conexiones activas. Intente más tarde.")
+        return
     try:
         import asyncio
         while True:

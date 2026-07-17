@@ -230,6 +230,12 @@ async def startup_event():
         iniciar_loop_verificador_compromisos(intervalo_horas=12)
     )
 
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Limpieza de recursos al apagar el servidor"""
+    from app.services.auditoria.ws_manager import auditoria_ws_manager
+    await auditoria_ws_manager.shutdown()
+
 
 @app.get("/")
 async def raiz():

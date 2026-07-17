@@ -1,44 +1,64 @@
 import logging
-from typing import List
+import asyncio
+from typing import Dict
 from fastapi import WebSocket
 
 logger = logging.getLogger(__name__)
 
 class AuditoriaWSManager:
-    def __init__(self):
-        self.active_connections: List[WebSocket] = []
+    def __init__(self, max_connections: int = 100):
+        self.active_connections: Dict[WebSocket, asyncio.Task] = {}
+        self.queues: Dict[WebSocket, asyncio.Queue] = {}
+        self.max_connections = max_connections
 
-    async def connect(self, websocket: WebSocket):
-        self.active_connections.append(websocket)
+    async def connect(self, websocket: WebSocket) -> bool:
+        if len(self.active_connections) >= self.max_connections:
+            logger.warning(f"Rechazo WS: límite global de {self.max_connections} conexiones alcanzado.")
+            return False
+
+        queue = asyncio.Queue(maxsize=2)
+        worker_task = asyncio.create_task(self._worker(websocket, queue))
+        
+        self.active_connections[websocket] = worker_task
+        self.queues[websocket] = queue
         logger.info(f"Dashboard de Auditoría conectado vía WS. Conexiones activas: {len(self.active_connections)}")
+        return True
 
     def disconnect(self, websocket: WebSocket):
         if websocket in self.active_connections:
-            self.active_connections.remove(websocket)
+            task = self.active_connections.pop(websocket)
+            task.cancel()
+            self.queues.pop(websocket, None)
             logger.info(f"Dashboard de Auditoría desconectado de WS. Conexiones activas: {len(self.active_connections)}")
 
-    async def broadcast_update(self):
-        """Envía una señal a todos los clientes para que actualicen sus datos"""
-        if not self.active_connections:
-            return
+    async def _worker(self, websocket: WebSocket, queue: asyncio.Queue):
+        try:
+            while True:
+                message = await queue.get()
+                try:
+                    await asyncio.wait_for(websocket.send_json(message), timeout=2.0)
+                except (asyncio.TimeoutError, Exception) as e:
+                    logger.warning(f"Error o timeout enviando mensaje a WS: {e}")
+                    # En fastAPI, el código 1011 significa error inesperado en servidor
+                    try:
+                        await websocket.close(code=1011)
+                    except Exception:
+                        pass
+                    break
+        except asyncio.CancelledError:
+            pass
+        finally:
+            self.disconnect(websocket)
 
-        import asyncio
-
-        async def send_with_timeout(connection: WebSocket):
+    def notify_update(self):
+        for queue in self.queues.values():
             try:
-                # Timeout estricto para evitar bloqueos por clientes lentos
-                await asyncio.wait_for(connection.send_json({"type": "UPDATE_INDICADORES"}), timeout=2.0)
-                return None
-            except Exception as e:
-                logger.warning(f"Error o timeout enviando broadcast a WS: {e}")
-                return connection
+                queue.put_nowait({"type": "UPDATE_INDICADORES"})
+            except asyncio.QueueFull:
+                pass
 
-        # Ejecutar todos los envíos en paralelo
-        results = await asyncio.gather(*(send_with_timeout(conn) for conn in self.active_connections), return_exceptions=True)
-
-        # Desconectar las conexiones que fallaron (ignorando excepciones generales que haya capturado gather)
-        for result in results:
-            if isinstance(result, WebSocket):
-                self.disconnect(result)
+    async def shutdown(self):
+        for ws in list(self.active_connections.keys()):
+            self.disconnect(ws)
 
 auditoria_ws_manager = AuditoriaWSManager()
