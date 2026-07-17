@@ -39,7 +39,7 @@ const calcularSeveridad = (row: AuditoriaEvento): Severidad => {
     row.modulo === 'viaticos' &&
     row.metadatos?.cedula_consultada &&
     row.usuario_id &&
-    !row.usuario_id.includes(row.metadatos.cedula_consultada);
+    !row.usuario_id.includes(String(row.metadatos.cedula_consultada));
 
   if (esConsultaTercero) {
     return 'Medio';
@@ -285,7 +285,7 @@ const UltimosEventosTable: React.FC<UltimosEventosTableProps> = ({
           row.modulo === 'viaticos' &&
           row.metadatos?.cedula_consultada &&
           row.usuario_id &&
-          !row.usuario_id.includes(row.metadatos.cedula_consultada);
+          !row.usuario_id.includes(String(row.metadatos.cedula_consultada));
 
         if (esConsultaTercero && sev === 'Medio') {
           info = { significado: 'Consulta de información de tercero', accion: 'Validar motivo de consulta' };

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { MaterialCard as Card, Text, Badge } from '../../../../../components/atoms';
 import { Modal, } from '../../../../../components/molecules';
 import { useApi } from '../../../../../hooks/useApi';
-import type { AuditoriaEvento } from '../../../../../types/auditoria';
+import type { AuditoriaEvento, AuditoriaEventosPaginados } from '../../../../../types/auditoria';
 
 interface KpiUsersModalProps {
   isOpen: boolean;
@@ -14,7 +14,7 @@ interface KpiUsersModalProps {
 
 const KpiUsersModalContent: React.FC<Omit<KpiUsersModalProps, 'isOpen' | 'onClose'> & { isOpen: boolean }> = ({ tipo, fechaDesde, fechaHasta, isOpen }) => {
 
-  const { get } = useApi<unknown>();
+  const { get } = useApi<AuditoriaEventosPaginados>();
   const [eventos, setEventos] = useState<AuditoriaEvento[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -42,7 +42,7 @@ const KpiUsersModalContent: React.FC<Omit<KpiUsersModalProps, 'isOpen' | 'onClos
           let filtrados = data.items;
           if (tipo === 'fallos_auth') {
              // Excluir los exitosos para quedarnos solo con los fallos de auth
-             filtrados = filtrados.filter((e: unknown) => e.resultado !== 'exito');
+             filtrados = filtrados.filter((e: AuditoriaEvento) => e.resultado !== 'exito');
           }
           setEventos(filtrados);
         }
@@ -71,7 +71,7 @@ const KpiUsersModalContent: React.FC<Omit<KpiUsersModalProps, 'isOpen' | 'onClos
     acc[key].count += 1;
     if (evento.direccion_ip) acc[key].ultimosIps.add(evento.direccion_ip);
     return acc;
-  }, {} as Record<string, { count: number, ultimosIps: Set<string> }>);
+  }, {} as Record<string, { count: number, ultimosIps: Set<string>, nombre: string, id: string, rol: string }>);
 
   const dataArray = Object.values(agrupados).sort((a, b) => b.count - a.count);
 

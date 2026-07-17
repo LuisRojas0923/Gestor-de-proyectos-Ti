@@ -93,6 +93,7 @@ export interface TopRuta {
   accion: string;
   total: number;
   fallos: number;
+  ruta_amigable?: string;
 }
 
 export interface StatsPorHora {

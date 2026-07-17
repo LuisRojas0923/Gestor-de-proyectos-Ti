@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Modal } from '../../../../../components/molecules';
 import { Text } from '../../../../../components/atoms';
 import { useApi } from '../../../../../hooks/useApi';
-import type { AuditoriaEvento, TopRuta } from '../../../../../types/auditoria';
+import type { AuditoriaEvento, TopRuta, AuditoriaEventosPaginados } from '../../../../../types/auditoria';
 import UltimosEventosTable from './UltimosEventosTable';
 
 interface RouteEventsModalProps {
@@ -14,7 +14,7 @@ interface RouteEventsModalProps {
 }
 
 const RouteEventsModalContent: React.FC<Omit<RouteEventsModalProps, 'isOpen' | 'onClose'> & { isOpen: boolean }> = ({ rutaSeleccionada, fechaDesde, fechaHasta, isOpen }) => {
-  const { get } = useApi<unknown>();
+  const { get } = useApi<AuditoriaEventosPaginados>();
   const [eventos, setEventos] = useState<AuditoriaEvento[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 

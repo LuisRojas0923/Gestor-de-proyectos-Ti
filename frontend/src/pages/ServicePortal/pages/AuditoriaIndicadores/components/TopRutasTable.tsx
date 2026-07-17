@@ -129,7 +129,7 @@ const TopRutasTable: React.FC<TopRutasTableProps> = ({ datos, onRouteClick }) =>
           <DataTable
             columns={columns}
             data={datosFiltrados}
-            keyExtractor={(row, i) => row.ruta || String(i)}
+            keyExtractor={(row) => row.ruta || Math.random().toString()}
             emptyMessage={filtroModulo === 'todos' ? "No hay datos para este período." : "No hay rutas para el módulo seleccionado."}
             onRowClick={onRouteClick}
             className="flex-1 min-h-0"

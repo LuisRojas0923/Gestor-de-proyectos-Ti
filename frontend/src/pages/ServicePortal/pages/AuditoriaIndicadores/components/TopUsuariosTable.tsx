@@ -87,7 +87,7 @@ const TopUsuariosTable: React.FC<TopUsuariosTableProps> = ({ datos, onUserClick 
           <DataTable
             columns={columns}
             data={datosFiltrados}
-            keyExtractor={(row, i) => row.usuario_id || String(i)}
+            keyExtractor={(row) => row.usuario_id || Math.random().toString()}
             emptyMessage="No hay datos para este período."
             onRowClick={onUserClick}
             className="flex-1 min-h-0"

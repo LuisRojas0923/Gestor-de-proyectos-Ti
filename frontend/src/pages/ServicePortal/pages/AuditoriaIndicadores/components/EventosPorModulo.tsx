@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { MaterialCard as Card, Title, Text, ProgressBar, Select, Button } from '../../../../../components/atoms';
 import { Users, Activity, ChevronDown, ChevronUp, Clock, Filter } from 'lucide-react';
-import type { StatsPorModulo } from '../../../../../types/auditoria';
+import type { StatsPorModulo, AuditoriaEvento } from '../../../../../types/auditoria';
 import { humanizarModulo, humanizarAccionDetallada } from '../utils/humanizer';
 
 interface EventosPorModuloProps {
@@ -176,7 +176,7 @@ const EventosPorModulo: React.FC<EventosPorModuloProps> = ({ datos }) => {
                                 </div>
                               </div>
                               <Text variant="caption" className="text-[var(--color-text-secondary)] leading-tight">
-                                {humanizarAccionDetallada(evento)}
+                                {humanizarAccionDetallada(evento as AuditoriaEvento)}
                               </Text>
                             </div>
                           );

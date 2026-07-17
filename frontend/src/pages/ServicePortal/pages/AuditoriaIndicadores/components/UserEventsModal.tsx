@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Modal } from '../../../../../components/molecules';
 import { Text } from '../../../../../components/atoms';
 import { useApi } from '../../../../../hooks/useApi';
-import type { AuditoriaEvento, TopUsuario } from '../../../../../types/auditoria';
+import type { AuditoriaEvento, TopUsuario, AuditoriaEventosPaginados } from '../../../../../types/auditoria';
 import UltimosEventosTable from './UltimosEventosTable';
 
 interface UserEventsModalProps {
@@ -14,7 +14,7 @@ interface UserEventsModalProps {
 }
 
 const UserEventsModalContent: React.FC<Omit<UserEventsModalProps, 'isOpen' | 'onClose'> & { isOpen: boolean }> = ({ usuario, fechaDesde, fechaHasta, isOpen }) => {
-  const { get } = useApi<unknown>();
+  const { get } = useApi<AuditoriaEventosPaginados>();
   const [eventos, setEventos] = useState<AuditoriaEvento[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 

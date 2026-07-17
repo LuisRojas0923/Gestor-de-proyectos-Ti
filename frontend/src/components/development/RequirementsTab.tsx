@@ -259,6 +259,7 @@ const RequirementsTab: React.FC<RequirementsTabProps> = ({ developmentId, darkMo
                 itemCount={filteredRequirements.length}
                 itemSize={120}
                 width="100%"
+              >
                 {({ index, style }: { index: number; style: React.CSSProperties }) => (
                   <RequirementRow
                     requirement={filteredRequirements[index]}
@@ -269,6 +270,7 @@ const RequirementsTab: React.FC<RequirementsTabProps> = ({ developmentId, darkMo
                     t={t}
                   />
                 )}
+              </List>
             </MaterialCard>
           )}
         </div>
