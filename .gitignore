@@ -67,7 +67,20 @@ testing/logs/
 *.log
 test_output.txt
 graphify-out/
-.agent/
+# Google Antigravity project harness. Ignore local state but version the
+# project rules, skills, and workflows shared by the team.
+.agent/*
+!.agent/rules/
+.agent/rules/*
+!.agent/rules/*.md
+!.agent/skills/
+.agent/skills/*
+!.agent/skills/*/
+.agent/skills/*/*
+!.agent/skills/*/SKILL.md
+!.agent/workflows/
+.agent/workflows/*
+!.agent/workflows/*.md
 # Respaldo de codigo muerto de React Doctor (ignorado en builds)
 /frontend/respaldo_codigo_muerto/
 
