@@ -296,7 +296,7 @@ export function DataTable<T>({
                      */}
                     <div
                         ref={headerGridRef}
-                        className={`shrink-0 bg-[var(--deep-navy)] border-b border-[var(--deep-navy)] overflow-hidden z-20 ${headerClassName}`}
+                        className={`shrink-0 bg-[var(--deep-navy)] border-b border-[var(--deep-navy)] overflow-hidden z-20 w-full min-w-fit ${headerClassName}`}
                         role="row"
                     >
                         {isRowDraggable && (
@@ -364,7 +364,7 @@ export function DataTable<T>({
                                 (bodyGridRef as React.MutableRefObject<HTMLDivElement | null>).current = el;
                                 if (bodyRef) (bodyRef as React.MutableRefObject<HTMLDivElement | null>).current = el;
                             }}
-                            className="overflow-y-auto custom-scrollbar"
+                            className="flex-1 min-h-0 overflow-y-auto custom-scrollbar w-full min-w-fit"
                             role="rowgroup"
                         >
                             {data.map((row, rowIndex) => (
