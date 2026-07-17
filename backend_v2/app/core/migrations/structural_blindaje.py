@@ -186,4 +186,24 @@ async def ejecutar_blindaje_estructural(conn):
         """
     )
 
-    logger.info("Blindaje estructural completado exitosamente.")
+    # 13. Novedades Nomina V2: Deduplicación y Unique Constraint para Historial
+    # Primero eliminamos duplicados quedándonos con el id mayor
+    await safe_execute(conn, """
+        DELETE FROM nomina_excepciones_historial a USING (
+            SELECT MAX(id) as id, excepcion_id, mes, anio
+            FROM nomina_excepciones_historial 
+            GROUP BY excepcion_id, mes, anio HAVING COUNT(*) > 1
+        ) b
+        WHERE a.excepcion_id = b.excepcion_id 
+        AND a.mes = b.mes 
+        AND a.anio = b.anio 
+        AND a.id <> b.id
+    """)
+    # Asegurar constraint de unicidad (si existe previamente con otro nombre u opciones, se reemplaza)
+    await safe_execute(conn, "ALTER TABLE nomina_excepciones_historial DROP CONSTRAINT IF EXISTS uq_excepcion_historial_periodo")
+    await safe_execute(conn, """
+        ALTER TABLE nomina_excepciones_historial 
+        ADD CONSTRAINT uq_excepcion_historial_periodo UNIQUE (excepcion_id, mes, anio)
+    """)
+
+    logger.info("Blindaje estructural finalizado con exito.")
