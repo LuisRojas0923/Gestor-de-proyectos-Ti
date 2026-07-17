@@ -76,5 +76,14 @@ El proyecto utiliza hooks de `pre-commit` para asegurar la integridad:
 - `/sql`: Scripts de inicialización y mantenimiento de DB.
 - `/.agents`: Reglas y habilidades específicas para la IA.
 
+## Arnés de Google Antigravity
+
+- Las reglas versionadas del workspace viven en `.agent/rules/`.
+- Las personas de revisión viven en `.agent/skills/` y siempre leen la definición canónica homóloga en `.opencode/agent/`.
+- Los flujos `/prepare-pr` y `/validate-pr` viven en `.agent/workflows/`.
+- Antigravity no aísla estas personas como subagentes personalizados: deben operar en modo de solo lectura y devolver al orquestador cualquier escritura propuesta.
+- Nunca ejecutar `git push` sin una instrucción explícita del usuario.
+- Ver `docs/GUIA_ANTIGRAVITY.md` para activación, uso y mantenimiento.
+
 ---
 *Este documento es dinámico y debe actualizarse ante cambios significativos en la arquitectura o flujo de trabajo.*

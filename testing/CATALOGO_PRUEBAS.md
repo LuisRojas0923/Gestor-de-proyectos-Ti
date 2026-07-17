@@ -66,12 +66,25 @@ Ubicación: `frontend/src/`
 | **Organigrama interactivo** | `pages/OrganizationalHierarchy/*.test.tsx` y `utils.test.ts` | Expansión inicial, paneo móvil, layout aislado y controles accesibles. | ✅ PASSED |
 | **Líneas Corporativas** | `components/atoms/SearchableSelect.test.tsx`, `components/molecules/__tests__/{DataTable,Modal}.test.tsx`, `pages/CorporateLines/**/*.test.tsx` | Teclado, tabla/filtros accesibles, modales, confirmaciones, reintentos y estados de gestores. | ✅ PASSED |
 
-### 3. Rendimiento (Locust)
+### 3. Arnés de agentes (Pytest)
+Ubicación: `testing/agent_harness/`
+
+| Módulo | Archivo | Descripción | Estado |
+| :--- | :--- | :--- | :--- |
+| **Google Antigravity** | `test_validate_antigravity_harness.py` | Paridad canónica, frontmatter, referencias, reglas, workflows, guardrails, documentación y salida CLI. | ✅ 22 PASSED |
+
+Ejecución:
+
+```powershell
+py -3.12 -m pytest testing/agent_harness/test_validate_antigravity_harness.py
+```
+
+### 4. Rendimiento (Locust)
 Ubicación: `testing/backend/load_test.py`
 *   **Escenario Base**: Autenticación y navegación por el portal.
 *   **Capacidad**: Hasta 400 usuarios concurrentes.
 
-### 3. Scripts de Verificación Manual
+### 5. Scripts de Verificación Manual
 Ubicación: `testing/backend/scripts/`
 Estos scripts se utilizan para validaciones específicas que requieren intervención manual o envío de datos reales.
 

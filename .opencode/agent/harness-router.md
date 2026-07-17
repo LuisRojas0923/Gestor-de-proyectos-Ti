@@ -24,6 +24,8 @@ Decision rules:
 - If the work touches `frontend/`, `testing/frontend/`, or web UI: `frontend-reviewer` is REQUIRED.
 - If the work touches `modulo_actividades_fork/`, `movil/`, or React Native: `mobile-reviewer` is REQUIRED.
 - If the work touches auth, permissions, roles, endpoints protegidos, secrets, Docker/env, or external integrations: `security-rbac-reviewer` is REQUIRED.
+- If the work changes agent permissions, harness rules/workflows, validators, or security boundaries under `.agent/`, `.opencode/`, or `.codex/`: `security-rbac-reviewer` is REQUIRED.
+- If the work changes `.gitignore` or any ignore rule that can expose local state, credentials, generated files, or secrets: `security-rbac-reviewer` is REQUIRED.
 - In `plan` mode: `scope-reviewer` is ALWAYS required.
 - In `build` mode: `docs-tests-reviewer` is ALWAYS required.
 - If scope changed during implementation in `build` mode: `scope-reviewer` is REQUIRED.
