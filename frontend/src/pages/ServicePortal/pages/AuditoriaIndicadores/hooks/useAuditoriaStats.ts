@@ -98,6 +98,7 @@ export function useAuditoriaStats() {
         const baseDelay = 1000;
         const maxDelay = 30000;
         let isUnmounted = false;
+        let stabilityTimeoutId: ReturnType<typeof setTimeout> | null = null;
 
         const conectar = () => {
             if (isUnmounted) return;
@@ -112,7 +113,10 @@ export function useAuditoriaStats() {
             socket = new WebSocket(wsUrl, token ? ["auth", token] : []);
 
             socket.onopen = () => {
-                retryCount = 0; // Reset retries on successful connection
+                if (stabilityTimeoutId) clearTimeout(stabilityTimeoutId);
+                stabilityTimeoutId = setTimeout(() => {
+                    retryCount = 0;
+                }, 5000);
             };
 
             socket.onmessage = (event) => {
@@ -129,10 +133,12 @@ export function useAuditoriaStats() {
 
             socket.onclose = (event) => {
                 if (isUnmounted) return;
+                if (stabilityTimeoutId) clearTimeout(stabilityTimeoutId);
 
-                // 1008 = Policy Violation (invalid/expired token, no permission, etc.)
-                if (event.code === 1008) {
-                    console.warn("WebSocket cerrado por violación de política (1008). No se intentará reconectar.");
+                // Códigos de cierre permanentes que no deben reintentarse
+                const cierresPermanentes = [1000, 1002, 1003, 1007, 1008, 1009, 1010, 1011];
+                if (cierresPermanentes.includes(event.code)) {
+                    console.warn(`WebSocket cerrado permanentemente (código ${event.code}). No se intentará reconectar.`);
                     return;
                 }
 
@@ -160,6 +166,7 @@ export function useAuditoriaStats() {
                 socket.close();
             }
             if (timeoutId) clearTimeout(timeoutId);
+            if (stabilityTimeoutId) clearTimeout(stabilityTimeoutId);
         };
     }, []);
 
