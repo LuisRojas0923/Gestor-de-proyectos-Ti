@@ -50,13 +50,14 @@ class NominaManualService:
                             "empresa": ""
                         })
 
+            # Advisory lock para prevenir concurrencia ANTES de leer saldos de excepciones
+            lock_name = f"nomina_{subcategoria}_{mes}_{anio}"
+            await session.execute(text("SELECT pg_advisory_xact_lock(hashtext(:lock_name))").bindparams(lock_name=lock_name))
+
             # 2. Obtener info ERP
             excepciones = await ExcepcionService.obtener_excepciones_activas(session, subcategoria)
             mapa_erp = await NominaService.get_mapa_erp(db_erp, rows, excepciones)
 
-            # Advisory lock para prevenir concurrencia sobre el mismo periodo y subcategoría
-            lock_name = f"nomina_{subcategoria}_{mes}_{anio}"
-            await session.execute(text("SELECT pg_advisory_xact_lock(hashtext(:lock_name))").bindparams(lock_name=lock_name))
 
             # 3. Borrar previos
             stmt_del = delete(NominaRegistroNormalizado).where(
@@ -164,13 +165,14 @@ class NominaManualService:
                         "empresa": ""
                     })
 
+            # Advisory lock para prevenir concurrencia ANTES de leer saldos de excepciones
+            lock_name = f"nomina_{subcategoria}_{mes}_{anio}"
+            await session.execute(text("SELECT pg_advisory_xact_lock(hashtext(:lock_name))").bindparams(lock_name=lock_name))
+
             # 2. Obtener info ERP
             excepciones = await ExcepcionService.obtener_excepciones_activas(session, subcategoria)
             mapa_erp = await NominaService.get_mapa_erp(db_erp, rows, excepciones)
 
-            # Advisory lock para prevenir concurrencia sobre el mismo periodo y subcategoría
-            lock_name = f"nomina_{subcategoria}_{mes}_{anio}"
-            await session.execute(text("SELECT pg_advisory_xact_lock(hashtext(:lock_name))").bindparams(lock_name=lock_name))
 
             # 3. Borrar previos
             stmt_del = delete(NominaRegistroNormalizado).where(

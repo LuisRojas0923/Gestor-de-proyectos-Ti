@@ -30,7 +30,8 @@ class NominaHelper:
             if ex.tipo == 'SALDO_FAVOR' and ex.cedula:
                 cedulas_unicas.add(str(ex.cedula))
 
-        return EmpleadosService.consultar_empleados_bulk(db_erp, list(cedulas_unicas))
+        import asyncio
+        return await asyncio.to_thread(EmpleadosService.consultar_empleados_bulk, db_erp, list(cedulas_unicas))
 
     @staticmethod
     async def persistir_registros_normalizados(
@@ -64,18 +65,6 @@ class NominaHelper:
             # 2. Si el colaborador es contratista o tiene excepción de contratista, la empresa asume 0%
             valor_rdc_final = row.get("valor_rdc", 0.0)
             valor_colaborador_final = row.get("valor_colaborador", 0.0)
-
-            if subcategoria == "SEGUROS HDI":
-                es_contratista_erp = False
-                if info_original and info_original.get("empresa") and "CONTRATISTA" in str(info_original["empresa"]).upper():
-                    es_contratista_erp = True
-
-                tiene_excepcion_penalizada = ex and ex.tipo != 'PAGO_TERCERO'
-                no_activo = info_original and str(info_original.get("estado", "")).strip().upper() != "ACTIVO"
-
-                if es_contratista_erp or tiene_excepcion_penalizada or no_activo:
-                    valor_rdc_final = 0.0
-                    valor_colaborador_final = row["valor"]
 
             valor_final = row["valor"]
             concepto_final = row["concepto"]
@@ -155,24 +144,22 @@ class NominaHelper:
                         estado_val = "EXCEPCION_AUTORIZADA"
                         observacion_ex = f"Contratista: {ex.observacion}"
                     elif ex.tipo == 'SALDO_FAVOR':
-                        es_activo = info_original and str(info_original.get("estado", "")).strip().upper() == "ACTIVO"
+                        info_target = mapa_erp.get(cedula_final)
+                        es_activo = info_target and str(info_target.get("estado", "")).strip().upper() == "ACTIVO"
                         if es_activo:
                             estado_val = "ERROR_SALDO_ACTIVO"
                             observacion_ex = "Saldo a favor no puede aplicar a personal activo"
                         else:
+                            valor_orig = valor_colaborador_final if subcategoria == "SEGUROS HDI" else valor_final
+                            valor_cobrar = await ExcepcionService.aplicar_saldo_favor(session, ex, valor_orig, mes, anio)
                             if subcategoria == "SEGUROS HDI":
-                                # Para Seguros HDI (Retirados), aplicamos saldo a la porción del colaborador
-                                valor_orig = valor_colaborador_final
-                                valor_restante_colab = await ExcepcionService.aplicar_saldo_favor(session, ex, valor_orig, mes, anio)
-                                # Inactivo: se reporta cobro completo
-                                valor_final = valor_colaborador_final
-                                estado_val = "EXCEPCION_SALDO_FAVOR"
-                                observacion_ex = f"Saldo favor aplicado. Cobro: ${valor_orig:,.0f} -> ${valor_restante_colab:,.0f}"
+                                valor_colaborador_final = valor_cobrar
+                                valor_rdc_final = 0.0 # Siempre 0 para inactivos
+                                valor_final = valor_cobrar
                             else:
-                                valor_orig = valor_final
-                                valor_final = await ExcepcionService.aplicar_saldo_favor(session, ex, valor_orig, mes, anio)
-                                estado_val = "EXCEPCION_SALDO_FAVOR"
-                                observacion_ex = f"Saldo favor aplicado. Cobro: ${valor_orig:,.0f} -> ${valor_final:,.0f}"
+                                valor_final = valor_cobrar
+                            estado_val = "EXCEPCION_SALDO_FAVOR"
+                            observacion_ex = f"Saldo favor aplicado. Cobro: ${valor_orig:,.0f} -> ${valor_cobrar:,.0f}"
 
             # Lógica de estados si no hay excepción dominante que autorice
             if estado_val == estado_default:
@@ -187,8 +174,18 @@ class NominaHelper:
 
             # Lógica final de asignación para RDC/Colaborador
             if subcategoria == "SEGUROS HDI" and estado_val == "EXCEPCION_SALDO_FAVOR":
-                # Ya fueron calculados correctamente dentro del bloque de SALDO_FAVOR
                 pass
+            elif subcategoria == "SEGUROS HDI":
+                info_target = mapa_erp.get(cedula_final)
+                es_contratista_erp = info_target and info_target.get("empresa") and "CONTRATISTA" in str(info_target["empresa"]).upper()
+                tiene_excepcion_penalizada = ex and ex.tipo not in ('PAGO_TERCERO', 'SALDO_FAVOR')
+                no_activo = info_target and str(info_target.get("estado", "")).strip().upper() != "ACTIVO"
+                
+                if es_contratista_erp or tiene_excepcion_penalizada or no_activo:
+                    valor_rdc_final = 0.0
+                    valor_colaborador_final = valor_final
+                elif valor_final != row["valor"]:
+                    valor_colaborador_final = max(0.0, valor_final - valor_rdc_final)
             else:
                 if valor_final == 0:
                     valor_rdc_final = 0.0
@@ -227,10 +224,13 @@ class NominaHelper:
                 descuento = 0
                 estado_val = "OK"
                 if ex.tipo == 'SALDO_FAVOR' and ex.saldo_actual > 0:
-                    inyectar = True
-                    valor_orig = ex.valor_configurado # El valor a cobrar por defecto
-                    descuento = await ExcepcionService.aplicar_saldo_favor(session, ex, valor_orig, mes, anio)
-                    estado_val = "EXCEPCION_SALDO_FAVOR"
+                    info_target = mapa_erp.get(ex.cedula)
+                    es_activo = info_target and str(info_target.get("estado", "")).strip().upper() == "ACTIVO"
+                    if not es_activo:
+                        inyectar = True
+                        valor_orig = ex.valor_configurado # El valor a cobrar por defecto
+                        descuento = await ExcepcionService.aplicar_saldo_favor(session, ex, valor_orig, mes, anio)
+                        estado_val = "EXCEPCION_SALDO_FAVOR"
 
                 elif ex.tipo == 'CONTRATISTAS':
                     inyectar = True
@@ -251,20 +251,9 @@ class NominaHelper:
                     val_colab = descuento
 
                     if subcategoria == "SEGUROS HDI":
-                        es_activo = info and str(info.get("estado", "")).strip().upper() == "ACTIVO"
-                        if ex.tipo == 'SALDO_FAVOR':
-                            if es_activo:
-                                val_rdc = round(valor_orig * 0.24, 2)
-                                val_colab = descuento
-                                valor_normalizado = val_rdc + val_colab
-                            else:
-                                val_rdc = 0.0
-                                val_colab = valor_orig
-                                valor_normalizado = valor_orig
-                        else:
-                            val_rdc = 0.0
-                            val_colab = descuento
-                            valor_normalizado = descuento
+                        val_rdc = 0.0
+                        val_colab = descuento
+                        valor_normalizado = descuento
 
                     reg = NominaRegistroNormalizado(
                         archivo_id=archivo_id,

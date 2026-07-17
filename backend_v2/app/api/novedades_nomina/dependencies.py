@@ -8,6 +8,7 @@ from app.services.auth.servicio import ServicioAuth
 
 
 MODULO_NOMINA_NOVEDADES = "nomina_novedades"
+MODULO_COMISIONES = "comisiones"
 
 
 async def requiere_permiso_nomina_novedades(
@@ -17,4 +18,14 @@ async def requiere_permiso_nomina_novedades(
     permisos = await ServicioAuth.obtener_permisos_por_rol(db, usuario.rol)
     if MODULO_NOMINA_NOVEDADES not in permisos:
         raise HTTPException(status_code=403, detail="Sin permiso para novedades de nómina")
+    return usuario
+
+
+async def requiere_permiso_comisiones(
+    db: AsyncSession = Depends(obtener_db),
+    usuario: Usuario = Depends(obtener_usuario_actual_db),
+) -> Usuario:
+    permisos = await ServicioAuth.obtener_permisos_por_rol(db, usuario.rol)
+    if MODULO_COMISIONES not in permisos:
+        raise HTTPException(status_code=403, detail="Sin permiso para comisiones")
     return usuario

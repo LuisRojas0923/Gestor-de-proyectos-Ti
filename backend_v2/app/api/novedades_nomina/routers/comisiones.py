@@ -10,8 +10,9 @@ from ....api.auth.router import obtener_usuario_actual_db
 from ....models.auth.usuario import Usuario
 from ....models.novedades_nomina.nomina import NominaFavorito
 from ....services.auditoria.snapshots import asignar_evento_segura
+from ....api.novedades_nomina.dependencies import requiere_permiso_comisiones
 
-router = APIRouter(tags=["Comisiones"])
+router = APIRouter(tags=["Comisiones"], dependencies=[Depends(requiere_permiso_comisiones)])
 
 
 def _periodo_entidad_id(mes: int, anio: int) -> str:

@@ -68,6 +68,41 @@ import { useServicePortal } from './ServicePortal/hooks/useServicePortal';
 
 const API_BASE_URL = API_CONFIG.BASE_URL;
 
+interface Reporte {
+    reporte_id: string;
+    estado: string;
+    readonly?: boolean;
+    [key: string]: unknown;
+}
+
+interface LineaRespuesta {
+    id?: string;
+    categoria: string;
+    fecharealgasto?: string;
+    fecha_gasto?: string;
+    fecha?: string;
+    ot?: string;
+    centrocosto?: string;
+    cc?: string;
+    subcentrocosto?: string;
+    scc?: string;
+    valorconfactura?: number | string;
+    valor_con_factura?: number | string;
+    valorsinfactura?: number | string;
+    valor_sin_factura?: number | string;
+    observaciones?: string;
+    observaciones_linea?: string;
+    adjuntos?: string | unknown[];
+    observaciones_gral?: string;
+}
+
+interface ExtendedUser {
+    emailVerified?: boolean;
+    email?: string;
+    email_needs_update?: boolean;
+    [key: string]: unknown;
+}
+
 const ServicePortal: React.FC = () => {
     const navigate = useNavigate();
     const location = useLocation();
@@ -108,13 +143,13 @@ const ServicePortal: React.FC = () => {
         if (success) navigate('/service-portal/mis-tickets');
     };
 
-    const onSelectReport = async (reporte: any) => {
+    const onSelectReport = async (reporte: Reporte) => {
         const rid = reporte.reporte_id;
         try {
             setIsLoading(true);
             const res = await axios.get(`${API_BASE_URL}/viaticos/reporte/${rid}/detalle`);
-            const resData = res.data as any[];
-            const lineasDetalle = resData.map((l: any) => ({
+            const resData = res.data as LineaRespuesta[];
+            const lineasDetalle = resData.map((l: LineaRespuesta) => ({
                 id: l.id || Math.random().toString(36).substring(7),
                 categoria: l.categoria,
                 fecha: l.fecharealgasto || l.fecha_gasto || l.fecha,
@@ -165,9 +200,9 @@ const ServicePortal: React.FC = () => {
             }}
         >
             {/* Banner de Verificación Persistent */}
-            {!(user as any).emailVerified && (
+            {!(user as ExtendedUser).emailVerified && (
                 <VerificationBanner 
-                    email={(user as any).email} 
+                    email={(user as ExtendedUser).email} 
                     onEdit={() => setShowEmailModal(true)}
                 />
             )}
@@ -182,10 +217,10 @@ const ServicePortal: React.FC = () => {
                         onNavigate={async (v) => {
                             if (v === 'viaticos_gestion') navigate('/service-portal/gastos/gestion');
                             else if (v === 'categories') {
-                                if ((user as any).email_needs_update) {
+                                if ((user as ExtendedUser).email_needs_update) {
                                     setShowEmailModal(true);
                                     addNotification('info', "Por favor actualiza tu correo corporativo para continuar.");
-                                } else if (!(user as any).emailVerified) {
+                                } else if (!(user as ExtendedUser).emailVerified) {
                                     addNotification('warning', "Debes verificar tu correo corporativo antes de crear tickets. Revisa tu bandeja de entrada.");
                                 } else {
                                     navigate('/service-portal/servicios');

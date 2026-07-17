@@ -37,6 +37,7 @@ from .api.auth.config_router import router as config_router
 from .api.validaciones_asignacion import router as validaciones_asignacion_router
 from .api.reserva_salas import router as reserva_salas_router
 from .api.novedades_nomina.nomina_router import router as nomina_router
+from .api.novedades_nomina.routers.comisiones import router as comisiones_router
 from .api.inventario.router import router as inventario_router
 from .api.impuestos import router as impuestos_router
 from .api.lineas_corporativas.router import router as lineas_corporativas_router
@@ -291,6 +292,7 @@ app.include_router(
     reserva_salas_router, prefix=f"{api_prefix}/reserva-salas", tags=["Reserva Salas"]
 )
 app.include_router(nomina_router, prefix=f"{api_prefix}/novedades-nomina", tags=["Novedades Nomina"])
+app.include_router(comisiones_router, prefix=f"{api_prefix}/novedades-nomina/comisiones")
 app.include_router(
     inventario_router, prefix=f"{api_prefix}/inventario", tags=["Inventario 2026"]
 )

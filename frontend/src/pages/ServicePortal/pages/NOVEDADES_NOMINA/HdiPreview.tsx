@@ -104,12 +104,27 @@ const HdiPreview: React.FC = () => {
         if (e.target.files) {
             const selected = Array.from(e.target.files);
             const valid = selected.filter(f => {
-                if (f.size > 10 * 1024 * 1024) {
-                    addNotification('error', `El archivo ${f.name} excede el límite de 10MB.`);
+                if (f.size > 15 * 1024 * 1024) {
+                    addNotification('error', `El archivo ${f.name} excede el límite de 15MB.`);
+                    return false;
+                }
+                if (!f.name.toLowerCase().endsWith('.xlsx')) {
+                    addNotification('error', `El archivo ${f.name} no es un Excel válido (.xlsx).`);
                     return false;
                 }
                 return true;
             });
+            
+            if (valid.length > 10) {
+                addNotification('error', `Máximo 10 archivos permitidos a la vez.`);
+                return;
+            }
+            const totalSize = valid.reduce((acc, f) => acc + f.size, 0);
+            if (totalSize > 50 * 1024 * 1024) {
+                addNotification('error', `El peso total de los archivos excede el límite de 50MB.`);
+                return;
+            }
+            
             setFiles(valid);
         }
     };
@@ -152,7 +167,7 @@ const HdiPreview: React.FC = () => {
                 // Filtros por columna
                 for (const [key, values] of Object.entries(activeFilters)) {
                     if (values.length === 0) continue;
-                    const rowValue = String((r as Record<string, unknown>)[key] || '').toUpperCase();
+                    const rowValue = String(r[key as keyof typeof r] || '').toUpperCase();
                     if (!values.includes(rowValue)) return false;
                 }
 
@@ -199,7 +214,7 @@ const HdiPreview: React.FC = () => {
             <div className="flex-none pb-1">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
-                        <Button variant="ghost" size="icon" onClick={() => navigate('/service-portal/novedades-nomina')}>
+                        <Button variant="ghost" size="sm" aria-label="Volver" onClick={() => navigate('/service-portal/novedades-nomina')}>
                             <ArrowLeft className="w-5 h-5" />
                         </Button>
                         <div>
@@ -248,7 +263,7 @@ const HdiPreview: React.FC = () => {
                         />
                     </div>
                     <div className="flex-1 min-w-0 space-y-1">
-                        <Text as="label" variant="body2" weight="medium" color="text-primary" className="block">
+                        <Text as="label" htmlFor="file-upload" variant="body2" weight="medium" color="text-primary" className="block">
                             Archivos Excel ({files.length} seleccionados)
                         </Text>
                         <div className="relative group">
