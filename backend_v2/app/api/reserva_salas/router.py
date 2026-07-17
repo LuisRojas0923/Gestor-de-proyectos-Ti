@@ -17,6 +17,11 @@ from sqlmodel import select
 from app.database import obtener_db
 from app.api.auth.router import obtener_usuario_actual_db
 from app.models.auth.usuario import Usuario
+from app.services.auth.servicio import ServicioAuth
+from app.api.reserva_salas.dependencies import (
+    requiere_permiso_reserva_salas,
+    requiere_administrador_reserva_salas,
+)
 from app.models.reserva_salas.models import Room, Reservation
 from app.models.reserva_salas.schemas import (
     RoomRead,
@@ -63,6 +68,7 @@ async def listar_salas(
     ),
     is_active: Optional[bool] = Query(None, description="Solo activas"),
     db: AsyncSession = Depends(obtener_db),
+    usuario: Usuario = Depends(requiere_permiso_reserva_salas),
 ):
     """Lista salas con filtros opcionales."""
     try:
@@ -86,6 +92,7 @@ async def listar_salas(
 async def obtener_sala(
     room_id: uuid.UUID,
     db: AsyncSession = Depends(obtener_db),
+    usuario: Usuario = Depends(requiere_permiso_reserva_salas),
 ):
     """Obtiene una sala por ID."""
     try:
@@ -105,13 +112,9 @@ async def obtener_sala(
 async def crear_sala(
     body: RoomCreate,
     db: AsyncSession = Depends(obtener_db),
-    usuario: Usuario = Depends(obtener_usuario_actual_db),
+    usuario: Usuario = Depends(requiere_administrador_reserva_salas),
 ):
     """Crea una nueva sala. Solo admin."""
-    if usuario.rol not in ["admin", "manager"]:
-        raise HTTPException(
-            status_code=403, detail="Solo administradores o managers pueden crear salas"
-        )
     try:
         room = Room(
             name=body.name,
@@ -137,14 +140,9 @@ async def actualizar_sala(
     room_id: uuid.UUID,
     body: RoomUpdate,
     db: AsyncSession = Depends(obtener_db),
-    usuario: Usuario = Depends(obtener_usuario_actual_db),
+    usuario: Usuario = Depends(requiere_administrador_reserva_salas),
 ):
     """Actualiza una sala. Solo admin."""
-    if usuario.rol not in ["admin", "manager"]:
-        raise HTTPException(
-            status_code=403,
-            detail="Solo administradores o managers pueden editar salas",
-        )
     try:
         result = await db.execute(select(Room).where(Room.id == room_id))
         room = result.scalar_one_or_none()
@@ -175,14 +173,9 @@ async def actualizar_sala(
 async def desactivar_sala(
     room_id: uuid.UUID,
     db: AsyncSession = Depends(obtener_db),
-    usuario: Usuario = Depends(obtener_usuario_actual_db),
+    usuario: Usuario = Depends(requiere_administrador_reserva_salas),
 ):
     """Desactiva una sala (soft: is_active = False). Solo admin."""
-    if usuario.rol not in ["admin", "manager"]:
-        raise HTTPException(
-            status_code=403,
-            detail="Solo administradores o managers pueden desactivar salas",
-        )
     try:
         result = await db.execute(select(Room).where(Room.id == room_id))
         room = result.scalar_one_or_none()
@@ -210,6 +203,7 @@ async def listar_reservas(
     end_date: Optional[str] = Query(None, description="YYYY-MM-DD"),
     status: Optional[str] = Query(None, description="ACTIVE | CANCELLED"),
     db: AsyncSession = Depends(obtener_db),
+    usuario: Usuario = Depends(requiere_permiso_reserva_salas),
 ):
     """Lista reservas con filtros."""
     try:
@@ -244,7 +238,7 @@ async def crear_reserva(
     request: Request,
     body: ReservationCreate,
     db: AsyncSession = Depends(obtener_db),
-    usuario: Usuario = Depends(obtener_usuario_actual_db),
+    usuario: Usuario = Depends(requiere_permiso_reserva_salas),
 ):
     """Crea una nueva reserva. Solo en horario 7:00 - 18:00."""
     try:
@@ -316,6 +310,7 @@ async def crear_reserva(
 async def obtener_reserva(
     reservation_id: uuid.UUID,
     db: AsyncSession = Depends(obtener_db),
+    usuario: Usuario = Depends(requiere_permiso_reserva_salas),
 ):
     """Obtiene una reserva por ID."""
     try:
@@ -338,7 +333,7 @@ async def actualizar_reserva(
     reservation_id: uuid.UUID,
     body: ReservationUpdate,
     db: AsyncSession = Depends(obtener_db),
-    usuario: Usuario = Depends(obtener_usuario_actual_db),
+    usuario: Usuario = Depends(requiere_permiso_reserva_salas),
 ):
     """Actualiza fechas o título de una reserva. Solo creador o admin."""
     try:
@@ -350,14 +345,13 @@ async def actualizar_reserva(
         if not reservation:
             raise HTTPException(status_code=404, detail="Reserva no encontrada")
 
-        if reservation.created_by_document != usuario.cedula and usuario.rol not in [
-            "admin",
-            "manager",
-        ]:
-            raise HTTPException(
-                status_code=403,
-                detail="No tienes permiso para modificar esta reserva. Solo el creador, un administrador o un manager pueden hacerlo.",
-            )
+        if reservation.created_by_document != usuario.cedula:
+            permisos = await ServicioAuth.obtener_permisos_por_rol(db, usuario.rol)
+            if "reserva_salas_admin" not in permisos:
+                raise HTTPException(
+                    status_code=403,
+                    detail="No tienes permiso para modificar esta reserva. Solo el creador, un administrador o un manager pueden hacerlo.",
+                )
 
         if reservation.status != "ACTIVE":
             raise HTTPException(
@@ -438,7 +432,7 @@ async def cancelar_reserva(
     reservation_id: uuid.UUID,
     body: ReservationCancelBody,
     db: AsyncSession = Depends(obtener_db),
-    usuario: Usuario = Depends(obtener_usuario_actual_db),
+    usuario: Usuario = Depends(requiere_permiso_reserva_salas),
 ):
     """Cancela una reserva (soft: status = CANCELLED). Solo creador o admin."""
     try:
@@ -449,14 +443,13 @@ async def cancelar_reserva(
         if not reservation:
             raise HTTPException(status_code=404, detail="Reserva no encontrada")
 
-        if reservation.created_by_document != usuario.cedula and usuario.rol not in [
-            "admin",
-            "manager",
-        ]:
-            raise HTTPException(
-                status_code=403,
-                detail="No tienes permiso para cancelar esta reserva. Solo el creador, un administrador o un manager pueden hacerlo.",
-            )
+        if reservation.created_by_document != usuario.cedula:
+            permisos = await ServicioAuth.obtener_permisos_por_rol(db, usuario.rol)
+            if "reserva_salas_admin" not in permisos:
+                raise HTTPException(
+                    status_code=403,
+                    detail="No tienes permiso para cancelar esta reserva. Solo el creador, un administrador o un manager pueden hacerlo.",
+                )
 
         if reservation.status == "CANCELLED":
             return reservation

@@ -74,8 +74,6 @@ class ReservationRead(SQLModel):
     status: str
     series_id: Optional[uuid.UUID] = None
     created_by_name: str
-    created_by_document: str
     updated_by_name: Optional[str] = None
-    updated_by_document: Optional[str] = None
     created_at: datetime
     updated_at: datetime
