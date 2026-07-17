@@ -50,26 +50,37 @@ async def desarrollo_asignacion_seed():
             "ALTER TABLE actividades ADD COLUMN IF NOT EXISTS asignado_a_id VARCHAR(50)",
             "ALTER TABLE actividades ADD COLUMN IF NOT EXISTS delegado_por_id VARCHAR(50)",
             "ALTER TABLE actividades ADD COLUMN IF NOT EXISTS estado_validacion VARCHAR(50) DEFAULT 'aprobada'",
+            """CREATE TABLE IF NOT EXISTS validaciones_asignacion (
+                id SERIAL PRIMARY KEY,
+                desarrollo_id VARCHAR(50),
+                actividad_id INTEGER,
+                solicitado_por_id VARCHAR(50) NOT NULL,
+                validador_id VARCHAR(50) NOT NULL,
+                asignado_a_id VARCHAR(50) NOT NULL,
+                estado VARCHAR(50) DEFAULT 'pendiente',
+                motivo TEXT,
+                observacion TEXT,
+                creado_en TIMESTAMPTZ DEFAULT NOW(),
+                validado_en TIMESTAMPTZ
+            )"""
         ]
         for statement in statements:
             await session.execute(text(statement))
             
+        await session.execute(text("DELETE FROM validaciones_asignacion WHERE desarrollo_id = :did"), {"did": TEST_DESARROLLO_ID})
         await session.execute(text("DELETE FROM actividades WHERE desarrollo_id = :did"), {"did": TEST_DESARROLLO_ID})
         await session.execute(text("DELETE FROM desarrollos WHERE id = :did"), {"did": TEST_DESARROLLO_ID})
-        await session.execute(text("DELETE FROM usuarios WHERE id = 'USR-JER-ADMIN'"))
-        
-        # Crear usuario admin para pruebas de WBS protegidas
-        admin_user = Usuario(
-            id="USR-JER-ADMIN",
-            cedula="JER-ADMIN",
-            nombre="Admin Jerarquia",
-            hash_contrasena=hash_pwd,
-            rol="admin",
-            esta_activo=True,
-            correo_actualizado=True,
-            zona_horaria="America/Bogota"
-        )
-        session.add(admin_user)
+        await session.execute(text("DELETE FROM notificaciones_usuario WHERE usuario_id IN ('USR-JER-ADMIN', 'USR-JER-GERENTE', 'USR-JER-DIRECTOR', 'USR-JER-JEFE', 'USR-JER-EJECUTOR', 'USR-JER-JEFE2')"))
+        await session.execute(text("DELETE FROM usuarios WHERE id IN ('USR-JER-ADMIN', 'USR-JER-GERENTE', 'USR-JER-DIRECTOR', 'USR-JER-JEFE', 'USR-JER-EJECUTOR', 'USR-JER-JEFE2')"))
+        usuarios_a_crear = [
+            Usuario(id="USR-JER-ADMIN", cedula="jer-admin", nombre="Admin", hash_contrasena=hash_pwd, rol="admin", esta_activo=True, correo_actualizado=True, zona_horaria="America/Bogota"),
+            Usuario(id="USR-JER-GERENTE", cedula="jer-gerente", nombre="Gerente", hash_contrasena=hash_pwd, rol="admin", esta_activo=True, correo_actualizado=True, zona_horaria="America/Bogota"),
+            Usuario(id="USR-JER-DIRECTOR", cedula="jer-director", nombre="Director", hash_contrasena=hash_pwd, rol="admin", esta_activo=True, correo_actualizado=True, zona_horaria="America/Bogota"),
+            Usuario(id="USR-JER-JEFE", cedula="jer-jefe", nombre="Jefe", hash_contrasena=hash_pwd, rol="admin", esta_activo=True, correo_actualizado=True, zona_horaria="America/Bogota"),
+            Usuario(id="USR-JER-EJECUTOR", cedula="jer-ejecutor", nombre="Ejecutor", hash_contrasena=hash_pwd, rol="admin", esta_activo=True, correo_actualizado=True, zona_horaria="America/Bogota"),
+            Usuario(id="USR-JER-JEFE2", cedula="jer-jefe2", nombre="Jefe 2", hash_contrasena=hash_pwd, rol="admin", esta_activo=True, correo_actualizado=True, zona_horaria="America/Bogota"),
+        ]
+        session.add_all(usuarios_a_crear)
         await session.flush()
         
         await session.execute(text("""
@@ -81,17 +92,25 @@ async def desarrollo_asignacion_seed():
     yield
     
     async with Session() as session:
+        await session.execute(text("DELETE FROM validaciones_asignacion WHERE desarrollo_id = :did"), {"did": TEST_DESARROLLO_ID})
         await session.execute(text("DELETE FROM actividades WHERE desarrollo_id = :did"), {"did": TEST_DESARROLLO_ID})
         await session.execute(text("DELETE FROM desarrollos WHERE id = :did"), {"did": TEST_DESARROLLO_ID})
-        await session.execute(text("DELETE FROM usuarios WHERE id = 'USR-JER-ADMIN'"))
+        await session.execute(text("DELETE FROM notificaciones_usuario WHERE usuario_id IN ('USR-JER-ADMIN', 'USR-JER-GERENTE', 'USR-JER-DIRECTOR', 'USR-JER-JEFE', 'USR-JER-EJECUTOR', 'USR-JER-JEFE2')"))
+        await session.execute(text("DELETE FROM usuarios WHERE id IN ('USR-JER-ADMIN', 'USR-JER-GERENTE', 'USR-JER-DIRECTOR', 'USR-JER-JEFE', 'USR-JER-EJECUTOR', 'USR-JER-JEFE2')"))
         await session.commit()
     await engine.dispose()
 
 
+@pytest_asyncio.fixture
+async def admin_token():
+    from app.services.auth.servicio import ServicioAuth
+    return ServicioAuth.crear_token_acceso({"sub": "jer-admin", "cedula": "jer-admin", "rol": "admin"})
+
 @pytest.mark.asyncio
-async def test_actualizar_desarrollo_guarda_responsable_y_validacion(client, desarrollo_asignacion_seed):
+async def test_actualizar_desarrollo_guarda_responsable_y_validacion(client, desarrollo_asignacion_seed, admin_token):
     response = await client.put(
         f"/desarrollos/{TEST_DESARROLLO_ID}",
+        headers={"Authorization": f"Bearer {admin_token}"},
         json={
             "creado_por_id": "USR-JER-GERENTE",
             "responsable_id": "USR-JER-DIRECTOR",
@@ -109,15 +128,16 @@ async def test_actualizar_desarrollo_guarda_responsable_y_validacion(client, des
 
 
 @pytest.mark.asyncio
-async def test_crear_actividad_guarda_asignado_y_validacion(client, desarrollo_asignacion_seed):
+async def test_crear_actividad_guarda_asignado_y_validacion(client, desarrollo_asignacion_seed, admin_token):
     response = await client.post(
         "/actividades/",
+        headers={"Authorization": f"Bearer {admin_token}"},
         json={
             "desarrollo_id": TEST_DESARROLLO_ID,
             "titulo": "Tarea con ejecutor jerarquico",
             "responsable_id": "USR-JER-DIRECTOR",
             "asignado_a_id": "USR-JER-JEFE",
-            "delegado_por_id": "USR-JER-GERENTE",
+            "delegado_por_id": "USR-JER-ADMIN",
             "horas_estimadas": 0,
             "porcentaje_avance": 0,
         },
@@ -127,14 +147,15 @@ async def test_crear_actividad_guarda_asignado_y_validacion(client, desarrollo_a
     data = response.json()
     assert data["responsable_id"] == "USR-JER-DIRECTOR"
     assert data["asignado_a_id"] == "USR-JER-JEFE"
-    assert data["delegado_por_id"] == "USR-JER-GERENTE"
+    assert data["delegado_por_id"] == "USR-JER-ADMIN"
     assert data["estado_validacion"] == "aprobada"
 
 
 @pytest.mark.asyncio
-async def test_arbol_actividades_no_dispara_lazy_loading(client, desarrollo_asignacion_seed):
+async def test_arbol_actividades_no_dispara_lazy_loading(client, desarrollo_asignacion_seed, admin_token):
     raiz = await client.post(
         "/actividades/",
+        headers={"Authorization": f"Bearer {admin_token}"},
         json={
             "desarrollo_id": TEST_DESARROLLO_ID,
             "titulo": "Tarea raiz para arbol",
@@ -146,6 +167,7 @@ async def test_arbol_actividades_no_dispara_lazy_loading(client, desarrollo_asig
 
     hija = await client.post(
         "/actividades/",
+        headers={"Authorization": f"Bearer {admin_token}"},
         json={
             "desarrollo_id": TEST_DESARROLLO_ID,
             "parent_id": raiz.json()["id"],
@@ -175,9 +197,10 @@ async def test_arbol_actividades_no_dispara_lazy_loading(client, desarrollo_asig
 
 
 @pytest.mark.asyncio
-async def test_actualizar_actividad_guarda_reasignacion(client, desarrollo_asignacion_seed):
+async def test_actualizar_actividad_guarda_reasignacion(client, desarrollo_asignacion_seed, admin_token):
     creada = await client.post(
         "/actividades/",
+        headers={"Authorization": f"Bearer {admin_token}"},
         json={
             "desarrollo_id": TEST_DESARROLLO_ID,
             "titulo": "Tarea para reasignar",
@@ -190,6 +213,7 @@ async def test_actualizar_actividad_guarda_reasignacion(client, desarrollo_asign
     actividad_id = creada.json()["id"]
     response = await client.patch(
         f"/actividades/{actividad_id}",
+        headers={"Authorization": f"Bearer {admin_token}"},
         json={
             "asignado_a_id": "USR-JER-EJECUTOR",
             "delegado_por_id": "USR-JER-JEFE",
@@ -200,5 +224,5 @@ async def test_actualizar_actividad_guarda_reasignacion(client, desarrollo_asign
     assert response.status_code == 200
     data = response.json()
     assert data["asignado_a_id"] == "USR-JER-EJECUTOR"
-    assert data["delegado_por_id"] == "USR-JER-JEFE"
+    assert data["delegado_por_id"] == "USR-JER-ADMIN"
     assert data["estado_validacion"] == "aprobada"
