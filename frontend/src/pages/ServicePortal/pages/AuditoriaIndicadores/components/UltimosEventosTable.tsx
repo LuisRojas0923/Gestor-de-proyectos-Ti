@@ -135,6 +135,7 @@ const MODULOS_DISPONIBLES = [
 
 const UltimosEventosTable: React.FC<UltimosEventosTableProps> = ({
   datos,
+  isLoading = false,
   hideSearch = false,
   hideModuleFilter = false,
   hideGroupButton = false,
