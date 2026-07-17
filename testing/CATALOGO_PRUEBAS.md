@@ -43,6 +43,9 @@ Ubicación: `testing/backend/`
 | **Indicadores de Auditoría** | `test_auditoria_estadisticas.py` | Valida límites e integridad de rangos temporales del dashboard. | ✅ PASSED |
 | **RBAC de Auditoría** | `test_auditoria_estadisticas_rbac.py` | Autoriza el dashboard por permiso efectivo y rechaza accesos sin permiso. | ✅ PASSED |
 | **API de Auditoría** | `test_auditoria_estadisticas_http.py` | Contrato HTTP 401/403/200 del endpoint de indicadores. | ✅ PASSED |
+| **Auditoría WS** | `test_auditoria_ws.py` | Validación de tokens MCP revocados, RBAC en WebSockets y conexión/desconexión asíncrona. | ✅ PASSED |
+| **Auditoría PII Unitario** | `test_auditoria_pii_unitario.py` | Certifica el enmascaramiento y anonimización de datos sensibles en el Log. | ✅ PASSED |
+| **Auditoría Reserva Salas** | `test_reserva_auditoria_middleware.py` | Middleware de auditoría capturando transformaciones correctas de UUID/Datetime (JSONB). | ✅ PASSED |
 | **Diagnóstico de Estados** | `test_validate_estados.py` | Manejo seguro de resultados y errores DB del script diagnóstico. | ✅ PASSED |
 | **ETL Beneficiar** | `test_beneficiar_prima.py` | Prima opcional, meses ordinarios y rechazo de columnas obligatorias ausentes. | ✅ PASSED |
 | **ETL Grancoop** | `test_grancoop_nombre_matching.py` | CREDIPRIMA, NOMPRI estricto, sumatoria sin duplicar y límites PDF. | ✅ PASSED |
@@ -60,6 +63,8 @@ Ubicación: `frontend/src/`
 | **Carga Evidencias WBS** | `pages/DevelopmentDetail/WbsNodeModal.test.tsx` | Éxito parcial, mensaje de error y reintento de carga sin duplicar la actividad. | ✅ PASSED |
 | **Selector y filtros WBS** | `components/molecules/__tests__/{FilePicker,DataTable}.test.tsx` | Área completa del selector, agrupación checkbox-texto, ancho máximo y reajuste responsivo con margen. | ✅ PASSED |
 | **Indicadores de Auditoría** | `pages/ServicePortal/pages/AuditoriaIndicadores/index.test.tsx` | Estados de éxito, error y actualización manual del dashboard. | ✅ PASSED |
+| **Hooks Auditoría (WS)** | `pages/ServicePortal/pages/AuditoriaIndicadores/hooks/useAuditoriaStats.test.ts` | Backoff, reconexión, códigos temporales (1008/1006) y cierres permanentes en websockets. | ✅ PASSED |
+| **Accesibilidad DataTable** | `components/molecules/__tests__/DataTable.test.tsx` | Soporte de teclado (onKeyDown), ARIA roles y manejo responsivo. | ✅ PASSED |
 | **Organigrama interactivo** | `pages/OrganizationalHierarchy/*.test.tsx` y `utils.test.ts` | Expansión inicial, paneo móvil, layout aislado y controles accesibles. | ✅ PASSED |
 | **Líneas Corporativas** | `components/atoms/SearchableSelect.test.tsx`, `components/molecules/__tests__/{DataTable,Modal}.test.tsx`, `pages/CorporateLines/**/*.test.tsx` | Teclado, tabla/filtros accesibles, modales, confirmaciones, reintentos y estados de gestores. | ✅ PASSED |
 

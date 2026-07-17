@@ -24,7 +24,7 @@
 
 ## 3. Hallazgos bloqueantes
 
-Ninguno. El control de acceso RBAC está correctamente implementado utilizando el módulo `auditoria_sistema` registrado en el manifiesto. 
+Ninguno. El control de acceso RBAC está correctamente implementado utilizando el módulo `auditoria_sistema` registrado en el manifiesto.
 
 ## 4. Hallazgos no bloqueantes
 
