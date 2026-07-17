@@ -152,7 +152,7 @@ const HdiPreview: React.FC = () => {
                 // Filtros por columna
                 for (const [key, values] of Object.entries(activeFilters)) {
                     if (values.length === 0) continue;
-                    const rowValue = String((r as any)[key] || '').toUpperCase();
+                    const rowValue = String((r as Record<string, unknown>)[key] || '').toUpperCase();
                     if (!values.includes(rowValue)) return false;
                 }
 
@@ -340,7 +340,7 @@ const HdiPreview: React.FC = () => {
                             </div>
                             <ul className="space-y-0.5 ml-6 list-disc">
                                 {data.warnings.map((w: string, i: number) => (
-                                    <li key={`${w.cedula || 'w'}-${i}`}>
+                                    <li key={`warning-${i}`}>
                                         <Text size="xs" className="text-amber-700 dark:text-amber-400 text-[10px]">{w}</Text>
                                     </li>
                                 ))}

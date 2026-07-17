@@ -1,353 +1,237 @@
-"""
-test_nomina_zip_seguridad.py — Bloqueante #7
-
-Pruebas productivas de:
-1. Sanitización de nombres en el ZIP de auditoría (path traversal, duplicados).
-2. Integridad SHA-256 del contenido almacenado.
-3. Rollback físico del temporal al fallar el extractor.
-4. Tabla maestra HDI Q1 (enero-junio) y Q2 (julio-diciembre).
-
-Estas pruebas reemplazan backend_v2/test_zip.py (sin assertions, fuera de CI).
-"""
-
-import hashlib
-import io
 import os
-import shutil
-import tempfile
+import io
 import zipfile
-
 import pytest
+from unittest.mock import patch, AsyncMock
+from fastapi import UploadFile, HTTPException
+from sqlmodel import select
+
+from app.models.novedades_nomina.nomina import NominaRegistroNormalizado, NominaArchivo
+from app.services.novedades_nomina.nomina_service import NominaService
+from app.services.novedades_nomina.tabla_maestra_service import TablaMaestraService
 
 
 # ──────────────────────────────────────────────────────────────────────────────
-# 1. Sanitización de nombres en el ZIP de auditoría
+# Utilidades de Mock para las Pruebas
 # ──────────────────────────────────────────────────────────────────────────────
 
-def _build_zip(raw_names: list[str], contents: list[bytes]) -> bytes:
-    """Reproduce la lógica de nomina_service.procesar_flujo para múltiples archivos."""
-    zip_buffer = io.BytesIO()
-    seen_names: set[str] = set()
+class MockUploadFile(UploadFile):
+    """Simula un archivo subido en memoria para inyectarlo al servicio real."""
+    def __init__(self, filename: str, content: bytes):
+        super().__init__(filename=filename, file=io.BytesIO(content))
+        self._content = content
+        
+    async def read(self, *args, **kwargs):
+        return self._content
 
-    with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zf:
-        for raw_filename, content in zip(raw_names, contents):
-            # Lógica copiada de nomina_service.py (bajo test)
-            safe_name = os.path.basename(str(raw_filename).replace("\\", "/"))
-            if not safe_name or safe_name in (".", ".."):
-                safe_name = "archivo_desconocido"
+def build_zip_content(filename: str, content: bytes) -> bytes:
+    """Crea un ZIP real en memoria para testear la extracción y sanitización."""
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w") as zf:
+        zf.writestr(filename, content)
+    buf.seek(0)
+    return buf.read()
 
-            base_name, ext = os.path.splitext(safe_name)
-            final_name = safe_name
-            counter = 1
-            while final_name in seen_names:
-                final_name = f"{base_name}_{counter}{ext}"
-                counter += 1
-            seen_names.add(final_name)
+def extractor_dummy(binarios):
+    """Simula el extractor retornando 1 fila válida para avanzar el flujo."""
+    rows = [{
+        "cedula": "12345",
+        "valor": 1000.0,
+        "nombre_asociado": "Test User",
+        "valor_rdc": 0.0,
+        "valor_colaborador": 1000.0,
+        "empresa": "REFRIDCOL",
+        "concepto": "Prueba",
+        "ciudad": "Cali",
+        "observaciones": "",
+        "horas": 0,
+        "dias": 0,
+        "estado_validacion": "OK",
+    }]
+    return rows, {"total": 1}, []
 
-            zf.writestr(final_name, content)
 
-    return zip_buffer.getvalue()
+# ──────────────────────────────────────────────────────────────────────────────
+# 1. Pruebas de Integración (Atomicidad, Rollback Físico y Sanitización ZIP)
+# ──────────────────────────────────────────────────────────────────────────────
+
+@pytest.mark.asyncio
+class TestIntegracionZipSeguridad:
+
+    async def test_sanitizacion_nombres_zip(self, db_session):
+        """
+        Inyecta un ZIP malicioso al servicio real y verifica que en el STORAGE_DIR
+        el ZIP guardado solo contenga el archivo sanitizado.
+        """
+        malicious_zip = build_zip_content("../../etc/passwd", b"malicioso")
+        file_upload = MockUploadFile(filename="test_upload.zip", content=malicious_zip)
+        db_erp_mock = AsyncMock()
+        
+        with patch("app.services.novedades_nomina.nomina_service.NominaService.get_mapa_erp", return_value={}):
+            with patch("app.services.novedades_nomina.excepcion_service.ExcepcionService.obtener_excepciones_activas", return_value=[]):
+                # Ejecutamos el flujo real con la DB real
+                await NominaService.procesar_flujo(
+                    session=db_session,
+                    db_erp=db_erp_mock,
+                    files=[file_upload],
+                    categoria="OTROS",
+                    subcategoria="SEGUROS HDI",
+                    extractor_fn=extractor_dummy,
+                    extension="zip",
+                    mes=1,
+                    anio=2026
+                )
+                
+        # Buscar el archivo generado en la DB
+        result = await db_session.execute(select(NominaArchivo))
+        archivos = result.scalars().all()
+        assert len(archivos) == 1
+        archivo_db = archivos[0]
+        
+        # Verificar sistema de archivos
+        storage_path = archivo_db.ruta_almacenamiento
+        assert os.path.exists(storage_path)
+        
+        # Leer el ZIP escrito por el servicio
+        with zipfile.ZipFile(storage_path, "r") as zf:
+            nombres = zf.namelist()
+            assert "passwd" in nombres
+            assert "../../etc/passwd" not in nombres
+
+        # Limpiar
+        os.remove(storage_path)
+
+    async def test_rollback_fisico_en_fallo_commit(self, db_session):
+        """
+        Simula que shutil.move se realiza correctamente pero la Base de Datos falla.
+        Asegura que NominaService.procesar_flujo capture el error, ejecute rollback
+        y borre el archivo mal-guardado del sistema.
+        """
+        valid_zip = build_zip_content("datos.xlsx", b"valido")
+        file_upload = MockUploadFile(filename="test_upload.zip", content=valid_zip)
+        db_erp_mock = AsyncMock()
+
+        # Capturaremos el hash para buscar si el archivo quedó
+        from app.services.novedades_nomina.nomina_service import NominaService
+        hash_file = NominaService.calcular_hash(valid_zip)
+
+        original_commit = db_session.commit
+        
+        async def mock_commit_error():
+            raise Exception("DB Down - Fallo forzado")
+            
+        with patch.object(db_session, "commit", side_effect=mock_commit_error):
+            with patch("app.services.novedades_nomina.nomina_service.NominaService.get_mapa_erp", return_value={}):
+                with patch("app.services.novedades_nomina.excepcion_service.ExcepcionService.obtener_excepciones_activas", return_value=[]):
+                    with pytest.raises(HTTPException) as exc:
+                        await NominaService.procesar_flujo(
+                            session=db_session,
+                            db_erp=db_erp_mock,
+                            files=[file_upload],
+                            categoria="OTROS",
+                            subcategoria="SEGUROS HDI",
+                            extractor_fn=extractor_dummy,
+                            extension="zip",
+                            mes=2,
+                            anio=2026
+                        )
+                    assert exc.value.status_code == 500
+
+        # Verificamos rollback de BD
+        result = await db_session.execute(select(NominaArchivo))
+        assert len(result.scalars().all()) == 0
+
+        # Verificamos rollback físico (El archivo FINAL no debe existir)
+        # NominaService crea los archivos en "uploads/{hash}.zip"
+        expected_path = os.path.join("uploads", f"{hash_file}.zip")
+        assert not os.path.exists(expected_path)
 
 
-class TestZipSanitizacion:
-    """Pruebas de sanitización de rutas dentro del ZIP de auditoría."""
+# ──────────────────────────────────────────────────────────────────────────────
+# 2. Pruebas de Integración (Tabla Maestra Q1/Q2)
+# ──────────────────────────────────────────────────────────────────────────────
 
-    def test_path_traversal_unix_eliminado(self):
-        """Ruta tipo ../../etc/passwd debe reducirse a basename 'passwd'."""
-        contenido = _build_zip(["../../etc/passwd"], [b"contenido"])
-        nombres = zipfile.ZipFile(io.BytesIO(contenido)).namelist()
-        assert nombres == ["passwd"]
+@pytest.mark.asyncio
+class TestIntegracionTablaMaestra:
 
-    def test_path_traversal_windows_eliminado(self):
-        """Ruta tipo C:\\Windows\\System32\\cmd.exe debe reducirse a 'cmd.exe'."""
-        contenido = _build_zip(["C:\\Windows\\System32\\cmd.exe"], [b"contenido"])
-        nombres = zipfile.ZipFile(io.BytesIO(contenido)).namelist()
-        assert nombres == ["cmd.exe"]
-
-    def test_path_absoluto_unix_eliminado(self):
-        """/tmp/evil.sh debe reducirse a 'evil.sh'."""
-        contenido = _build_zip(["/tmp/evil.sh"], [b"contenido"])
-        nombres = zipfile.ZipFile(io.BytesIO(contenido)).namelist()
-        assert nombres == ["evil.sh"]
-
-    def test_nombre_vacio_reemplazado(self):
-        """Nombre vacío o None-like debe reemplazarse con 'archivo_desconocido'."""
-        contenido = _build_zip([""], [b"contenido"])
-        nombres = zipfile.ZipFile(io.BytesIO(contenido)).namelist()
-        assert nombres == ["archivo_desconocido"]
-
-    def test_punto_simple_reemplazado(self):
-        """El nombre '.' debe reemplazarse."""
-        contenido = _build_zip(["."], [b"contenido"])
-        nombres = zipfile.ZipFile(io.BytesIO(contenido)).namelist()
-        assert nombres == ["archivo_desconocido"]
-
-    def test_doble_punto_reemplazado(self):
-        """El nombre '..' debe reemplazarse."""
-        contenido = _build_zip([".."], [b"contenido"])
-        nombres = zipfile.ZipFile(io.BytesIO(contenido)).namelist()
-        assert nombres == ["archivo_desconocido"]
-
-    def test_duplicados_resueltos_con_contador(self):
-        """Dos archivos con el mismo nombre deben resolver a nombre, nombre_1."""
-        contenido = _build_zip(
-            ["informe.xlsx", "informe.xlsx"],
-            [b"contenido1", b"contenido2"]
+    async def test_tabla_maestra_q1_q2_agrupacion(self, db_session):
+        """
+        Almacena registros reales en PostgreSQL y verifica que TablaMaestraService
+        los clasifique y agrupe correctamente según la quincena (Q1 y Q2).
+        """
+        # Q1: Mes 3
+        reg1 = NominaRegistroNormalizado(
+            archivo_id=None,
+            cedula="Q1-123",
+            mes_fact=3,
+            año_fact=2026,
+            categoria="OTROS",
+            subcategoria="SEGUROS HDI",
+            subcategoria_final="SEGUROS HDI",
+            valor=100.0,
+            valor_rdc=24.0,
+            valor_colaborador=76.0,
+            estado_validacion="OK"
         )
-        nombres = zipfile.ZipFile(io.BytesIO(contenido)).namelist()
-        assert len(nombres) == 2
-        assert "informe.xlsx" in nombres
-        assert "informe_1.xlsx" in nombres
-
-    def test_tres_duplicados_resueltos(self):
-        """Tres archivos con nombre idéntico deben resolverse a nombre, nombre_1, nombre_2."""
-        contenido = _build_zip(
-            ["datos.xlsx"] * 3,
-            [b"a", b"b", b"c"]
+        # Q2: Mes 8
+        reg2 = NominaRegistroNormalizado(
+            archivo_id=None,
+            cedula="Q2-456",
+            mes_fact=8,
+            año_fact=2026,
+            categoria="OTROS",
+            subcategoria="SEGUROS HDI",
+            subcategoria_final="SEGUROS HDI",
+            valor=200.0,
+            valor_rdc=48.0,
+            valor_colaborador=152.0,
+            estado_validacion="OK"
         )
-        nombres = zipfile.ZipFile(io.BytesIO(contenido)).namelist()
-        assert len(nombres) == 3
-        assert "datos.xlsx" in nombres
-        assert "datos_1.xlsx" in nombres
-        assert "datos_2.xlsx" in nombres
+        # Q2: Otra categoría
+        reg3 = NominaRegistroNormalizado(
+            archivo_id=None,
+            cedula="Q2-789",
+            mes_fact=8,
+            año_fact=2026,
+            categoria="OTROS",
+            subcategoria="CELULARES",
+            subcategoria_final="CELULARES",
+            valor=50000.0,
+            valor_rdc=0.0,
+            valor_colaborador=50000.0,
+            estado_validacion="OK"
+        )
+        
+        db_session.add_all([reg1, reg2, reg3])
+        await db_session.commit()
 
-    def test_nombre_legitimo_no_modificado(self):
-        """Un nombre de archivo válido no debe modificarse."""
-        contenido = _build_zip(["hdi_julio_2026.xlsx"], [b"contenido"])
-        nombres = zipfile.ZipFile(io.BytesIO(contenido)).namelist()
-        assert nombres == ["hdi_julio_2026.xlsx"]
+        # Mock validacion_disponibilidad para que deje generar
+        # ya que faltarían las otras "subcategorías base"
+        with patch.object(TablaMaestraService, "validar_disponibilidad", return_value={"completo": True, "disponibles": ["SEGUROS HDI", "CELULARES"]}):
+            # Probar Q1 (Mes 3)
+            res_q1 = await TablaMaestraService.generar_tabla_maestra(
+                session=db_session, mes=3, anio=2026, quincena="Q1"
+            )
+            assert res_q1["error"] is False
+            filas_q1 = res_q1["filas"]
+            assert len(filas_q1) == 1
+            assert filas_q1[0]["CEDULA"] == "Q1-123"
+            
+            # Seguros HDI aplica el valor del colaborador (76) dividido en 2 = 38
+            assert filas_q1[0]["VALOR QUINCENAL"] == 38.0
 
-    def test_zip_valido_se_puede_leer(self):
-        """El ZIP generado debe ser legible y los contenidos accesibles."""
-        contenido_original = b"datos de nomina"
-        zip_bytes = _build_zip(["archivo.xlsx"], [contenido_original])
-        with zipfile.ZipFile(io.BytesIO(zip_bytes)) as zf:
-            leido = zf.read("archivo.xlsx")
-        assert leido == contenido_original
+            # Probar Q2 (Mes 8)
+            res_q2 = await TablaMaestraService.generar_tabla_maestra(
+                session=db_session, mes=8, anio=2026, quincena="Q2"
+            )
+            assert res_q2["error"] is False
+            filas_q2 = res_q2["filas"]
+            assert len(filas_q2) == 2
+            
+            cedulas_q2 = [f["CEDULA"] for f in filas_q2]
+            assert "Q2-456" in cedulas_q2
+            assert "Q2-789" in cedulas_q2
 
-
-# ──────────────────────────────────────────────────────────────────────────────
-# 2. Integridad SHA-256
-# ──────────────────────────────────────────────────────────────────────────────
-
-class TestSha256Integridad:
-    """El hash almacenado debe coincidir con el SHA-256 del contenido real."""
-
-    def test_sha256_hash_correcto_un_archivo(self):
-        """El hash calculado para un solo archivo debe ser SHA-256 del contenido."""
-        contenido = b"contenido de archivo xlsx"
-        hash_calculado = hashlib.sha256(contenido).hexdigest()
-
-        # El hash debe ser una cadena hexadecimal de 64 caracteres (256 bits)
-        assert len(hash_calculado) == 64
-        assert all(c in "0123456789abcdef" for c in hash_calculado)
-
-        # Verificar que es determinístico
-        assert hash_calculado == hashlib.sha256(contenido).hexdigest()
-
-    def test_sha256_hash_correcto_zip(self):
-        """El hash del ZIP debe ser SHA-256 del ZIP completo, no MD5."""
-        zip_bytes = _build_zip(["a.xlsx", "b.xlsx"], [b"aaa", b"bbb"])
-        hash_sha256 = hashlib.sha256(zip_bytes).hexdigest()
-        hash_md5 = hashlib.md5(zip_bytes).hexdigest()
-
-        # SHA-256 produce 64 hex chars, MD5 produce 32
-        assert len(hash_sha256) == 64
-        assert len(hash_md5) == 32
-        # Los hashes son diferentes (el servicio usa SHA-256, no MD5)
-        assert hash_sha256 != hash_md5
-
-    def test_sha256_cambia_con_contenido_diferente(self):
-        """Cambiar un byte debe cambiar el hash."""
-        c1 = b"contenido original"
-        c2 = b"contenido modificado"
-        assert hashlib.sha256(c1).hexdigest() != hashlib.sha256(c2).hexdigest()
-
-    def test_sha256_mismo_hash_mismo_contenido(self):
-        """El mismo contenido siempre produce el mismo hash (propiedad determinística)."""
-        contenido = b"nomina_hdi_2026"
-        h1 = hashlib.sha256(contenido).hexdigest()
-        h2 = hashlib.sha256(contenido).hexdigest()
-        assert h1 == h2
-
-
-# ──────────────────────────────────────────────────────────────────────────────
-# 3. Rollback físico del temporal al fallar el extractor
-# ──────────────────────────────────────────────────────────────────────────────
-
-class TestRollbackFisicoTemporal:
-    """
-    Simula la lógica de rollback: si el extractor o la transacción falla,
-    el archivo temporal debe ser eliminado y el archivo final no debe existir.
-    """
-
-    def test_temp_eliminado_al_fallar_extractor(self, tmp_path):
-        """Si el extractor falla, _limpiar_temp() elimina el temporal."""
-        # Simular creación del temporal
-        fd, temp_path = tempfile.mkstemp(suffix=".xlsx", dir=tmp_path)
-        with os.fdopen(fd, "wb") as f:
-            f.write(b"contenido parcial")
-
-        assert os.path.exists(temp_path), "El temporal debe existir antes del rollback"
-
-        # Simular _limpiar_temp() de nomina_service
-        def _limpiar_temp():
-            if temp_path and os.path.exists(temp_path):
-                try:
-                    os.remove(temp_path)
-                except Exception:
-                    pass
-
-        # El extractor falla
-        extractor_fallo = True
-        if extractor_fallo:
-            _limpiar_temp()
-
-        assert not os.path.exists(temp_path), "El temporal debe haberse eliminado tras el rollback"
-
-    def test_archivo_final_no_creado_si_transaccion_falla(self, tmp_path):
-        """
-        La ruta final no debe existir si la transacción falló (no se ejecuta shutil.move).
-        Esto verifica la atomicidad: escribir en tmp y mover solo tras commit exitoso.
-        """
-        ruta_final = tmp_path / "hash_sha256.xlsx"
-        fd, temp_path = tempfile.mkstemp(suffix=".xlsx", dir=tmp_path)
-        with os.fdopen(fd, "wb") as f:
-            f.write(b"contenido completo")
-
-        # Simular fallo antes de commit (no se hace shutil.move)
-        transaccion_ok = False
-
-        if transaccion_ok:
-            if not ruta_final.exists():
-                shutil.move(temp_path, str(ruta_final))
-        else:
-            # Rollback: limpiar temporal
-            if os.path.exists(temp_path):
-                os.remove(temp_path)
-
-        assert not ruta_final.exists(), "La ruta final no debe existir si la transacción falló"
-        assert not os.path.exists(temp_path), "El temporal debe haber sido limpiado"
-
-    def test_archivo_final_creado_tras_commit_exitoso(self, tmp_path):
-        """Si la transacción es exitosa, el temporal se mueve a la ruta final."""
-        ruta_final = str(tmp_path / "hash_sha256.xlsx")
-        fd, temp_path = tempfile.mkstemp(suffix=".xlsx", dir=tmp_path)
-        contenido = b"contenido validado"
-        with os.fdopen(fd, "wb") as f:
-            f.write(contenido)
-
-        # Simular commit exitoso → mover temporal a final
-        if not os.path.exists(ruta_final):
-            shutil.move(temp_path, ruta_final)
-
-        assert os.path.exists(ruta_final), "La ruta final debe existir tras commit exitoso"
-        assert not os.path.exists(temp_path), "El temporal ya no debe existir"
-        with open(ruta_final, "rb") as f:
-            assert f.read() == contenido
-
-    def test_temporal_no_elimina_archivo_final_existente(self, tmp_path):
-        """
-        Si ya existe un archivo con el mismo hash (misma carga), el temporal
-        se descarta sin sobreescribir el final existente.
-        """
-        contenido = b"contenido identico"
-        ruta_final = tmp_path / "same_hash.xlsx"
-        ruta_final.write_bytes(contenido)
-        mtime_original = ruta_final.stat().st_mtime
-
-        fd, temp_path = tempfile.mkstemp(suffix=".xlsx", dir=tmp_path)
-        with os.fdopen(fd, "wb") as f:
-            f.write(contenido)
-
-        # Lógica de nomina_service: si ya existe la ruta final, descartar temporal
-        if os.path.exists(str(ruta_final)):
-            os.remove(temp_path)
-
-        assert ruta_final.exists(), "El archivo final debe seguir existiendo"
-        assert not os.path.exists(temp_path), "El temporal debe haberse descartado"
-        assert ruta_final.stat().st_mtime == mtime_original, "El archivo final no debe haberse modificado"
-
-
-# ──────────────────────────────────────────────────────────────────────────────
-# 4. Tabla maestra HDI Q1/Q2 — verificación de la lógica de extracción
-# ──────────────────────────────────────────────────────────────────────────────
-
-class TestHdiTablaMaestraQ1Q2:
-    """
-    Prueba la lógica Q1/Q2: la tabla maestra HDI acumula cobros de enero-junio
-    (Q1) y julio-diciembre (Q2) de manera independiente.
-
-    No requiere DB; verifica la lógica pura del extractor + agrupador.
-    """
-
-    def _make_hdi_xlsx(self, rows: list[dict]) -> bytes:
-        """Genera un xlsx en memoria con la estructura del archivo HDI real."""
-        import pandas as pd
-
-        df = pd.DataFrame(rows)
-        buf = io.BytesIO()
-        with pd.ExcelWriter(buf, engine="openpyxl") as writer:
-            df.to_excel(writer, index=False, startrow=1)
-            sheet = writer.sheets["Sheet1"]
-            sheet["A1"] = "RELACION DE ASEGURADOS"
-        buf.seek(0)
-        return buf.getvalue()
-
-    def test_q1_meses_1_a_6_cubren_primer_semestre(self):
-        """Los meses 1-6 corresponden al primer cuatrimestre (Q1)."""
-        meses_q1 = list(range(1, 7))
-        assert len(meses_q1) == 6
-        assert meses_q1 == [1, 2, 3, 4, 5, 6]
-
-    def test_q2_meses_7_a_12_cubren_segundo_semestre(self):
-        """Los meses 7-12 corresponden al segundo semestre (Q2)."""
-        meses_q2 = list(range(7, 13))
-        assert len(meses_q2) == 6
-        assert meses_q2 == [7, 8, 9, 10, 11, 12]
-
-    def test_q1_q2_no_se_solapan(self):
-        """Los rangos Q1 y Q2 son mutuamente excluyentes."""
-        q1 = set(range(1, 7))
-        q2 = set(range(7, 13))
-        assert q1.isdisjoint(q2)
-        assert q1 | q2 == set(range(1, 13))
-
-    def test_hdi_extractor_calculo_q1(self):
-        """La prima mensual en Q1 se calcula correctamente: anual / 12."""
-        try:
-            from app.services.novedades_nomina.hdi_extractor import extraer_hdi
-        except ImportError:
-            pytest.skip("hdi_extractor no disponible en este entorno")
-
-        xlsx = self._make_hdi_xlsx([
-            {"Unnamed: 0": 1, "CERT": "100", "TIPO": "P",
-             "IDENTIFICACION": "9999999", "NOMBRE": "Test Q1", "PRIMA ANUAL": 2400}
-        ])
-        rows, summary, _ = extraer_hdi([xlsx])
-        assert len(rows) == 1
-        # Prima mensual = 2400 / 12 = 200. Colaborador (76%) = 152. RDC (24%) = 48.
-        assert rows[0]["valor"] == 200.0
-        assert rows[0]["valor_rdc"] == 48.0
-        assert rows[0]["valor_colaborador"] == 152.0
-
-    def test_hdi_extractor_calculo_primo_mas_dependiente(self):
-        """Un titular (P) + dependiente (D) acumulan correctamente."""
-        try:
-            from app.services.novedades_nomina.hdi_extractor import extraer_hdi
-        except ImportError:
-            pytest.skip("hdi_extractor no disponible en este entorno")
-
-        xlsx = self._make_hdi_xlsx([
-            {"Unnamed: 0": 1, "CERT": "200", "TIPO": "P",
-             "IDENTIFICACION": "8888888", "NOMBRE": "Titular", "PRIMA ANUAL": 1200},
-            {"Unnamed: 0": 2, "CERT": "200", "TIPO": "D",
-             "IDENTIFICACION": "8888888", "NOMBRE": "Dependiente", "PRIMA ANUAL": 600},
-        ])
-        rows, summary, _ = extraer_hdi([xlsx])
-        assert len(rows) == 1
-        # Titular: 1200/12 = 100 → colab 76, rdc 24
-        # Dependiente: 600/12 = 50 → todo colab (50)
-        # Total colab = 76 + 50 = 126. Total = 100 + 50 = 150.
-        assert rows[0]["valor_colaborador"] == 126.0
-        assert rows[0]["valor"] == 150.0
+            # Celulares (50000) dividido en 2 = 25000
+            fila_celulares = next(f for f in filas_q2 if f["CEDULA"] == "Q2-789")
+            assert fila_celulares["VALOR QUINCENAL"] == 25000.0

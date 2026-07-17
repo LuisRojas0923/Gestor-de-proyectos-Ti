@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * Tests unitarios para HdiPreview.tsx
  *
@@ -13,6 +14,7 @@ import '@testing-library/jest-dom';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { NotificationsProvider } from '../components/notifications/NotificationsContext';
+import { AppProvider } from '../context/AppContext';
 
 vi.mock('axios', () => ({
     default: {
@@ -54,9 +56,11 @@ const renderHdiPreview = async () => {
     const { default: HdiPreview } = await import('../pages/ServicePortal/pages/NOVEDADES_NOMINA/HdiPreview');
     return render(
         <MemoryRouter>
-            <NotificationsProvider>
-                <HdiPreview />
-            </NotificationsProvider>
+            <AppProvider>
+                <NotificationsProvider>
+                    <HdiPreview />
+                </NotificationsProvider>
+            </AppProvider>
         </MemoryRouter>
     );
 };

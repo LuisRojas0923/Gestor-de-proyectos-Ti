@@ -155,29 +155,24 @@ class NominaHelper:
                         estado_val = "EXCEPCION_AUTORIZADA"
                         observacion_ex = f"Contratista: {ex.observacion}"
                     elif ex.tipo == 'SALDO_FAVOR':
-                        if subcategoria == "SEGUROS HDI":
-                            # Para Seguros HDI, aplicamos el saldo a favor a la porción del colaborador, no al total
-                            valor_orig = valor_colaborador_final
-                            valor_restante_colab = await ExcepcionService.aplicar_saldo_favor(session, ex, valor_orig, mes, anio)
-
-                            # Si el colaborador está ACTIVO, reducimos la deducción de nómina (valor_colaborador_final)
-                            # Si no está ACTIVO (retirado), mantenemos el valor original de cobro en el registro contable
-                            # para evitar que figure con $0 facturados (el cobro ya se descontó de su saldo de balance).
-                            es_activo = info_original and str(info_original.get("estado", "")).strip().upper() == "ACTIVO"
-                            if es_activo:
-                                valor_colaborador_final = valor_restante_colab
-                                valor_final = valor_rdc_final + valor_colaborador_final
-                            else:
-                                # Inactivo: no aplica descuento empresa y se reporta cobro completo
-                                valor_final = valor_colaborador_final
-
-                            estado_val = "EXCEPCION_SALDO_FAVOR"
-                            observacion_ex = f"Saldo favor aplicado. Cobro: ${valor_orig:,.0f} -> ${valor_restante_colab:,.0f}"
+                        es_activo = info_original and str(info_original.get("estado", "")).strip().upper() == "ACTIVO"
+                        if es_activo:
+                            estado_val = "ERROR_SALDO_ACTIVO"
+                            observacion_ex = "Saldo a favor no puede aplicar a personal activo"
                         else:
-                            valor_orig = valor_final
-                            valor_final = await ExcepcionService.aplicar_saldo_favor(session, ex, valor_orig, mes, anio)
-                            estado_val = "EXCEPCION_SALDO_FAVOR"
-                            observacion_ex = f"Saldo favor aplicado. Cobro: ${valor_orig:,.0f} -> ${valor_final:,.0f}"
+                            if subcategoria == "SEGUROS HDI":
+                                # Para Seguros HDI (Retirados), aplicamos saldo a la porción del colaborador
+                                valor_orig = valor_colaborador_final
+                                valor_restante_colab = await ExcepcionService.aplicar_saldo_favor(session, ex, valor_orig, mes, anio)
+                                # Inactivo: se reporta cobro completo
+                                valor_final = valor_colaborador_final
+                                estado_val = "EXCEPCION_SALDO_FAVOR"
+                                observacion_ex = f"Saldo favor aplicado. Cobro: ${valor_orig:,.0f} -> ${valor_restante_colab:,.0f}"
+                            else:
+                                valor_orig = valor_final
+                                valor_final = await ExcepcionService.aplicar_saldo_favor(session, ex, valor_orig, mes, anio)
+                                estado_val = "EXCEPCION_SALDO_FAVOR"
+                                observacion_ex = f"Saldo favor aplicado. Cobro: ${valor_orig:,.0f} -> ${valor_final:,.0f}"
 
             # Lógica de estados si no hay excepción dominante que autorice
             if estado_val == estado_default:

@@ -6,23 +6,23 @@ import sys
 def main():
     api_key = os.environ.get("OPENAI_API_KEY")
     if not api_key:
-        print("OPENAI_API_KEY no está configurado. Saltando revisión.")
-        sys.exit(0)
-        
+        print("OPENAI_API_KEY no está configurado. Fallo obligatorio.")
+        sys.exit(1)
+
     prompt_file = os.environ.get("SYSTEM_PROMPT_FILE")
     diff_file = os.environ.get("DIFF_FILE")
     agent_name = os.environ.get("AGENT_NAME")
-    
+
     with open(prompt_file, "r", encoding="utf-8") as f:
         system_prompt = f.read()
-        
+
     with open(diff_file, "r", encoding="utf-8") as f:
         diff_content = f.read()
-        
+
     if not diff_content.strip():
         print("No hay diferencias en el PR.")
         sys.exit(0)
-        
+
     system_prompt += (
         "\n\n====================\n"
         "INSTRUCCIÓN PARA GITHUB ACTIONS:\n"
@@ -31,7 +31,7 @@ def main():
         "2. Evalúa EXCLUSIVAMENTE el siguiente 'git diff' asumiendo tu rol y reglas.\n"
         "3. Emite tu respuesta en formato Markdown para que sea un comentario legible en GitHub.\n"
     )
-    
+
     data = {
         "model": "gpt-4o",
         "messages": [
@@ -40,7 +40,7 @@ def main():
         ],
         "temperature": 0.2
     }
-    
+
     req = urllib.request.Request(
         "https://api.openai.com/v1/chat/completions",
         data=json.dumps(data).encode("utf-8"),
@@ -49,17 +49,17 @@ def main():
             "Authorization": f"Bearer {api_key}"
         }
     )
-    
+
     try:
         with urllib.request.urlopen(req) as response:
             result = json.loads(response.read().decode("utf-8"))
             review = result["choices"][0]["message"]["content"]
-            
+
             header = f"### 🤖 Revisión Automática: `{agent_name}`\n\n"
-            
+
             with open("review_output.md", "w", encoding="utf-8") as f:
                 f.write(header + review)
-                
+
             print("Revisión completada exitosamente.")
     except Exception as e:
         print(f"Error llamando a la API: {e}")

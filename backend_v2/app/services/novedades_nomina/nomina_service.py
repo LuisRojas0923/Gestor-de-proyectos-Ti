@@ -90,8 +90,15 @@ class NominaService:
         if len(files) > 10:
             raise HTTPException(status_code=400, detail="Máximo 10 archivos permitidos a la vez.")
 
+        total_payload_size = 0
+
         for f in files:
             content = await f.read()
+            total_payload_size += len(content)
+            
+            if total_payload_size > 50 * 1024 * 1024:
+                raise HTTPException(status_code=400, detail="El tamaño total de los archivos excede el límite de 50MB.")
+                
             if len(content) > 15 * 1024 * 1024:
                 raise HTTPException(status_code=400, detail="El archivo excede el tamaño máximo de 15MB.")
 
@@ -105,9 +112,13 @@ class NominaService:
                 import io
                 try:
                     with zipfile.ZipFile(io.BytesIO(content)) as zf:
+                        infolist = zf.infolist()
+                        if len(infolist) > 100:
+                            raise HTTPException(status_code=400, detail="Demasiados archivos internos en el ZIP (Posible Zip Bomb).")
+                            
                         total_uncompressed = 0
                         has_content_types = False
-                        for info in zf.infolist():
+                        for info in infolist:
                             total_uncompressed += info.file_size
                             if info.compress_size > 0:
                                 ratio = info.file_size / info.compress_size
@@ -214,6 +225,7 @@ class NominaService:
 
         # 3. Transacción y relectura
         from sqlalchemy import text
+        archivo_movido = False
         try:
             rows, summary, warnings_txt = await asyncio.to_thread(extractor_fn, archivos_binarios)
             summary.update({"mes": mes, "anio": anio})
@@ -318,14 +330,15 @@ class NominaService:
 
             logger.info(f"ÉXITO: Procesados {len(registros)} registros para {subcategoria}")
 
-            await session.commit()
-
-            # 9. Atomic publish: Mover el temporal a la ruta final
+            # 9. Atomic publish: Mover el temporal a la ruta final ANTES del commit
             if temp_file_path and os.path.exists(temp_file_path):
                 if not os.path.exists(ruta_almacenamiento):
                     shutil.move(temp_file_path, ruta_almacenamiento)
+                    archivo_movido = True
                 else:
                     os.remove(temp_file_path)
+
+            await session.commit()
 
             return {
                 "filas": filas_frontend,
@@ -339,7 +352,12 @@ class NominaService:
         except Exception as e:
             await session.rollback()
             _limpiar_temp()
-            # Ya no borramos ruta_almacenamiento para no corromper cargas previas con el mismo hash
+            # Rollback físico: si se movió el archivo pero falló el commit, eliminar el archivo final
+            if archivo_movido and os.path.exists(ruta_almacenamiento):
+                try:
+                    os.remove(ruta_almacenamiento)
+                except Exception:
+                    pass
             logger.error(f"FALLO CRÍTICO en flujo {subcategoria}: {str(e)}", exc_info=True)
             raise HTTPException(status_code=500, detail=f"Error en procesamiento: {str(e)}")
     @staticmethod

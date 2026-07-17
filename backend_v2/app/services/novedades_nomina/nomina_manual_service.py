@@ -2,6 +2,7 @@ import logging
 from datetime import datetime
 from typing import List, Dict, Any
 from sqlmodel import delete
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 from ...models.novedades_nomina.nomina import (
     NominaRegistroNormalizado
@@ -52,6 +53,10 @@ class NominaManualService:
             # 2. Obtener info ERP
             excepciones = await ExcepcionService.obtener_excepciones_activas(session, subcategoria)
             mapa_erp = await NominaService.get_mapa_erp(db_erp, rows, excepciones)
+
+            # Advisory lock para prevenir concurrencia sobre el mismo periodo y subcategoría
+            lock_name = f"nomina_{subcategoria}_{mes}_{anio}"
+            await session.execute(text("SELECT pg_advisory_xact_lock(hashtext(:lock_name))").bindparams(lock_name=lock_name))
 
             # 3. Borrar previos
             stmt_del = delete(NominaRegistroNormalizado).where(
@@ -162,6 +167,10 @@ class NominaManualService:
             # 2. Obtener info ERP
             excepciones = await ExcepcionService.obtener_excepciones_activas(session, subcategoria)
             mapa_erp = await NominaService.get_mapa_erp(db_erp, rows, excepciones)
+
+            # Advisory lock para prevenir concurrencia sobre el mismo periodo y subcategoría
+            lock_name = f"nomina_{subcategoria}_{mes}_{anio}"
+            await session.execute(text("SELECT pg_advisory_xact_lock(hashtext(:lock_name))").bindparams(lock_name=lock_name))
 
             # 3. Borrar previos
             stmt_del = delete(NominaRegistroNormalizado).where(
@@ -294,6 +303,10 @@ class NominaManualService:
                         "nombre": nombre,
                         "motivo": motivo
                     })
+
+            # Advisory lock para prevenir concurrencia sobre el mismo periodo y subcategoría
+            lock_name = f"nomina_{subcategoria}_{mes}_{anio}"
+            await session.execute(text("SELECT pg_advisory_xact_lock(hashtext(:lock_name))").bindparams(lock_name=lock_name))
 
             # 3. Borrar previos
             stmt_del = delete(NominaRegistroNormalizado).where(
