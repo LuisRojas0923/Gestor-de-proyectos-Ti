@@ -89,17 +89,17 @@ class NominaService:
         from fastapi import HTTPException
         if len(files) > 10:
             raise HTTPException(status_code=400, detail="Máximo 10 archivos permitidos a la vez.")
-            
+
         for f in files:
             content = await f.read()
             if len(content) > 15 * 1024 * 1024:
                 raise HTTPException(status_code=400, detail="El archivo excede el tamaño máximo de 15MB.")
-                
+
             # Validar Magic Bytes
             if extension.lower() in ["xlsx", "zip"]:
                 if not content.startswith(b"PK\x03\x04"):
                     raise HTTPException(status_code=400, detail="El archivo no es un Excel o ZIP válido (Firma OOXML incorrecta).")
-                
+
                 # Validar estructura y protección contra ZIP bombs
                 import zipfile
                 import io
@@ -115,10 +115,10 @@ class NominaService:
                                     raise HTTPException(status_code=400, detail="Relación de compresión sospechosa (posible ZIP bomb).")
                             if info.filename == "[Content_Types].xml":
                                 has_content_types = True
-                                
+
                         if total_uncompressed > 15 * 1024 * 1024:
                             raise HTTPException(status_code=400, detail="El tamaño descomprimido excede el límite seguro de 15MB.")
-                            
+
                         if extension.lower() == "xlsx" and not has_content_types:
                             raise HTTPException(status_code=400, detail="El archivo XLSX no contiene estructura OOXML válida.")
                 except zipfile.BadZipFile:
@@ -126,24 +126,24 @@ class NominaService:
             elif extension.lower() == "pdf":
                 if not content.startswith(b"%PDF-"):
                     raise HTTPException(status_code=400, detail="El archivo no es un PDF válido.")
-                    
+
             archivos_binarios.append(content)
             original_filenames.append(getattr(f, "filename", "archivo"))
-            
+
         import os
         import tempfile
         import shutil
         subcat_folder = subcategoria.lower().replace(" ", "_").replace("/", "_")
         STORAGE_DIR = os.path.join("uploads", "nomina", str(anio), str(mes), subcat_folder)
         os.makedirs(STORAGE_DIR, exist_ok=True)
-        
+
         ruta_almacenamiento = "memory"
         nombre_archivo = f"{subcategoria.lower().replace(' ', '_')}_{mes}_{anio}.{extension}"
         temp_file_path = None
-        
+
         import zipfile
         import io
-        
+
         if archivos_binarios:
             if len(archivos_binarios) == 1:
                 contenido = archivos_binarios[0]
@@ -154,30 +154,30 @@ class NominaService:
                 if not nombre_archivo or nombre_archivo in ('.', '..'):
                     nombre_archivo = f"archivo.{extension}"
                 ext_real = nombre_archivo.split('.')[-1].lower() if '.' in nombre_archivo else extension
-                
+
                 ruta_almacenamiento = os.path.join(STORAGE_DIR, f"{hash_str}.{ext_real}")
-                
+
                 fd, temp_file_path = tempfile.mkstemp(suffix=f".{ext_real}", dir=STORAGE_DIR)
                 with os.fdopen(fd, "wb") as f_out:
                     f_out.write(contenido)
-                    
+
                 tamaño_total = len(contenido)
             else:
                 # Empaquetar múltiples archivos en un ZIP
                 import zipfile
                 import io
                 import os
-                
+
                 zip_buffer = io.BytesIO()
                 seen_names = set()
-                
+
                 with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zf:
                     for raw_filename, content in zip(original_filenames, archivos_binarios):
                         # 1. Normalizar a basename seguro
                         safe_name = os.path.basename(str(raw_filename).replace('\\', '/'))
                         if not safe_name or safe_name in ('.', '..'):
                             safe_name = "archivo_desconocido"
-                            
+
                         # 2. Prevenir duplicados en el ZIP
                         base_name, ext = os.path.splitext(safe_name)
                         final_name = safe_name
@@ -186,25 +186,25 @@ class NominaService:
                             final_name = f"{base_name}_{counter}{ext}"
                             counter += 1
                         seen_names.add(final_name)
-                        
+
                         zf.writestr(final_name, content)
-                
+
                 contenido_zip = zip_buffer.getvalue()
                 hash_str = hashlib.sha256(contenido_zip).hexdigest()
                 nombre_archivo = f"{subcategoria.replace(' ', '_')}_{mes}_{anio}.zip"
                 extension = "zip"
                 ext_real = "zip"
-                
+
                 ruta_almacenamiento = os.path.join(STORAGE_DIR, f"{hash_str}.zip")
                 fd, temp_file_path = tempfile.mkstemp(suffix=".zip", dir=STORAGE_DIR)
                 with os.fdopen(fd, "wb") as f_out:
                     f_out.write(contenido_zip)
-                    
+
                 tamaño_total = len(contenido_zip)
-        
+
         # 2. Extraer datos usando la función específica en un hilo separado para no bloquear el event loop
         import asyncio
-        
+
         def _limpiar_temp():
             if temp_file_path and os.path.exists(temp_file_path):
                 try:
@@ -217,7 +217,7 @@ class NominaService:
         try:
             rows, summary, warnings_txt = await asyncio.to_thread(extractor_fn, archivos_binarios)
             summary.update({"mes": mes, "anio": anio})
-            
+
             if not rows:
                 raise HTTPException(status_code=400, detail="El archivo provisto está vacío, no contiene datos válidos o su estructura es incorrecta. Abortando.")
             # Advisory lock para prevenir concurrencia sobre el mismo periodo y subcategoría
@@ -226,7 +226,7 @@ class NominaService:
 
             excepciones = await ExcepcionService.obtener_excepciones_activas(session, subcategoria)
             mapa_erp = await NominaService.get_mapa_erp(db_erp, rows, excepciones)
-            
+
             # 4. Borrar antiguos para evitar duplicados en el mismo periodo/subcat
             subcategoria_clean = subcategoria.strip()
             stmt_del = delete(NominaRegistroNormalizado).where(
@@ -234,12 +234,12 @@ class NominaService:
                 NominaRegistroNormalizado.mes_fact == mes,
                 NominaRegistroNormalizado.año_fact == anio,
             )
-            
+
             await session.execute(stmt_del)
-            
+
             # 6. Crear entrada de archivo
             archivo = await NominaService.crear_archivo_procesado(
-                session, nombre_archivo, hash_str, 
+                session, nombre_archivo, hash_str,
                 tamaño_total if archivos_binarios else 0, extension, mes, anio, categoria, subcategoria, ruta_almacenamiento
             )
 
@@ -247,7 +247,7 @@ class NominaService:
             registros = await NominaService.persistir_registros_normalizados(
                 session, archivo.id, mes, anio, rows, categoria, subcategoria_clean, mapa_erp, excepciones
             )
-            
+
             # 8. Formatear respuesta para el frontend (Compatible con múltiples versiones)
             filas_frontend = []
             warnings_detalle = []
@@ -264,7 +264,7 @@ class NominaService:
                     "concepto": r.concepto,
                     "ciudad": r.ciudad,
                     "observaciones": r.observaciones,
-                    
+
                     # Mayúsculas / Variaciones (Legacy)
                     "CEDULA": r.cedula,
                     "NOMBRE": r.nombre_asociado,
@@ -278,13 +278,13 @@ class NominaService:
                     "CONCEPTO": r.concepto,
                     "CIUDAD": r.ciudad,
                     "OBSERVACIONES": r.observaciones,
-                    
+
                     # Campos específicos Planillas
                     "horas": r.horas,
                     "dias": r.dias,
                     "HORAS": r.horas,
                     "DIAS": r.dias,
-                    
+
                     # Campos específicos
                     "estado_erp": r.estado_validacion
                 }
@@ -294,12 +294,12 @@ class NominaService:
                         "nombre": r.nombre_asociado,
                         "motivo": r.estado_validacion
                     })
-                
+
                 # REGLA: No mostrar en tabla principal si está retirado o sin establecimiento (ya están en warnings)
                 # A menos que sea una excepción autorizada
                 if r.estado_validacion in ["RETIRADO", "SIN_ESTABLECIMIENTO", "EXCEPCION_EXONERADO"]:
                     continue
-                    
+
                 filas_frontend.append(base_item)
 
             # Agrupar por cédula: sumar valores cuando múltiples registros comparten cédula final
@@ -317,16 +317,16 @@ class NominaService:
             })
 
             logger.info(f"ÉXITO: Procesados {len(registros)} registros para {subcategoria}")
-            
+
             await session.commit()
-            
+
             # 9. Atomic publish: Mover el temporal a la ruta final
             if temp_file_path and os.path.exists(temp_file_path):
                 if not os.path.exists(ruta_almacenamiento):
                     shutil.move(temp_file_path, ruta_almacenamiento)
                 else:
                     os.remove(temp_file_path)
-                    
+
             return {
                 "filas": filas_frontend,
                 "rows": filas_frontend,
@@ -335,7 +335,7 @@ class NominaService:
                 "warnings_detalle": warnings_detalle,
                 "archivo_id": archivo.id
             }
-            
+
         except Exception as e:
             await session.rollback()
             _limpiar_temp()
@@ -359,12 +359,12 @@ class NominaService:
             )
             result = await session.execute(stmt)
             filas = result.scalars().all()
-            
+
             # Formatear respuesta compatible con frontend (Bilingüe)
             filas_frontend = []
             warnings_detalle = []
             total_valor = 0
-            
+
             for f in filas:
                 total_valor += f.valor
                 base_item = {
@@ -378,7 +378,7 @@ class NominaService:
                     "concepto": f.concepto,
                     "ciudad": f.ciudad,
                     "observaciones": f.observaciones,
-                    
+
                     # Mayúsculas / Variaciones
                     "CEDULA": f.cedula,
                     "NOMBRE": f.nombre_asociado,
@@ -392,13 +392,13 @@ class NominaService:
                     "CONCEPTO": f.concepto,
                     "CIUDAD": f.ciudad,
                     "OBSERVACIONES": f.observaciones,
-                    
+
                     # Campos específicos Planillas
                     "horas": f.horas,
                     "dias": f.dias,
                     "HORAS": f.horas,
                     "DIAS": f.dias,
-                    
+
                     "estado_erp": f.estado_validacion
                 }
                 if f.estado_validacion != "OK":
@@ -407,12 +407,12 @@ class NominaService:
                         "nombre": f.nombre_asociado,
                         "motivo": f.estado_validacion
                     })
-                
+
                 # REGLA: No mostrar en tabla principal si está retirado o sin establecimiento
                 if f.estado_validacion in ["RETIRADO", "SIN_ESTABLECIMIENTO", "EXCEPCION_EXONERADO"]:
                     if subcat_clean != "COMISIONES":
                         continue
-                    
+
                 filas_frontend.append(base_item)
 
             # Agrupar por cédula: sumar valores cuando múltiples registros comparten cédula final

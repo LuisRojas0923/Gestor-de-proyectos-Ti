@@ -18,10 +18,10 @@ class NominaHelper:
         """Obtiene un mapa de empleados desde el ERP por cédula, incluyendo pagadores de excepciones."""
         if not db_erp:
             return {}
-        
+
         # Recopilar cédulas del archivo
         cedulas_unicas = set(str(r["cedula"]) for r in rows)
-        
+
         # Añadir cédulas de pagadores de excepciones
         for ex in excepciones:
             if ex.tipo in ('PAGO_TERCERO', 'PORCENTAJE_EMPRESA') and ex.pagador_cedula:
@@ -29,7 +29,7 @@ class NominaHelper:
             # También para inyección de saldo a favor por si no están en el archivo
             if ex.tipo == 'SALDO_FAVOR' and ex.cedula:
                 cedulas_unicas.add(str(ex.cedula))
-                
+
         return EmpleadosService.consultar_empleados_bulk(db_erp, list(cedulas_unicas))
 
     @staticmethod
@@ -50,29 +50,29 @@ class NominaHelper:
         cedulas_procesadas = set()
         # 0. Crear mapa de excepciones para búsqueda rápida O(1)
         mapa_ex = {str(e.cedula): e for e in excepciones_activas}
-        
+
         # 1. Procesar registros que vienen del archivo
         for i, row in enumerate(rows):
             cedula_original = str(row["cedula"])
             cedulas_procesadas.add(cedula_original)
-            
+
             info_original = mapa_erp.get(cedula_original)
             ex = mapa_ex.get(cedula_original)
-            
+
             # Lógica para Seguros HDI:
             # 1. El descuento de la empresa (24%) solo aplica para colaboradores activos
             # 2. Si el colaborador es contratista o tiene excepción de contratista, la empresa asume 0%
             valor_rdc_final = row.get("valor_rdc", 0.0)
             valor_colaborador_final = row.get("valor_colaborador", 0.0)
-            
+
             if subcategoria == "SEGUROS HDI":
                 es_contratista_erp = False
                 if info_original and info_original.get("empresa") and "CONTRATISTA" in str(info_original["empresa"]).upper():
                     es_contratista_erp = True
-                
+
                 tiene_excepcion_penalizada = ex and ex.tipo != 'PAGO_TERCERO'
                 no_activo = info_original and str(info_original.get("estado", "")).strip().upper() != "ACTIVO"
-                
+
                 if es_contratista_erp or tiene_excepcion_penalizada or no_activo:
                     valor_rdc_final = 0.0
                     valor_colaborador_final = row["valor"]
@@ -80,14 +80,14 @@ class NominaHelper:
             valor_final = row["valor"]
             concepto_final = row["concepto"]
             cedula_final = cedula_original
-            
+
             # Fallback de nombre: ERP -> Excepción (Manual) -> Archivo
             nombre_final = info_original["nombre"] if info_original else (ex.nombre_asociado if ex and ex.nombre_asociado else row.get("nombre_asociado", ""))
             empresa_final = "CONTRATISTA" if ex and ex.tipo == 'CONTRATISTAS' else ("RETIRADO_AUTORIZADO" if ex and ex.tipo == 'RETIRADO_AUTORIZADO' else (info_original["empresa"] if info_original else "N/A"))
             observacion_ex = ""
-            
+
             estado_val = estado_default
-            
+
             # Aplicar lógica de excepciones (con soporte para herencia de beneficios)
             if ex:
                 # --- FASE 1: Redirección de cobro (Vínculo Beneficiario -> Titular) ---
@@ -97,7 +97,7 @@ class NominaHelper:
                     info_original = mapa_erp.get(cedula_final) # Actualizamos info al titular para validar su estado ERP
                     nombre_final = info_original["nombre"] if info_original else f"TITULAR: {cedula_final}"
                     empresa_final = info_original["empresa"] if info_original else "N/A"
-                    
+
                     # RE-EVALUAR: ¿El titular tiene un beneficio propio?
                     ex = mapa_ex.get(cedula_final)
                     if not ex or ex.tipo == 'PAGO_TERCERO':
@@ -159,7 +159,7 @@ class NominaHelper:
                             # Para Seguros HDI, aplicamos el saldo a favor a la porción del colaborador, no al total
                             valor_orig = valor_colaborador_final
                             valor_restante_colab = await ExcepcionService.aplicar_saldo_favor(session, ex, valor_orig, mes, anio)
-                            
+
                             # Si el colaborador está ACTIVO, reducimos la deducción de nómina (valor_colaborador_final)
                             # Si no está ACTIVO (retirado), mantenemos el valor original de cobro en el registro contable
                             # para evitar que figure con $0 facturados (el cobro ya se descontó de su saldo de balance).
@@ -170,7 +170,7 @@ class NominaHelper:
                             else:
                                 # Inactivo: no aplica descuento empresa y se reporta cobro completo
                                 valor_final = valor_colaborador_final
-                            
+
                             estado_val = "EXCEPCION_SALDO_FAVOR"
                             observacion_ex = f"Saldo favor aplicado. Cobro: ${valor_orig:,.0f} -> ${valor_restante_colab:,.0f}"
                         else:
@@ -236,12 +236,12 @@ class NominaHelper:
                     valor_orig = ex.valor_configurado # El valor a cobrar por defecto
                     descuento = await ExcepcionService.aplicar_saldo_favor(session, ex, valor_orig, mes, anio)
                     estado_val = "EXCEPCION_SALDO_FAVOR"
-                
+
                 elif ex.tipo == 'CONTRATISTAS':
                     inyectar = True
                     descuento = ex.valor_configurado
                     estado_val = "EXCEPCION_AUTORIZADA"
-                
+
                 elif ex.tipo == 'RETIRADO_AUTORIZADO' and ex.valor_configurado > 0:
                     inyectar = True
                     descuento = ex.valor_configurado
@@ -250,11 +250,11 @@ class NominaHelper:
                 if inyectar:
                     info = mapa_erp.get(ex.cedula)
                     ciudad_inyectado = info.get("ciudadcontratacion", "") if info else ""
-                    
+
                     valor_normalizado = descuento
                     val_rdc = 0.0
                     val_colab = descuento
-                    
+
                     if subcategoria == "SEGUROS HDI":
                         es_activo = info and str(info.get("estado", "")).strip().upper() == "ACTIVO"
                         if ex.tipo == 'SALDO_FAVOR':
@@ -270,7 +270,7 @@ class NominaHelper:
                             val_rdc = 0.0
                             val_colab = descuento
                             valor_normalizado = descuento
-                            
+
                     reg = NominaRegistroNormalizado(
                         archivo_id=archivo_id,
                         fecha_creacion=datetime.now(),
@@ -336,12 +336,12 @@ class NominaHelper:
             cedula = str(fila.get("cedula", ""))
             concepto = str(fila.get("concepto", "")).upper()
             key = f"{cedula}_{concepto}"
-            
+
             if key in agrupado:
                 agrupado[key]["valor"] += fila["valor"]
                 if "VALOR" in agrupado[key]: agrupado[key]["VALOR"] += fila["VALOR"]
                 if "VALOR MES" in agrupado[key]: agrupado[key]["VALOR MES"] += fila.get("VALOR MES", 0)
-                
+
                 # Agrupación de aportes de empresa y colaborador
                 if "valor_rdc" in agrupado[key]: agrupado[key]["valor_rdc"] += fila.get("valor_rdc", 0)
                 if "VALOR_RDC" in agrupado[key]: agrupado[key]["VALOR_RDC"] += fila.get("VALOR_RDC", 0)
@@ -380,32 +380,32 @@ class NominaHelper:
         """
         if not nombre_buscado or not lista_empleados:
             return None
-        
+
         import re
         from difflib import SequenceMatcher
-        
+
         norm_buscado = NominaHelper.normalizar_nombre(nombre_buscado)
         tokens_buscado = set(re.findall(r'\w+', norm_buscado))
         if not tokens_buscado:
             return None
-            
+
         mejor_match = None
         max_ratio = 0.0
-        
+
         for emp in lista_empleados:
             emp_nombre = emp.get("nombre") or emp.get("nombre_asociado") or ""
             norm_emp = NominaHelper.normalizar_nombre(emp_nombre)
             tokens_emp = set(re.findall(r'\w+', norm_emp))
             if not tokens_emp:
                 continue
-                
+
             # 1. Coincidencias exactas de tokens
             exactas = tokens_buscado.intersection(tokens_emp)
-            
+
             # 2. Encontrar tokens no coincidentes
             unmatched_buscado = list(tokens_buscado - exactas)
             unmatched_emp = list(tokens_emp - exactas)
-            
+
             # 3. Intentar emparejar tokens no coincidentes de forma difusa (por ej. GARCUA -> GARCIA)
             fuzzy_matches = 0
             for tb in unmatched_buscado:
@@ -415,16 +415,16 @@ class NominaHelper:
                         fuzzy_matches += 1
                         unmatched_emp.remove(te)
                         break
-                        
+
             coincidencias_totales = len(exactas) + fuzzy_matches
             total_tokens = max(len(tokens_buscado), len(tokens_emp))
             ratio = coincidencias_totales / total_tokens if total_tokens > 0 else 0.0
-            
+
             # Si supera el umbral del 75% y es mejor que el anterior
             if ratio >= 0.75 and ratio > max_ratio:
                 max_ratio = ratio
                 mejor_match = emp
-                
+
         if mejor_match:
             return mejor_match.get("nrocedula") or mejor_match.get("cedula")
         return None

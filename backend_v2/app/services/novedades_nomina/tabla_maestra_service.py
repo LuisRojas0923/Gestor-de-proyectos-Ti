@@ -115,7 +115,7 @@ class TablaMaestraService:
                 NominaRegistroNormalizado.mes_fact == mes,
                 NominaRegistroNormalizado.año_fact == anio,
                 NominaRegistroNormalizado.estado_validacion.in_([
-                    "OK", "Activo", "REDIRECCIONADO", "EXCEPCION", "EXCEPCION_PAGO_TERCERO", "EXCEPCION_VALOR_FIJO", 
+                    "OK", "Activo", "REDIRECCIONADO", "EXCEPCION", "EXCEPCION_PAGO_TERCERO", "EXCEPCION_VALOR_FIJO",
                     "EXCEPCION_PORCENTAJE_EMPRESA", "EXCEPCION_AUTORIZADA", "EXCEPCION_SALDO_FAVOR"
                 ])
             )
@@ -157,11 +157,11 @@ class TablaMaestraService:
                     # Si el concepto está vacío, le asignamos uno genérico según quincena para que pase el filtro
                     if not concepto:
                         concepto = "CON COMISION 1Q PARA DESCUENTOS" if quincena == "Q1" else "SIN COMISION 2Q PARA DESCUENTOS"
-                    
+
                     # Filtro flexible: buscar si contiene la quincena o si es el concepto exacto
                     es_q1 = "1Q" in concepto or "Q1" in concepto or concepto in ["CON COMISION 1Q", "CON COMISION 1Q PARA DESCUENTOS"]
                     es_q2 = "2Q" in concepto or "Q2" in concepto or concepto in ["SIN COMISION 2Q", "SIN COMISION 2Q PARA DESCUENTOS"]
-                    
+
                     if quincena == "Q1" and not es_q1:
                         continue
                     if quincena == "Q2" and not es_q2:
@@ -172,7 +172,7 @@ class TablaMaestraService:
                     valor_mensual = r.valor_colaborador if r.valor_colaborador is not None else (r.valor or 0)
                 else:
                     valor_mensual = r.valor or 0
-                    
+
                 if subcat in ["OTROS GERENCIA", "RETENCIONES"]:
                     valor_quincenal = round(valor_mensual, 2)
                 else:
@@ -204,28 +204,28 @@ class TablaMaestraService:
                     select(ControlDescuentoActivo).order_by(ControlDescuentoActivo.nombre)
                 )
                 registros_activos = result_ctrl.scalars().all()
-                
+
                 quincena_dia = 15 if quincena == "Q1" else 28 # Referencia para filtrado
-                
+
                 count_inyectados = 0
                 for r_ctrl in registros_activos:
                     fi = r_ctrl.fecha_inicio
                     # Normalizar fecha
                     fi_date = fi.date() if hasattr(fi, "date") else fi
-                    
+
                     if fi_date.year != anio or fi_date.month != mes:
                         continue
-                    
+
                     # Filtro por quincena
                     if quincena == "Q1" and fi_date.day != 15:
                         continue
                     if quincena == "Q2" and fi_date.day < 28:
                         continue
-                        
+
                     # Filtrar posibles duplicados: si ya fue cargado manualmente (archivo), lo ignoramos
                     # para dar prioridad a lo manual si existiera.
                     # Pero el requerimiento dice que esto es lo que "ya está".
-                    
+
                     filas_maestra.append({
                         "CEDULA": r_ctrl.cedula,
                         "NOMBRE": r_ctrl.nombre,
@@ -237,7 +237,7 @@ class TablaMaestraService:
                     })
                     subcategorias_incluidas.add("CONTROL DE DESCUENTOS")
                     count_inyectados += 1
-                
+
                 if count_inyectados > 0:
                     logger.info(f"Inyectados {count_inyectados} registros de Control de Descuentos automáticamente.")
 
@@ -248,20 +248,20 @@ class TablaMaestraService:
                 if mes_ant == 0:
                     mes_ant = 12
                     anio_ant = anio - 1
-                
+
                 # Consultar registros de COMISIONES del mes anterior que estén en estado validado
                 stmt_com = select(NominaRegistroNormalizado).where(
                     NominaRegistroNormalizado.subcategoria_final == "COMISIONES",
                     NominaRegistroNormalizado.mes_fact == mes_ant,
                     NominaRegistroNormalizado.año_fact == anio_ant,
                     NominaRegistroNormalizado.estado_validacion.in_([
-                        "OK", "Activo", "REDIRECCIONADO", "EXCEPCION", "EXCEPCION_PAGO_TERCERO", 
+                        "OK", "Activo", "REDIRECCIONADO", "EXCEPCION", "EXCEPCION_PAGO_TERCERO",
                         "EXCEPCION_VALOR_FIJO", "EXCEPCION_PORCENTAJE_EMPRESA", "EXCEPCION_AUTORIZADA", "EXCEPCION_SALDO_FAVOR"
                     ])
                 )
                 res_com = await session.execute(stmt_com)
                 registros_comisiones = res_com.scalars().all()
-                
+
                 count_com = 0
                 for r_c in registros_comisiones:
                     filas_maestra.append({
@@ -275,7 +275,7 @@ class TablaMaestraService:
                     })
                     subcategorias_incluidas.add("COMISIONES")
                     count_com += 1
-                
+
                 if count_com > 0:
                     logger.info(f"Inyectadas {count_com} comisiones desde el periodo anterior ({mes_ant}/{anio_ant}).")
 

@@ -16,7 +16,7 @@ def _limpiar_numero(val: Any) -> float:
         return 0.0
     if isinstance(val, (int, float)):
         return float(val)
-    
+
     s = str(val).replace("$", "").replace(" ", "").replace(",", "")
     try:
         return float(s)
@@ -28,12 +28,12 @@ def _aplicar_reemplazos(cedula: str, nombre: str) -> Tuple[str, str]:
     # IDs
     if cedula == "1116235786": cedula = "66903320"
     if cedula == "31282865": cedula = "31231202"
-    
+
     # Nombres
     n_up = nombre.upper()
     if "HECTOR PAUL CRUZ" in n_up: nombre = "MARIBEL TORRES AGUDELO"
     if "ESPERANZA AGUADO CORTES" in n_up: nombre = "GLORIA AGUDELO DE TORRES"
-    
+
     return cedula, nombre
 
 def _formatear_nombre(n: str) -> str:
@@ -51,11 +51,11 @@ def extraer_hdi(
         try:
             # Leer el Excel omitiendo la primera fila de título "RELACION DE ASEGURADOS"
             df = pd.read_excel(io.BytesIO(contenido), skiprows=1)
-            
+
             # Eliminar la primera columna si viene vacía (Unnamed: 0)
             if df.columns[0].startswith("Unnamed:"):
                 df = df.drop(columns=[df.columns[0]])
-                
+
             # Identificar la columna de PRIMA COBRO (que tiene celdas combinadas) y hacer forward fill
             # Aunque no se use en la lógica matemática interna (porque se recalcula), es bueno normalizarla
             col_cobro = None
@@ -63,10 +63,10 @@ def extraer_hdi(
                 if "COBRO" in str(col).upper():
                     col_cobro = col
                     break
-            
+
             if col_cobro:
                 df[col_cobro] = df[col_cobro].ffill()
-                
+
             # Procesar las filas
             for _, row in df.iterrows():
                 # Encontrar dinámicamente el nombre de la columna TIPO, IDENTIFICACION, NOMBRES, PRIMA ANUAL, CERT
@@ -78,33 +78,33 @@ def extraer_hdi(
                     elif "IDENTIFICACION" in cu: col_id = col
                     elif "NOMBRE" in cu: col_nombre = col
                     elif "PRIMA ANUAL" in cu: col_prima = col
-                
+
                 # Fallback por índice si los nombres de columna fallan
                 if not col_cert: col_cert = df.columns[0]
                 if not col_tipo: col_tipo = df.columns[1] if len(df.columns) > 1 else None
                 if not col_id: col_id = df.columns[2] if len(df.columns) > 2 else None
                 if not col_nombre: col_nombre = df.columns[3] if len(df.columns) > 3 else None
                 if not col_prima: col_prima = df.columns[-3] if len(df.columns) >= 3 else None
-                
+
                 # Extraer datos de la fila
                 tipo = str(row.get(col_tipo, "")).strip().upper()
                 if tipo not in ["P", "D"]:
                     continue # Saltar filas inválidas o totales
-                    
+
                 raw_id = str(row.get(col_id, "")).strip().split(".")[0]
                 id_val = re.sub(r"[^0-9]", "", raw_id)
                 if not id_val or len(id_val) < 5:
                     continue
-                    
+
                 nombre = str(row.get(col_nombre, "")).strip()
                 prima_anual = _limpiar_numero(row.get(col_prima, 0))
-                
+
                 cert_raw = str(row.get(col_cert, "")).strip().split(".")[0]
                 cert_val = re.sub(r"[^0-9]", "", cert_raw)
-                
+
                 id_val, nombre = _aplicar_reemplazos(id_val, nombre)
                 nombre = _formatear_nombre(nombre)
-                
+
                 if prima_anual > 0:
                     all_raw_rows.append({
                         "cert": cert_val,
@@ -136,7 +136,7 @@ def extraer_hdi(
             if m["tipo"] == "P":
                 titular = m
                 break
-        
+
         # Si no hay titular, usamos el primer miembro del grupo y generamos una advertencia
         if not titular:
             titular = members[0]
@@ -154,19 +154,19 @@ def extraer_hdi(
             prima_titular = titular["prima_anual"] / 12
             valor_rdc = round(prima_titular * 0.24, 2)
             valor_col_titular = round(prima_titular * 0.76, 2)
-            
+
             # 2. Prima dependientes: 100% colaborador, 0% empresa
             valor_col_dependents = sum(m["prima_anual"] / 12 for m in members if m is not titular)
-            
+
             valor_colaborador = round(valor_col_titular + valor_col_dependents, 2)
             valor_total = round(valor_rdc + valor_colaborador, 2)
-            
+
         # Crear la fila consolidada asociada al Titular
         obs = f"Grupo CERT {cert_val}"
         if len(members) > 1:
             nombres_dep = ", ".join(m["nombre_asociado"] for m in members if m is not titular)
             obs += f" | Incluye dependientes: {nombres_dep}"
-            
+
         consolidated_rows.append({
             "cedula": titular["cedula"],
             "nombre_asociado": titular["nombre_asociado"],
@@ -189,14 +189,14 @@ def extraer_hdi(
             consolidated_dict[ced]["valor_rdc"] += r["valor_rdc"]
             consolidated_dict[ced]["valor_colaborador"] += r["valor_colaborador"]
             consolidated_dict[ced]["observaciones"] += f" | {r['observaciones']}"
-            
+
             # Redondeos para evitar muchos decimales
             consolidated_dict[ced]["valor"] = round(consolidated_dict[ced]["valor"], 2)
             consolidated_dict[ced]["valor_rdc"] = round(consolidated_dict[ced]["valor_rdc"], 2)
             consolidated_dict[ced]["valor_colaborador"] = round(consolidated_dict[ced]["valor_colaborador"], 2)
 
     final_rows = list(consolidated_dict.values())
-    
+
     # Prevenir que haya filas sin valor_colaborador (debería venir del consolidation final, pero por si acaso)
     for r in final_rows:
         if "valor_colaborador" not in r:
