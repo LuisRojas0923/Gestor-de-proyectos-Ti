@@ -101,6 +101,9 @@ const HdiPreview: React.FC = () => {
     }, [mes, anio]);
 
     const handleFilesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        // Limpiar selección previa antes de validar el nuevo lote
+        setFiles([]);
+
         if (e.target.files) {
             const selected = Array.from(e.target.files);
             const valid = selected.filter(f => {
@@ -114,17 +117,17 @@ const HdiPreview: React.FC = () => {
                 }
                 return true;
             });
-            
+
             if (valid.length > 10) {
                 addNotification('error', `Máximo 10 archivos permitidos a la vez.`);
-                return;
+                return; // setFiles([]) ya fue llamado arriba
             }
             const totalSize = valid.reduce((acc, f) => acc + f.size, 0);
             if (totalSize > 50 * 1024 * 1024) {
                 addNotification('error', `El peso total de los archivos excede el límite de 50MB.`);
-                return;
+                return; // setFiles([]) ya fue llamado arriba
             }
-            
+
             setFiles(valid);
         }
     };

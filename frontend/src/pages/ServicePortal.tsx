@@ -99,7 +99,7 @@ interface LineaRespuesta {
 interface ExtendedUser {
     emailVerified?: boolean;
     email?: string;
-    email_needs_update?: boolean;
+    emailNeedsUpdate?: boolean;
     [key: string]: unknown;
 }
 
@@ -201,12 +201,12 @@ const ServicePortal: React.FC = () => {
         >
             {/* Banner de Verificación Persistent */}
             {!(user as ExtendedUser).emailVerified && (
-                <VerificationBanner 
-                    email={(user as ExtendedUser).email} 
+                <VerificationBanner
+                    email={(user as ExtendedUser).email ?? ''}
                     onEdit={() => setShowEmailModal(true)}
                 />
             )}
-            
+
             <Routes>
                 <Route index element={<Navigate to="/service-portal/inicio" replace />} />
 
@@ -217,7 +217,7 @@ const ServicePortal: React.FC = () => {
                         onNavigate={async (v) => {
                             if (v === 'viaticos_gestion') navigate('/service-portal/gastos/gestion');
                             else if (v === 'categories') {
-                                if ((user as ExtendedUser).email_needs_update) {
+                                if ((user as ExtendedUser).emailNeedsUpdate) {
                                     setShowEmailModal(true);
                                     addNotification('info', "Por favor actualiza tu correo corporativo para continuar.");
                                 } else if (!(user as ExtendedUser).emailVerified) {
@@ -389,7 +389,7 @@ const ServicePortal: React.FC = () => {
 
                 <Route path="gastos/director" element={
                     <ProtectedRoute moduleCode="viaticos_director_panel">
-                        <DirectorExpensePanel 
+                        <DirectorExpensePanel
                             onBack={() => navigate('/service-portal/gastos/gestion')}
                             onSelectReport={(rep) => onSelectReport({ ...rep, readonly: true })}
                         />
@@ -398,7 +398,7 @@ const ServicePortal: React.FC = () => {
 
                 <Route path="gastos/estado" element={
                     <ProtectedRoute moduleCode="viaticos_estado">
-                        <AccountStatement user={user as any} />
+                        <AccountStatement user={user} />
                     </ProtectedRoute>
                 } />
 
@@ -450,7 +450,7 @@ const ServicePortal: React.FC = () => {
                         </Routes>
                     </ProtectedRoute>
                 } />
-                
+
                 <Route path="comisiones" element={
                     <ProtectedRoute moduleCode="comisiones">
                         <ComisionesView />
@@ -510,7 +510,7 @@ const ServicePortal: React.FC = () => {
             </Routes>
 
             {/* Modal de Actualización de Correo Corporativo - Forzado para creación de tickets */}
-            <EmailUpdateModal 
+            <EmailUpdateModal
                 isOpen={showEmailModal}
                 onClose={() => setShowEmailModal(false)}
                 onSuccess={() => {

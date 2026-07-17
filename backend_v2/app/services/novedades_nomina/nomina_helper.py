@@ -145,17 +145,25 @@ class NominaHelper:
                         observacion_ex = f"Contratista: {ex.observacion}"
                     elif ex.tipo == 'SALDO_FAVOR':
                         info_target = mapa_erp.get(cedula_final)
-                        es_activo = info_target and str(info_target.get("estado", "")).strip().upper() == "ACTIVO"
-                        if es_activo:
+                        # Solo aplica SALDO_FAVOR a colaboradores RETIRADOS (no activos, no ausentes en ERP)
+                        es_retirado = (
+                            info_target is not None
+                            and str(info_target.get("estado", "")).strip().upper() == "RETIRADO"
+                        )
+                        if not es_retirado:
+                            # Activos, ausentes en ERP o cualquier otro estado: rechazar
                             estado_val = "ERROR_SALDO_ACTIVO"
-                            observacion_ex = "Saldo a favor no puede aplicar a personal activo"
+                            observacion_ex = "Saldo a favor solo aplica a personal RETIRADO"
+                            # Para HDI conservar RDC original del activo; para otros dejar valor_final sin cambio
                         else:
-                            valor_orig = valor_colaborador_final if subcategoria == "SEGUROS HDI" else valor_final
+                            # Retirado: base = 100% del valor (empresa no subsidia a retirados)
+                            valor_orig = valor_final  # siempre 100% para retirados
                             valor_cobrar = await ExcepcionService.aplicar_saldo_favor(session, ex, valor_orig, mes, anio)
                             if subcategoria == "SEGUROS HDI":
-                                valor_colaborador_final = valor_cobrar
-                                valor_rdc_final = 0.0 # Siempre 0 para inactivos
-                                valor_final = valor_cobrar
+                                # RDC siempre 0 para retirados; valor_colaborador = total original (contabilidad)
+                                valor_rdc_final = 0.0
+                                valor_colaborador_final = valor_final  # valor original sin descuento (contable)
+                                # valor_final permanece igual para registro contable; saldo se consume en historial
                             else:
                                 valor_final = valor_cobrar
                             estado_val = "EXCEPCION_SALDO_FAVOR"
@@ -176,16 +184,28 @@ class NominaHelper:
             if subcategoria == "SEGUROS HDI" and estado_val == "EXCEPCION_SALDO_FAVOR":
                 pass
             elif subcategoria == "SEGUROS HDI":
-                info_target = mapa_erp.get(cedula_final)
-                es_contratista_erp = info_target and info_target.get("empresa") and "CONTRATISTA" in str(info_target["empresa"]).upper()
-                tiene_excepcion_penalizada = ex and ex.tipo not in ('PAGO_TERCERO', 'SALDO_FAVOR')
-                no_activo = info_target and str(info_target.get("estado", "")).strip().upper() != "ACTIVO"
-                
-                if es_contratista_erp or tiene_excepcion_penalizada or no_activo:
-                    valor_rdc_final = 0.0
-                    valor_colaborador_final = valor_final
-                elif valor_final != row["valor"]:
-                    valor_colaborador_final = max(0.0, valor_final - valor_rdc_final)
+                # Si ya procesamos SALDO_FAVOR para un retirado, el bloque prev ya asignó rdc/colab
+                if estado_val == "EXCEPCION_SALDO_FAVOR":
+                    pass  # valores ya fijados en el bloque SALDO_FAVOR
+                else:
+                    info_target = mapa_erp.get(cedula_final)
+                    es_contratista_erp = (
+                        info_target is not None
+                        and info_target.get("empresa")
+                        and "CONTRATISTA" in str(info_target["empresa"]).upper()
+                    )
+                    tiene_excepcion_penalizada = ex and ex.tipo not in ('PAGO_TERCERO', 'SALDO_FAVOR')
+                    # Falla cerrado: sin ERP o no activo → sin RDC
+                    no_activo = (
+                        info_target is None
+                        or str(info_target.get("estado", "")).strip().upper() != "ACTIVO"
+                    )
+
+                    if es_contratista_erp or tiene_excepcion_penalizada or no_activo:
+                        valor_rdc_final = 0.0
+                        valor_colaborador_final = valor_final
+                    elif valor_final != row["valor"]:
+                        valor_colaborador_final = max(0.0, valor_final - valor_rdc_final)
             else:
                 if valor_final == 0:
                     valor_rdc_final = 0.0

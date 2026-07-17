@@ -1,68 +1,90 @@
+"""
+Tests unitarios para la política de SALDO_FAVOR en SEGUROS HDI.
+
+Política confirmada:
+- SALDO_FAVOR SOLO aplica a colaboradores con estado 'Retirado' en ERP.
+- Para ACTIVOS: ERROR_SALDO_ACTIVO, RDC conservado (24%), valor intacto.
+- Para RETIRADOS: EXCEPCION_SALDO_FAVOR, valor_rdc=0.0, valor_colaborador=valor_original
+  (para contabilidad el registro muestra el valor total; el historial de excepción
+  registra el saldo consumido).
+- Para AUSENTES EN ERP: ERROR_SALDO_ACTIVO (falla cerrado).
+"""
 import pytest
 from datetime import datetime
 from sqlmodel import select
 from app.models.novedades_nomina.nomina import NominaArchivo, NominaExcepcion, NominaRegistroNormalizado
 from app.services.novedades_nomina.nomina_service import NominaService
 
-@pytest.mark.asyncio
-async def test_hdi_excepcion_saldo_favor_retirado(db_session):
-    """
-    Verifica que para SEGUROS HDI, si un colaborador tiene estado 'Retirado':
-    1. No se le aplique el descuento de la empresa (valor_rdc = 0.0).
-    2. El valor_colaborador asuma el 100% del valor.
-    3. Si tiene una excepción de SALDO_FAVOR, se descuente de su balance actual,
-       pero en la base de datos se conserve valor = valor_original y valor_colaborador = valor_original
-       para que no figure con $0 facturados contablemente.
-    """
+
+def _make_archivo(db_session, nombre: str, mes: int = 6, anio: int = 2026) -> NominaArchivo:
     archivo = NominaArchivo(
-        nombre_archivo="test_hdi_archivo.xlsx",
-        hash_archivo="hash_hdi_test",
+        nombre_archivo=nombre,
+        hash_archivo=f"hash_{nombre}",
         tamaño_bytes=1024,
-        tipo_archivo="pdf",
+        tipo_archivo="xlsx",
         ruta_almacenamiento="/tmp/test",
-        mes_fact=6,
-        año_fact=2026,
+        mes_fact=mes,
+        año_fact=anio,
         categoria="OTROS",
         subcategoria="SEGUROS HDI",
         estado="Cargado"
     )
     db_session.add(archivo)
-    await db_session.commit()
-    await db_session.refresh(archivo)
+    return archivo
 
-    # Excepción de SALDO_FAVOR
+
+def _make_excepcion(db_session, cedula: str, saldo: float = 70000.0) -> NominaExcepcion:
     ex = NominaExcepcion(
-        cedula="16783959",
-        nombre_asociado="DELGADO REINA ALEXANDER",
+        cedula=cedula,
+        nombre_asociado="COLABORADOR TEST",
         subcategoria="SEGUROS HDI",
         tipo="SALDO_FAVOR",
         estado="ACTIVO",
-        valor_configurado=100000.0,
-        saldo_actual=70000.0,
+        valor_configurado=saldo,
+        saldo_actual=saldo,
         creado_por="ADMIN"
     )
     db_session.add(ex)
-    await db_session.commit()
+    return ex
 
-    # Colaborador RETIRADO en ERP
+
+@pytest.mark.asyncio
+async def test_hdi_excepcion_saldo_favor_retirado(db_session):
+    """
+    Colaborador RETIRADO con SALDO_FAVOR en HDI.
+
+    Expectativas:
+    - estado_validacion == EXCEPCION_SALDO_FAVOR
+    - valor_rdc == 0.0  (retirado no recibe subsidio de empresa)
+    - valor == 24922.0  (valor contable original: el total va al estado del colaborador)
+    - valor_colaborador == 24922.0  (100% a cargo del colaborador, monto histórico)
+    - El historial de la excepción consume el saldo (verificado por estado de excepción)
+    """
+    archivo = _make_archivo(db_session, "test_hdi_retirado.xlsx")
+    await db_session.commit()
+    await db_session.refresh(archivo)
+
+    CEDULA = "16783959"
+    ex = _make_excepcion(db_session, CEDULA, saldo=70000.0)
+    await db_session.commit()
+    await db_session.refresh(ex)
+
     mapa_erp = {
-        "16783959": {
+        CEDULA: {
             "nombre": "DELGADO REINA ALEXANDER",
-            "estado": "Retirado",
+            "estado": "Retirado",       # Estado exacto que activa la política
             "empresa": "REFRIDCOL",
             "ciudadcontratacion": "Cali"
         }
     }
 
-    # Fila simulada del extractor HDI
-    # El extractor por defecto asume activo (24% RDC, 76% Colab)
     rows = [{
-        "cedula": "16783959",
+        "cedula": CEDULA,
         "nombre_asociado": "DELGADO REINA ALEXANDER",
         "empresa": "REFRIDCOL",
         "concepto": "SEGURO DE VIDA",
         "valor": 24922.0,
-        "valor_rdc": 5981.0,
+        "valor_rdc": 5981.0,       # El extractor calcula 24% sobre el titular activo por defecto
         "valor_colaborador": 18941.0,
         "observaciones": "Grupo CERT 31"
     }]
@@ -82,13 +104,13 @@ async def test_hdi_excepcion_saldo_favor_retirado(db_session):
     assert len(registros) == 1
     reg = registros[0]
 
-    # 1. RDC debe ser 0.0 (no es colaborador activo)
-    assert reg.valor_rdc == 0.0
+    # Retirado → empresa no subsidia
+    assert reg.valor_rdc == 0.0, f"valor_rdc esperado 0.0, obtenido {reg.valor_rdc}"
 
-    # 2. El colaborador asume el 100% de la prima
-    # 3. Y aunque se aplicó la excepción (saldo_actual disminuyó), no debe guardarse en $0
-    assert reg.valor == 24922.0
-    assert reg.valor_colaborador == 24922.0
+    # Valor contable = valor original (para que no figure $0 en la nómina)
+    assert reg.valor == 24922.0, f"valor esperado 24922.0, obtenido {reg.valor}"
+    assert reg.valor_colaborador == 24922.0, f"valor_colaborador esperado 24922.0, obtenido {reg.valor_colaborador}"
+
     assert reg.estado_validacion == "EXCEPCION_SALDO_FAVOR"
     assert "Saldo favor aplicado" in reg.observaciones
 
@@ -96,44 +118,26 @@ async def test_hdi_excepcion_saldo_favor_retirado(db_session):
 @pytest.mark.asyncio
 async def test_hdi_excepcion_saldo_favor_activo(db_session):
     """
-    Verifica que para SEGUROS HDI, si un colaborador tiene estado 'Activo':
-    1. Se conserve su valor_rdc original (24%).
-    2. El SALDO_FAVOR se aplique únicamente sobre su porción (76%).
-    3. El valor_final a cobrar sea la suma de valor_rdc + valor_restante_colab.
+    Colaborador ACTIVO con SALDO_FAVOR en HDI.
+
+    La política prohíbe aplicar SALDO_FAVOR a activos.
+
+    Expectativas:
+    - estado_validacion == ERROR_SALDO_ACTIVO
+    - valor_rdc == 24000.0  (el RDC del activo se CONSERVA; la empresa sigue pagando su parte)
+    - valor == 100000.0  (valor intacto)
     """
-    archivo = NominaArchivo(
-        nombre_archivo="test_hdi_activo.xlsx",
-        hash_archivo="hash_hdi_activo",
-        tamaño_bytes=1024,
-        tipo_archivo="xlsx",
-        ruta_almacenamiento="/tmp/test2",
-        mes_fact=6,
-        año_fact=2026,
-        categoria="OTROS",
-        subcategoria="SEGUROS HDI",
-        estado="Cargado"
-    )
-    db_session.add(archivo)
+    archivo = _make_archivo(db_session, "test_hdi_activo.xlsx")
     await db_session.commit()
     await db_session.refresh(archivo)
 
-    # Excepción de SALDO_FAVOR que cubre toda la deuda
-    ex = NominaExcepcion(
-        cedula="12345678",
-        nombre_asociado="ACTIVO CON SALDO",
-        subcategoria="SEGUROS HDI",
-        tipo="SALDO_FAVOR",
-        estado="ACTIVO",
-        valor_configurado=200000.0,
-        saldo_actual=200000.0,
-        creado_por="ADMIN"
-    )
-    db_session.add(ex)
+    CEDULA = "12345678"
+    ex = _make_excepcion(db_session, CEDULA, saldo=200000.0)
     await db_session.commit()
+    await db_session.refresh(ex)
 
-    # Colaborador ACTIVO en ERP
     mapa_erp = {
-        "12345678": {
+        CEDULA: {
             "nombre": "ACTIVO CON SALDO",
             "estado": "Activo",
             "empresa": "REFRIDCOL",
@@ -141,9 +145,8 @@ async def test_hdi_excepcion_saldo_favor_activo(db_session):
         }
     }
 
-    # Fila simulada del extractor HDI
     rows = [{
-        "cedula": "12345678",
+        "cedula": CEDULA,
         "nombre_asociado": "ACTIVO CON SALDO",
         "empresa": "REFRIDCOL",
         "concepto": "SEGURO DE VIDA",
@@ -168,12 +171,62 @@ async def test_hdi_excepcion_saldo_favor_activo(db_session):
     assert len(registros) == 1
     reg = registros[0]
 
-    # 1. Al tener una excepción penalizada por ser distinta a PAGO_TERCERO,
-    # el sistema asume que la empresa no paga nada (0.0 RDC)
-    assert reg.valor_rdc == 0.0
-
-    # 2. El sistema arroja un error porque no se permite saldo a favor en activos
+    # Activo → SALDO_FAVOR rechazado
     assert reg.estado_validacion == "ERROR_SALDO_ACTIVO"
-    assert "Saldo a favor no puede aplicar a personal activo" in reg.observaciones
-    assert reg.valor == 100000.0
+    assert "RETIRADO" in reg.observaciones
 
+    # Valor intacto
+    assert reg.valor == 100000.0, f"valor esperado 100000.0, obtenido {reg.valor}"
+
+    # RDC conservado: empresa sigue pagando su 24%
+    assert reg.valor_rdc == 24000.0, f"valor_rdc esperado 24000.0 (conservado para activo), obtenido {reg.valor_rdc}"
+
+
+@pytest.mark.asyncio
+async def test_hdi_excepcion_saldo_favor_ausente_erp(db_session):
+    """
+    Colaborador AUSENTE en ERP (no aparece en mapa_erp) con SALDO_FAVOR en HDI.
+
+    La política falla cerrado: sin confirmación ERP → ERROR_SALDO_ACTIVO.
+    También valida que no se conserve RDC (sin ERP → sin subsidio empresa).
+    """
+    archivo = _make_archivo(db_session, "test_hdi_ausente.xlsx")
+    await db_session.commit()
+    await db_session.refresh(archivo)
+
+    CEDULA = "99999999"
+    ex = _make_excepcion(db_session, CEDULA, saldo=50000.0)
+    await db_session.commit()
+
+    mapa_erp = {}  # ERP no devuelve al empleado
+
+    rows = [{
+        "cedula": CEDULA,
+        "nombre_asociado": "SIN ESTABLECIMIENTO",
+        "empresa": "REFRIDCOL",
+        "concepto": "SEGURO DE VIDA",
+        "valor": 30000.0,
+        "valor_rdc": 7200.0,
+        "valor_colaborador": 22800.0,
+        "observaciones": ""
+    }]
+
+    registros = await NominaService.persistir_registros_normalizados(
+        session=db_session,
+        archivo_id=archivo.id,
+        mes=6,
+        anio=2026,
+        rows=rows,
+        categoria="OTROS",
+        subcategoria="SEGUROS HDI",
+        mapa_erp=mapa_erp,
+        excepciones_activas=[ex]
+    )
+
+    assert len(registros) == 1
+    reg = registros[0]
+
+    # Sin ERP → falla cerrado → ERROR_SALDO_ACTIVO
+    assert reg.estado_validacion == "ERROR_SALDO_ACTIVO"
+    # Sin ERP → sin subsidio de empresa
+    assert reg.valor_rdc == 0.0, f"valor_rdc esperado 0.0 (sin ERP), obtenido {reg.valor_rdc}"

@@ -43,12 +43,45 @@ def _formatear_nombre(n: str) -> str:
 def extraer_hdi(
     archivos_binarios: List[bytes]
 ) -> Tuple[List[Dict[str, Any]], Dict[str, Any], List[str]]:
-    """Procesa planillas Excel de HDI (en lugar del PDF antiguo)."""
+    """Procesa planillas Excel de HDI (en lugar del PDF antiguo).
+
+    Límites OOXML aplicados antes del parsing completo:
+    - MAX_SHEETS_POR_ARCHIVO: máximo de hojas por archivo
+    - MAX_FILAS_POR_HOJA: máximo de filas por hoja para prevenir agotamiento de memoria
+    """
+    MAX_SHEETS_POR_ARCHIVO = 5
+    MAX_FILAS_POR_HOJA = 50_000
+
     all_raw_rows: List[Dict[str, Any]] = []
     warnings: List[str] = []
 
     for contenido in archivos_binarios:
         try:
+            # Validar límites OOXML antes del parsing completo (modo read_only evita cargar DOM entero)
+            import openpyxl
+            wb_check = openpyxl.load_workbook(io.BytesIO(contenido), read_only=True, data_only=True)
+            n_sheets = len(wb_check.sheetnames)
+            if n_sheets > MAX_SHEETS_POR_ARCHIVO:
+                warnings.append(f"Archivo con {n_sheets} hojas excede el límite de {MAX_SHEETS_POR_ARCHIVO}. Se omite.")
+                wb_check.close()
+                continue
+
+            # Verificar filas por hoja
+            excede_filas = False
+            for sheet_name in wb_check.sheetnames:
+                ws = wb_check[sheet_name]
+                if ws.max_row is not None and ws.max_row > MAX_FILAS_POR_HOJA:
+                    warnings.append(
+                        f"Hoja '{sheet_name}' tiene {ws.max_row} filas, "
+                        f"excede el límite de {MAX_FILAS_POR_HOJA}. Se omite el archivo."
+                    )
+                    excede_filas = True
+                    break
+            wb_check.close()
+
+            if excede_filas:
+                continue
+
             # Leer el Excel omitiendo la primera fila de título "RELACION DE ASEGURADOS"
             df = pd.read_excel(io.BytesIO(contenido), skiprows=1)
 
