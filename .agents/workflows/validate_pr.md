@@ -12,12 +12,13 @@ This workflow automates the pre-PR review process by leveraging the OpenCode/Cod
 2. Group the modifications into four domains: Backend, Frontend, Security/RBAC, and Tests/Docs.
 
 ## Step 2: Invoke the Reviewers
-Use the `invoke_subagent` tool to concurrently launch the following 4 reviewers. Pass the appropriate scope to each one based on your analysis in Step 1.
+Use the `invoke_subagent` tool to concurrently launch the following 5 reviewers. Pass the appropriate scope to each one based on your analysis in Step 1.
 
-1. **backend-reviewer**: Instruct it to review backend changes (FastAPI, SQLAlchemy, async safety, N+1 issues).
-2. **frontend-reviewer**: Instruct it to review frontend changes (React, Tailwind, Design System components, mobile-first design).
-3. **security-rbac-reviewer**: Instruct it to review changes involving authentication, RBAC manifests, and PII masking.
-4. **docs-tests-reviewer**: Instruct it to review unit/integration tests and ensure there are no coverage gaps in the modified logic.
+1. **scope-reviewer**: Instruct it to validate the overall scope of the PR, confirming if global changes are justified and properly backed by acceptance criteria and regression testing plans.
+2. **backend-reviewer**: Instruct it to review backend changes (FastAPI, SQLAlchemy, async safety, N+1 issues).
+3. **frontend-reviewer**: Instruct it to review frontend changes (React, Tailwind, Design System components, mobile-first design).
+4. **security-rbac-reviewer**: Instruct it to review changes involving authentication, RBAC manifests, and PII masking.
+5. **docs-tests-reviewer**: Instruct it to review unit/integration tests and ensure there are no coverage gaps in the modified logic.
 
 **CRITICAL INSTRUCTION FOR ALL SUBAGENTS**: Instruct them to save their review reports to `docs/reviews/builds/<agent-name>-pr-review.md` and reply to you inline with their final verdict (Approved or Blocked).
 
