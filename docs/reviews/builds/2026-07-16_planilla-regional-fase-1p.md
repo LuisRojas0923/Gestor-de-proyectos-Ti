@@ -3,7 +3,7 @@
 **Fecha:** 2026-07-16
 **Rama:** `Modulo_Geoface`
 **SHA contractual:** `990a697d`
-**Estado:** APROBADO técnicamente; waiver ERP autorizado, pendiente de SHA propio
+**Estado:** APROBADO y versionado en `7f699853`; waiver ERP autorizado
 
 ## Resultado
 

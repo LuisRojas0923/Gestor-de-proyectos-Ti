@@ -49,7 +49,7 @@ saneamientos, seeds y sincronizacion RBAC con credenciales dedicadas.
 15. [x] Obtener aprobación final backend, seguridad/RBAC y docs/tests.
 16. [x] Waiver ERP temporal autorizado por el usuario el 2026-07-17; ejecutar
     los cuatro casos en destino antes de producción.
-17. [ ] Registrar SHA de Fase 1P tras aprobación humana.
+17. [x] Registrar SHA de Fase 1P tras aprobación humana: `7f699853`.
 
 ## Puerta de salida
 
