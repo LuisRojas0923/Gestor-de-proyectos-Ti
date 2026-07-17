@@ -93,14 +93,22 @@ class NominaService:
         total_payload_size = 0
 
         for f in files:
-            content = await f.read()
-            total_payload_size += len(content)
+            file_size = getattr(f, "size", 0)
+            if not file_size:
+                # Si el servidor no provee f.size, leer el cursor hasta el final para saber el tamaño
+                f.file.seek(0, 2)
+                file_size = f.file.tell()
+                f.file.seek(0)
+            
+            total_payload_size += file_size
             
             if total_payload_size > 50 * 1024 * 1024:
                 raise HTTPException(status_code=400, detail="El tamaño total de los archivos excede el límite de 50MB.")
                 
-            if len(content) > 15 * 1024 * 1024:
+            if file_size > 15 * 1024 * 1024:
                 raise HTTPException(status_code=400, detail="El archivo excede el tamaño máximo de 15MB.")
+                
+            content = await f.read()
 
             # Validar Magic Bytes
             if extension.lower() in ["xlsx", "zip"]:
