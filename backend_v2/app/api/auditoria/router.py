@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, WebSocket, WebSock
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.auth.profile_router import obtener_usuario_actual_db
-from app.database import obtener_db
+from app.database import obtener_db, AsyncSessionLocal
 from app.models.auditoria.accion_usuario import (
     AuditoriaAccionPublica,
     AuditoriaEventosPaginados,
@@ -112,32 +112,67 @@ async def obtener_estadisticas_auditoria(
 
 from app.services.auditoria.ws_manager import auditoria_ws_manager
 
+import re
+
+ALLOWED_ORIGINS = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+]
+ALLOWED_ORIGIN_REGEX = re.compile(r"https?://(localhost|127\.0\.0\.1|192\.168\.\d+\.\d+|172\.(1[6-9]|2\d|3[01])\.\d+\.\d+|10\.\d+\.\d+\.\d+)(:\d+)?")
+
+def origin_valido(origin: str) -> bool:
+    if not origin:
+        return False
+    if origin in ALLOWED_ORIGINS:
+        return True
+    return bool(ALLOWED_ORIGIN_REGEX.match(origin))
+
 @router.websocket("/ws/dashboard")
 async def websocket_auditoria_dashboard(
-    websocket: WebSocket,
-    db: AsyncSession = Depends(obtener_db)
+    websocket: WebSocket
 ):
     """Canal WebSocket para notificar actualizaciones al Dashboard de Auditoría"""
-    # 1. Extraer Token de subprotocols (evitando logs del query string)
+    # 0. Validar Origin Allowlist
+    origin = websocket.headers.get("origin")
+    if not origin_valido(origin):
+        await websocket.close(code=1008, reason="Origin no permitido")
+        return
+
+    # 1. Extraer Token de subprotocols (evitando reflejar el JWT persistente)
     subprotocols = websocket.scope.get("subprotocols", [])
-    token = subprotocols[0] if subprotocols else None
+    token = next((p for p in subprotocols if p != "auth"), None)
 
     # 2. Validar Token de Autenticación de forma canónica
     if not token:
         await websocket.close(code=1008, reason="Token faltante")
         return
 
-    usuario, error_reason = await ServicioAuth.validar_token_ws(db, token, modulo_requerido=MODULO_AUDITORIA)
+    async with AsyncSessionLocal() as db:
+        usuario, error_reason = await ServicioAuth.validar_token_ws(db, token, modulo_requerido=MODULO_AUDITORIA)
+    
     if not usuario:
         await websocket.close(code=1008, reason=error_reason)
         return
 
-    await websocket.accept(subprotocol=token)
+    # 3. Aceptar conexión con protocolo seguro en lugar de retornar el token
+    subprotocolo_aceptado = "auth" if "auth" in subprotocols else None
+    await websocket.accept(subprotocol=subprotocolo_aceptado)
     await auditoria_ws_manager.connect(websocket)
     try:
+        import asyncio
         while True:
-            # Mantener la conexión abierta
-            await websocket.receive_text()
+            try:
+                # Esperar mensajes o timeout de 60s para forzar revalidación
+                await asyncio.wait_for(websocket.receive_text(), timeout=60.0)
+            except asyncio.TimeoutError:
+                # Revalidar el token (requiere conexión temporal nueva)
+                async with AsyncSessionLocal() as db_reval:
+                    re_user, re_error = await ServicioAuth.validar_token_ws(db_reval, token, modulo_requerido=MODULO_AUDITORIA)
+                    if not re_user:
+                        await websocket.close(code=1008, reason=re_error)
+                        return
     except WebSocketDisconnect:
         pass
     except Exception:

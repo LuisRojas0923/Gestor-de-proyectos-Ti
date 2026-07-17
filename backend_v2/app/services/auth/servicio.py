@@ -474,21 +474,28 @@ class ServicioAuth:
         if not cedula:
             return None, "Token sin sujeto"
 
-        # Validación estricta para tokens MCP (evitar uso de sesiones revocadas)
-        if payload.get("token_type") == "mcp":
-            jti = payload.get("jti")
-            if not jti:
-                return None, "Token MCP sin jti"
-            from app.models.auth.usuario import Sesion
-            from app.utils_date import get_bogota_now
-            sesion = (
-                await db.execute(select(Sesion).where(Sesion.jti == jti, Sesion.tipo_sesion == "mcp"))
-            ).scalars().first()
-            if not sesion:
-                return None, "Token MCP revocado o expirado"
-            expira_naive = sesion.expira_en.replace(tzinfo=None) if sesion.expira_en else None
-            if sesion.fin_sesion is not None or (expira_naive and expira_naive < get_bogota_now()):
-                return None, "Token MCP revocado o expirado"
+        token_type = payload.get("token_type", "session") # Por defecto, session
+        if token_type not in ["session", "mcp"]:
+            return None, "Tipo de token no permitido"
+
+        jti = payload.get("jti")
+        if not jti:
+            return None, f"Token {token_type.upper()} sin jti"
+
+        from app.models.auth.usuario import Sesion
+        from app.utils_date import get_bogota_now
+        
+        # Validar en la BD si la sesión existe y no está revocada/expirada
+        sesion = (
+            await db.execute(select(Sesion).where(Sesion.jti == jti))
+        ).scalars().first()
+        
+        if not sesion:
+            return None, "Sesión revocada o inexistente"
+            
+        expira_naive = sesion.expira_en.replace(tzinfo=None) if sesion.expira_en else None
+        if sesion.fin_sesion is not None or (expira_naive and expira_naive < get_bogota_now()):
+            return None, "Sesión revocada o expirada"
 
         usuario = await ServicioAuth.obtener_usuario_por_cedula(db, cedula)
         if not usuario:

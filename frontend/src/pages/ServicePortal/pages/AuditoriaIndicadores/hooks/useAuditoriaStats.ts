@@ -109,7 +109,7 @@ export function useAuditoriaStats() {
                 ? `${wsProtocol}//localhost:8000/api/v2/auditoria/ws/dashboard`
                 : `${wsProtocol}//${wsHost}/api/v2/auditoria/ws/dashboard`;
 
-            socket = new WebSocket(wsUrl, token ? [token] : []);
+            socket = new WebSocket(wsUrl, token ? ["auth", token] : []);
 
             socket.onopen = () => {
                 retryCount = 0; // Reset retries on successful connection
