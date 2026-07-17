@@ -47,3 +47,15 @@ def test_normalizar_rango_completa_limites_omitidos(fecha_desde, fecha_hasta):
     assert desde_normalizado is not None
     assert hasta_normalizado is not None
     assert timedelta(0) <= hasta_normalizado - desde_normalizado <= timedelta(days=90)
+
+
+def test_auditoria_resumen_omite_campos_sensibles():
+    from app.models.auditoria.accion_usuario import AuditoriaEventoResumen
+    
+    campos_seguros = {"id", "timestamp", "usuario_id", "usuario_nombre", "modulo", "accion", "resultado"}
+    campos_modelo = set(AuditoriaEventoResumen.model_fields.keys())
+    
+    assert "ruta" not in campos_modelo
+    assert "datos_nuevos" not in campos_modelo
+    assert "metadatos" not in campos_modelo
+    assert campos_modelo == campos_seguros

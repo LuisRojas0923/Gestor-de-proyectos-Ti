@@ -109,6 +109,8 @@ class ServicioAuditoriaEstadisticas:
 
         modulos_rows = (await db.execute(modulo_stmt)).all()
 
+        modulos_top = [r.modulo_nombre for r in modulos_rows if r.modulo_nombre]
+
         # PRE-CARGA: Obtener los top 5 eventos recientes por cada módulo en una sola consulta
         subq = select(
             AuditoriaAccionUsuario,
@@ -119,6 +121,11 @@ class ServicioAuditoriaEstadisticas:
         )
         if filtros:
             subq = subq.where(*filtros)
+            
+        if modulos_top:
+            subq = subq.where(AuditoriaAccionUsuario.modulo.in_(modulos_top))
+        else:
+            subq = subq.where(False)
 
         subq = subq.subquery()
         from sqlalchemy.orm import aliased

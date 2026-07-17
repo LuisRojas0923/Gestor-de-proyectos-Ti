@@ -67,7 +67,7 @@ export interface StatsPorModulo {
 
 export type AuditoriaEventoResumen = Pick<
   AuditoriaEvento,
-  'id' | 'timestamp' | 'usuario_id' | 'usuario_nombre' | 'modulo' | 'accion' | 'resultado' | 'metodo_http' | 'ruta' | 'datos_nuevos' | 'metadatos'
+  'id' | 'timestamp' | 'usuario_id' | 'usuario_nombre' | 'modulo' | 'accion' | 'resultado'
 >;
 
 export interface TipoFallo {
