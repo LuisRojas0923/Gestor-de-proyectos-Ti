@@ -1,6 +1,7 @@
 import socket
 import warnings
 from typing import Optional
+from pydantic import model_validator
 from pydantic_settings import BaseSettings
 from functools import lru_cache
 
@@ -49,7 +50,22 @@ class Configuracion(BaseSettings):
     jwt_secret_key: str = "clave-segura-cambiar"  # [CONTROLADO]
     algorithm: str = "HS256"
     jwt_token_expire_minutes: int = 30  # [CONTROLADO]
-    portal_pending_pwd: str = "PORTAL_PENDING_PWD"
+    portal_pending_pwd: str = ""
+    app_process_role: str = "runtime"
+
+    @model_validator(mode="after")
+    def validar_secreto_jwt_productivo(self):
+        secretos_publicos = {
+            "clave-segura-cambiar",
+            "cambiar-en-produccion-usar-openssl-rand",
+        }
+        if (self.app_process_role != "migrate"
+                and self.environment.lower() in ("production", "produccion") and (
+            self.jwt_secret_key in secretos_publicos
+            or len(self.jwt_secret_key) < 32
+        )):
+            raise ValueError("JWT_SECRET_KEY debe ser aleatorio y tener 32+ caracteres")
+        return self
 
     # Ambiente
     environment: str = "development"

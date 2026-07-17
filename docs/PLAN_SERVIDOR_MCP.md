@@ -1,6 +1,8 @@
 # Plan Rediseñado: Servidor MCP para Gestor de Proyectos TI
 
 > **Estado**: REVISIÓN 2 — aborda los 4 hallazgos CRÍTICOS + 1 ALTO + 4 MEDIOS de las revisiones de `scope-reviewer` y `security-rbac-reviewer` (sesión actual).
+>
+> **Nota histórica**: los snippets de implementación describen la propuesta original. Desde ADR-010, todo DDL, seed y sincronización RBAC se ejecuta únicamente mediante `python -m app.manage migrate`; el código vigente y `docs/OPERACION_MIGRACIONES_DB.md` son autoritativos.
 
 ---
 
@@ -136,7 +138,7 @@ await safe_execute(conn, "CREATE UNIQUE INDEX IF NOT EXISTS idx_sesiones_jti_uni
 await safe_execute(conn, "CREATE INDEX IF NOT EXISTS idx_sesiones_tipo ON sesiones(tipo_sesion) WHERE fin_sesion IS NULL")
 ```
 
-**Aplicación**: las migraciones se ejecutan automáticamente al arrancar el backend vía `ejecutar_blindaje_estructural` (verificado en `structural_blindaje.py:14`). No requiere reinicio manual ni Alembic.
+**Aplicación**: desde ADR-010, las migraciones se ejecutan exclusivamente con `python -m app.manage migrate` antes de iniciar FastAPI. El startup web solo verifica el contrato estructural y falla cerrado ante cualquier incompatibilidad.
 
 **Modelo SQLModel** (`backend_v2/app/models/auth/usuario.py`): añadir las 3 columnas al modelo `Sesion` para que SQLModel pueda leer/escribir. No se usa `create_all` para crearlas (eso lo hace el blindaje), solo para que el ORM las conozca:
 

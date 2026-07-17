@@ -17,7 +17,7 @@ from app.models.biometria.biometria_models import EmbeddingFacial, RegistroAsist
 
 from .biometria_engine_client import BiometriaEngineClient
 
-MAX_IMAGE_BYTES = int(os.getenv("BIOMETRIA_MAX_IMAGE_BYTES", str(6 * 1024 * 1024)))
+MAX_IMAGE_BYTES = int(os.getenv("BIOMETRIA_MAX_IMAGE_BYTES", str(5 * 1024 * 1024)))
 MATCH_THRESHOLD = float(os.getenv("MATCH_THRESHOLD", "0.40"))
 ALLOWED_CONTENT_TYPES = {"image/jpeg", "image/jpg", "image/png", "image/webp"}
 

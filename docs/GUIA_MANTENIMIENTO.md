@@ -21,15 +21,24 @@ El servidor utiliza una **Deploy Key** para conectarse de forma segura:
 git clone git@github.com:LuisRojas0923/Gestor-de-proyectos-Ti.git .
 ```
 
-### Paso 3: Inicializar Base de Datos (SQL Maestro)
-Si la base de datos está vacía, carga el script con toda la estructura y roles:
+### Paso 3: Inicializar Base de Datos y roles
+La aplicación no migra durante startup. El owner es `NOLOGIN`; define nombres
+distintos y contraseñas diferentes para bootstrap PostgreSQL, migrador y
+runtime. Genera también el archivo `RBAC_ADMIN_CAPABILITY_FILE` con
+`openssl rand -hex 32`. En una base nueva, el init script crea los roles al
+crear el volumen. En un volumen existente, ejecuta primero:
 ```bash
-# Copia el script al contenedor de Postgres
-sudo docker cp ./sql/init_db.sql gestor-de-proyectos-ti-db:/tmp/
-
-# Ejecuta el motor SQL para aplicar los cambios (Roles, Permisos, Categorías)
-sudo docker exec -it gestor-de-proyectos-ti-db psql -U user -d project_manager -f /tmp/init_db.sql
+sudo docker compose -f docker-compose.prod.yml \
+  --profile database-admin run --rm provision-roles
 ```
+
+Si aún no existe administrador, crea un archivo secreto aleatorio de al menos
+32 caracteres y ejecuta una sola vez:
+```bash
+sudo docker compose -f docker-compose.prod.yml \
+  -f docker-compose.bootstrap.yml run --rm migrate
+```
+Elimina el archivo y no vuelvas a incluir ese override después del éxito.
 
 ---
 
@@ -43,12 +52,20 @@ cd /mnt/c/GestorTI
 git pull origin main    # Trae y combina las últimas mejoras desde GitHub
 ```
 
-### Paso 2: Levantar Contenedores
+### Paso 2: Migrar y levantar contenedores
 ```bash
-# --build: Reconstruye las imágenes con el código nuevo descargado
-# -d: Mantiene los servicios corriendo en segundo plano
+# El job debe terminar en cero antes de iniciar backend.
+sudo docker compose -f docker-compose.prod.yml run --rm migrate
 sudo docker compose -f docker-compose.prod.yml up -d --build
 ```
+
+Si backend registra `Esquema incompleto` o `Privilegios runtime inválidos`, no
+omitas la verificación. Detén el despliegue, restaura el backup si aplica,
+ejecuta `provision-roles` y corrige mediante un nuevo job `migrate`.
+
+Rollback: conserva backup previo y la imagen anterior, pero no intentes
+deshacer DDL automáticamente. Las migraciones son idempotentes y se corrigen
+con forward-fix revisado.
 
 ---
 
@@ -78,6 +95,7 @@ Si algo no funciona correctamente, inspecciona el interior de los contenedores:
 | `sudo docker compose -f docker-compose.prod.yml logs -f backend` | Ver errores del API en tiempo real |
 | `sudo docker compose -f docker-compose.prod.yml logs -f nginx` | Ver logs de peticiones web y certificados |
 | `sudo docker compose -f docker-compose.prod.yml logs -f db` | Ver errores de conexión a la base de datos |
+| `sudo docker compose -f docker-compose.prod.yml logs migrate` | Ver el último job de migración |
 
 ---
 
@@ -118,7 +136,9 @@ FROM information_schema.columns
 WHERE table_name = 'sesiones'
 ORDER BY ordinal_position;
 ```
-**Resultado esperado:** 11 columnas incluyendo `nombre_usuario`, `rol_usuario`, `ultima_actividad_en` y `fin_sesion`. El campo `token_sesion` debe tener longitud máxima de **1000**.
+**Resultado esperado:** 14 columnas, incluidas `nombre_usuario`, `rol_usuario`,
+`ultima_actividad_en`, `fin_sesion`, `tipo_sesion`, `jti` y `scope`. La columna
+`token_sesion` admite hasta 1000 caracteres, pero persiste solo SHA-256 de 64.
 
 ### 6.2 Índices de Rendimiento
 Asegura que los índices necesarios para la Torre de Control existan:
@@ -136,14 +156,10 @@ SELECT * FROM permisos_rol
 WHERE modulo = 'control-tower' 
 AND rol IN ('admin', 'admin_sistemas');
 ```
-**Resultado esperado:** 2 registros con `permitido = true`. 
-Si no existen, ejecuta:
-```sql
-INSERT INTO permisos_rol (rol, modulo, permitido) VALUES
-('admin', 'control-tower', true),
-('admin_sistemas', 'control-tower', true)
-ON CONFLICT (rol, modulo) DO UPDATE SET permitido = true;
-```
+**Resultado esperado:** 2 registros con `permitido = true`.
+Si no existen, corrige el manifiesto RBAC versionado, solicita revisión y ejecuta
+`docker compose -f docker-compose.prod.yml run --rm migrate`. Nunca repares RBAC
+con DML manual usando la credencial runtime.
 
 ### 6.4 Monitoreo de Sesiones en Tiempo Real
 Valida que el backend esté guardando los metadatos correctamente:

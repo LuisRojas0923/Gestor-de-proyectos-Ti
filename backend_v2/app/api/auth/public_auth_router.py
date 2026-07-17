@@ -7,6 +7,7 @@ import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlmodel import select
 
 from app.core.config import obtener_configuracion
 from app.core.rate_limiter import (
@@ -21,6 +22,7 @@ from app.models.auth.usuario import (
     PasswordReset,
     RecoveryRequest,
     UsuarioRegistro,
+    Usuario,
 )
 from app.services.auth.servicio import (
     ServicioAuth,
@@ -128,19 +130,18 @@ async def forgot_password(
     no filtrar informacion de enumeracion. El rate limit por IP+cedula
     cierra el vector de brute-force / spam de correos.
     """
+    respuesta = {
+        "message": "Si el usuario está registrado, se ha enviado un correo de recuperación."
+    }
     usuario = await ServicioAuth.obtener_usuario_por_cedula(db, payload.cedula)
 
-    if not usuario:
-        # Por seguridad, no revelamos si el usuario existe, pero informamos si no hay correo
-        return {"message": "Si el usuario está registrado, se ha enviado un correo de recuperación."}
+    if (not usuario or not usuario.correo or not usuario.correo_actualizado
+            or not usuario.correo_verificado):
+        return respuesta
 
-    if not usuario.correo or not usuario.correo_actualizado:
-        raise HTTPException(
-            status_code=400,
-            detail="El usuario no tiene un correo corporativo validado. Por favor, contacte al administrador."
-        )
-
-    token = ServicioAuth.crear_token_recuperacion(usuario.id)
+    token = ServicioAuth.crear_token_recuperacion(
+        usuario.id, usuario.hash_contrasena
+    )
     reset_url = f"{EmailService.get_frontend_url()}/reset-password?token={token}"
 
     enviado = await EmailService.enviar_recuperacion_contrasena(
@@ -148,12 +149,9 @@ async def forgot_password(
     )
 
     if not enviado:
-        raise HTTPException(
-            status_code=500,
-            detail="No se pudo enviar el correo de recuperación. Intente más tarde."
-        )
+        logger.warning("No fue posible enviar un correo de recuperación")
 
-    return {"message": "Se ha enviado un correo con instrucciones para restablecer su contraseña."}
+    return respuesta
 
 
 @router.post("/reset-password")
@@ -173,14 +171,30 @@ async def reset_password(
         )
 
     try:
-        await ServicioAuth.cambiar_contrasena(db, usuario_id, payload.nueva_contrasena)
-        # Opcionalmente invalidar sesiones antiguas
-        await ServicioAuth.invalidar_sesiones_usuario(db, usuario_id)
+        usuario = (
+            await db.execute(select(Usuario).where(Usuario.id == usuario_id))
+        ).scalars().first()
+        if not usuario or not ServicioAuth.validar_token_recuperacion(
+            payload.token, usuario.hash_contrasena
+        ):
+            raise HTTPException(
+                status_code=400,
+                detail="Token de recuperación inválido o expirado.",
+            )
+        await ServicioAuth.cambiar_contrasena_si_vigente(
+            db,
+            usuario_id,
+            usuario.hash_contrasena,
+            payload.nueva_contrasena,
+        )
 
         return {"message": "Contraseña restablecida exitosamente. Ya puede iniciar sesión."}
+    except HTTPException:
+        raise
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
+        await db.rollback()
         logger.error("Reset Password API error", exc_info=True, extra={"detail": enmascarar_pii(str(e))})
         raise HTTPException(status_code=500, detail="Error interno al restablecer la contraseña.")
 

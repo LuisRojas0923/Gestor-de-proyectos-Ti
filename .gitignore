@@ -38,6 +38,7 @@
 *.env.local
 .env.*.local
 !/.env.example
+/secrets/
 
 # Cache and logs
 .DS_Store

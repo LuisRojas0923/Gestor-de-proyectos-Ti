@@ -13,6 +13,7 @@ Cubre:
 Requiere DB (la del .env.test). Pico RAM ~150MB.
 """
 from datetime import datetime, timedelta, timezone
+from unittest.mock import AsyncMock, Mock
 from uuid import UUID
 
 import pytest
@@ -30,6 +31,25 @@ from app.services.auth.mcp_service import (
 )
 from app.services.auth.servicio import ServicioAuth
 from app.utils_date import get_bogota_now
+
+
+@pytest.mark.asyncio
+async def test_emision_mcp_es_atomica_con_auditoria(monkeypatch):
+    from app.services.auth import mcp_service
+
+    db = AsyncMock()
+    db.add = Mock()
+    usuario = Mock(
+        id="USR-1", cedula="1", nombre="Uno", rol="admin", esta_activo=True
+    )
+    monkeypatch.setattr(
+        mcp_service, "_auditar", AsyncMock(side_effect=RuntimeError("auditoria caída"))
+    )
+
+    with pytest.raises(RuntimeError, match="auditoria caída"):
+        await emitir_token_mcp(db, usuario)
+    db.commit.assert_not_awaited()
+    db.rollback.assert_awaited_once()
 
 
 CEDULA_TEST = "9900110099"
@@ -120,8 +140,8 @@ class TestEmitirTokenMcpHappyPath:
         assert sesion.tipo_sesion == "mcp"
         assert sesion.scope == "read"
         assert sesion.usuario_id == usuario_mcp.id
-        # El token_sesion guardado debe coincidir con el access_token retornado
-        assert sesion.token_sesion == resultado["access_token"]
+        from app.services.auth.sesion_service import hash_token_sesion
+        assert sesion.token_sesion == hash_token_sesion(resultado["access_token"])
 
 
 class TestEmitirTokenMcpValidaciones:

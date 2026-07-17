@@ -3,11 +3,20 @@ Modelos de Autenticacion - Backend V2 (SQLModel)
 Unifica modelos y schemas en una sola definicion
 """
 
-from typing import Optional, List
+import re
+from typing import Annotated, Literal, Optional, List
 from datetime import datetime
-from pydantic import field_validator
+from pydantic import ConfigDict, StringConstraints, field_validator
 from sqlmodel import SQLModel, Field, Relationship
 from sqlalchemy import text
+
+
+IdentificadorRol = Annotated[
+    str, StringConstraints(min_length=1, max_length=50, pattern=r"^[a-z0-9_]+$")
+]
+IdentificadorModulo = Annotated[
+    str, StringConstraints(min_length=1, max_length=100, pattern=r"^[A-Za-z0-9_-]+$")
+]
 
 
 # --- Modelos de Base de Datos (table=True) ---
@@ -229,9 +238,21 @@ class ModuloSistema(SQLModel, table=True):
 class RolCrear(SQLModel):
     """Schema para crear un nuevo rol"""
 
-    id: str = Field(max_length=50)
+    model_config = ConfigDict(extra="forbid")
+
+    id: IdentificadorRol
     nombre: str = Field(max_length=100)
-    descripcion: Optional[str] = None
+    descripcion: Optional[str] = Field(default=None, max_length=255)
+
+    @field_validator("id", mode="before")
+    @classmethod
+    def normalizar_id(cls, value: str) -> str:
+        if not isinstance(value, str):
+            raise ValueError("El ID del rol debe ser texto")
+        normalizado = value.strip().lower().replace(" ", "_")
+        if re.fullmatch(r"[a-z0-9_]+", normalizado) is None:
+            raise ValueError("El ID del rol solo admite letras, números y guion bajo")
+        return normalizado
 
 
 class RolPublico(SQLModel):
@@ -357,6 +378,27 @@ class AnalistaCrear(SQLModel):
     cedula: str = Field(max_length=50)
 
 
+class AnalistaAdminActualizar(SQLModel):
+    """Campos administrativos permitidos al actualizar un usuario."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    rol: Optional[IdentificadorRol] = None
+    especialidades: Optional[List[str]] = None
+    areas_asignadas: Optional[List[str]] = None
+    esta_activo: Optional[bool] = None
+
+
+class PermisoRolActualizar(SQLModel):
+    """Contrato de una mutación de la matriz RBAC."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    rol: IdentificadorRol
+    modulo: IdentificadorModulo
+    permitido: bool
+
+
 class PasswordCambiar(SQLModel):
     """Schema para cambiar la contrasena"""
 
@@ -381,3 +423,13 @@ class PasswordReset(SQLModel):
 
     token: str
     nueva_contrasena: str = Field(min_length=8)
+
+
+class McpTokenCrear(SQLModel):
+    """Contrato estricto para emitir credenciales MCP."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    vigencia_dias: int = Field(default=30, ge=1, le=90)
+    scope: Literal["read", "write"] = "read"
+    motivo: str = Field(default="", max_length=500)

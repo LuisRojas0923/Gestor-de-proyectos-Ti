@@ -11,14 +11,8 @@ logger = logging.getLogger(__name__)
 
 
 async def safe_execute(conn, query: str) -> None:
-    """Ejecuta una sentencia SQL de forma segura."""
-    try:
-        await conn.execute(text(query))
-    except Exception as e:
-        logger.warning(
-            f"Error (ignorado) en migración auditoria_eventos: {e} | "
-            f"Query: {query[:50]}..."
-        )
+    """Ejecuta una sentencia y propaga cualquier fallo al job migrador."""
+    await conn.execute(text(query))  # @audit-ok: el job propaga cualquier fallo
 
 
 async def crear_tabla_auditoria_evento(conn) -> None:
@@ -31,7 +25,7 @@ async def crear_tabla_auditoria_evento(conn) -> None:
     await safe_execute(
         conn,
         """
-        CREATE TABLE IF NOT EXISTS auditoria_eventos (
+        CREATE TABLE IF NOT EXISTS public.auditoria_eventos (
             id SERIAL PRIMARY KEY,
             timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
             usuario_id VARCHAR(50) NOT NULL,
@@ -45,12 +39,13 @@ async def crear_tabla_auditoria_evento(conn) -> None:
         """,
     )
 
-    await safe_execute(
-        conn,
-        "CREATE INDEX IF NOT EXISTS idx_auditoria_usuario_ts ON auditoria_eventos (usuario_id, timestamp)",
-    )
-
-    await safe_execute(
-        conn,
-        "CREATE INDEX IF NOT EXISTS idx_auditoria_resultado ON auditoria_eventos (resultado)",
-    )
+    await safe_execute(conn, "DROP INDEX IF EXISTS public.idx_auditoria_usuario_ts")
+    await safe_execute(conn, """
+        CREATE INDEX idx_auditoria_usuario_ts
+        ON public.auditoria_eventos (usuario_id, timestamp)
+    """)
+    await safe_execute(conn, "DROP INDEX IF EXISTS public.idx_auditoria_resultado")
+    await safe_execute(conn, """
+        CREATE INDEX idx_auditoria_resultado
+        ON public.auditoria_eventos (resultado)
+    """)

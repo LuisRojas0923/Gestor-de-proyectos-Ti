@@ -31,6 +31,9 @@ def extraer_occidente_libranza(
     
     total_filas = 0
     total_valor = 0.0
+    pwd = os.getenv("LIBRANZA_OCCIDENTE_PASSWORD")
+    if not pwd:
+        raise RuntimeError("LIBRANZA_OCCIDENTE_PASSWORD no configurada")
 
     for file_idx, contenido in enumerate(archivos_binarios):
         try:
@@ -38,7 +41,6 @@ def extraer_occidente_libranza(
             file_stream = io.BytesIO(contenido)
             decrypted_stream = io.BytesIO()
             office_file = msoffcrypto.OfficeFile(file_stream)
-            pwd = os.getenv("LIBRANZA_OCCIDENTE_PASSWORD", "805005717")
             office_file.load_key(password=pwd)
             office_file.decrypt(decrypted_stream)
             decrypted_stream.seek(0)

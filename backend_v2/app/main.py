@@ -11,9 +11,10 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 # Importaciones locales (Base de Datos y Servicios)
-from .database import init_db, AsyncSessionLocal
+from .database import async_engine, AsyncSessionLocal
+from .core.migrations.manager import verificar_esquema_runtime
 from .services.panel_control.metrica_service import MetricaService
-from .services.auth.rbac_discovery import sincronizar_manifiesto_rbac
+from .services.auth.rbac_discovery import verificar_manifiesto_rbac
 
 # Importar routers
 from .api.desarrollos import router as desarrollos_router
@@ -213,10 +214,9 @@ async def _storage_error_handler(request, exc: StorageError):
 @app.on_event("startup")
 async def startup_event():
     """Acciones al iniciar el servidor"""
-    await init_db()
-    # 2. Sincronizar Módulos RBAC auto-descubiertos
+    await verificar_esquema_runtime(async_engine)
     async with AsyncSessionLocal() as db:
-        await sincronizar_manifiesto_rbac(db)
+        await verificar_manifiesto_rbac(db)
 
     # 3. Iniciar recolector de metricas en segundo plano (cada 15 min)
     asyncio.create_task(

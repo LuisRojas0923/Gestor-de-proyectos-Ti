@@ -3,7 +3,10 @@
 Extraido de login_router.py para mantener ese archivo bajo el limite de
 lineas (regla enforced por el pre-commit hook `enforce-architecture-backend`).
 """
+from datetime import timedelta
+
 from fastapi import APIRouter, Depends, HTTPException, Request, status
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import obtener_configuracion
 from app.core.rate_limiter import (
@@ -11,6 +14,10 @@ from app.core.rate_limiter import (
     limiter,
 )
 from app.services.auth.servicio import ServicioAuth
+from app.services.auth.sesion_service import rotar_sesion_web
+from app.database import obtener_db
+from app.config import config
+from app.utils_date import get_bogota_now
 
 
 router = APIRouter()
@@ -22,6 +29,7 @@ _settings = obtener_configuracion()
 async def refrescar_token(
     request: Request,
     token_actual: str = Depends(ServicioAuth.oauth2_scheme),
+    db: AsyncSession = Depends(obtener_db),
 ):
     """Refresca un JWT vigente, devolviendo uno nuevo con `exp` actualizado.
 
@@ -51,6 +59,8 @@ async def refrescar_token(
             detail="Token invalido o expirado",
             headers={"WWW-Authenticate": "Bearer"},
         )
+    if payload.get("token_type") == "mcp":
+        raise HTTPException(status_code=400, detail="Los tokens MCP no se refrescan")
 
     # Re-emitir el token con todos los claims del original. El claim `last_ip`
     # se preserva tal cual; los demas claims (sub, rol, jti, token_type, scope)
@@ -59,6 +69,13 @@ async def refrescar_token(
         datos={k: v for k, v in payload.items() if k not in ("exp", "jti", "iat")},
         tipo_token=payload.get("token_type", "session"),
     )
+    nueva_expiracion = get_bogota_now() + timedelta(
+        minutes=config.jwt_token_expire_minutes
+    )
+    if not await rotar_sesion_web(
+        db, token_actual, nuevo_token, nueva_expiracion
+    ):
+        raise HTTPException(status_code=401, detail="Token revocado o expirado")
 
     return {
         "access_token": nuevo_token,

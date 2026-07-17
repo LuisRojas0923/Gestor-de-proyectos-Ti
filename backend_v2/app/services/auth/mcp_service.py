@@ -20,6 +20,7 @@ from app.models.auth.auditoria_evento import AuditoriaEvento
 from app.models.auth.usuario import Sesion, Usuario
 from app.services.auth.servicio import ServicioAuth
 from app.utils_date import get_bogota_now
+from app.services.auth.sesion_service import hash_token_sesion
 
 VIGENCIA_DEFAULT_DIAS = 30
 VIGENCIA_MAXIMA_DIAS = 90
@@ -64,7 +65,7 @@ async def emitir_token_mcp(
 
     nueva_sesion = Sesion(
         usuario_id=usuario.id,
-        token_sesion=token,
+        token_sesion=hash_token_sesion(token),
         tipo_sesion="mcp",
         jti=jti,
         scope=scope,
@@ -73,18 +74,20 @@ async def emitir_token_mcp(
         nombre_usuario=usuario.nombre,
         rol_usuario=usuario.rol,
     )
-    db.add(nueva_sesion)
-    await db.commit()
-    await db.refresh(nueva_sesion)
-
-    await _auditar(
-        db,
-        usuario,
-        "mcp_token_generado",
-        exitosa=True,
-        motivo_detalle=f"scope={scope} dias={vigencia_dias} {motivo}".strip(),
-        direccion_ip=direccion_ip,
-    )
+    try:
+        db.add(nueva_sesion)
+        await _auditar(
+            db,
+            usuario,
+            "mcp_token_generado",
+            exitosa=True,
+            motivo_detalle=f"scope={scope} dias={vigencia_dias} {motivo}".strip(),
+            direccion_ip=direccion_ip,
+        )
+        await db.commit()
+    except Exception:
+        await db.rollback()
+        raise
 
     return {
         "access_token": token,
@@ -138,16 +141,20 @@ async def revocar_token_mcp(
     sesion = result.scalars().first()
     if not sesion:
         return False
-    sesion.fin_sesion = ahora
-    await db.commit()
-    await _auditar(
-        db,
-        usuario,
-        "mcp_token_revocado",
-        exitosa=True,
-        motivo_detalle=f"jti={jti}",
-        direccion_ip=None,
-    )
+    try:
+        sesion.fin_sesion = ahora
+        await _auditar(
+            db,
+            usuario,
+            "mcp_token_revocado",
+            exitosa=True,
+            motivo_detalle=f"jti={jti}",
+            direccion_ip=None,
+        )
+        await db.commit()
+    except Exception:
+        await db.rollback()
+        raise
     return True
 
 
@@ -159,22 +166,14 @@ async def _auditar(
     motivo_detalle: str = "",
     direccion_ip: Optional[str] = None,
 ) -> None:
-    """Inserta evento de auditoria para tokens MCP. El audit nunca debe
-    tumbar el flujo de emision/revocacion (try/except interno)."""
-    try:
-        stmt = insert(AuditoriaEvento).values(
-            usuario_id=usuario.id,
-            rol=usuario.rol,
-            direccion_ip=direccion_ip,
-            agente_usuario="mcp-service",
-            resultado="exito" if exitosa else "fallo",
-            motivo=f"{motivo} | {motivo_detalle}".strip(" |"),
-            endpoint="/api/v2/auth/mcp-token",
-        )
-        await db.execute(stmt)
-        await db.commit()
-    except Exception:
-        try:
-            await db.rollback()
-        except Exception:
-            pass
+    """Inserta la auditoria dentro de la transaccion de la credencial MCP."""
+    stmt = insert(AuditoriaEvento).values(
+        usuario_id=usuario.id,
+        rol=usuario.rol,
+        direccion_ip=direccion_ip,
+        agente_usuario="mcp-service",
+        resultado="exito" if exitosa else "fallo",
+        motivo=f"{motivo} | {motivo_detalle}".strip(" |"),
+        endpoint="/api/v2/auth/mcp-token",
+    )
+    await db.execute(stmt)

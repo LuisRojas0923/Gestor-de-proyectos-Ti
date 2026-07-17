@@ -22,14 +22,7 @@ logger = logging.getLogger(__name__)
 
 
 async def safe_execute(conn, query: str) -> None:
-    try:
-        await conn.execute(text(query))
-    except Exception as exc:
-        logger.warning(
-            "Error (ignorado) en migración horas_extras: %s | Query: %s...",
-            exc,
-            query[:60],
-        )
+    await conn.execute(text(query))  # @audit-ok: el job propaga cualquier fallo
 
 
 async def crear_tablas_horas_extras(conn) -> None:

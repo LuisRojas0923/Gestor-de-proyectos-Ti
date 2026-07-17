@@ -54,5 +54,5 @@ async def crear_tabla_calculo_diario_detalle(conn) -> None:
         ):
             await conn.execute(text(sql))
     except Exception:
-        logger.exception("Error creando tabla nomina_calculo_diario_detalle")
+        logger.error("Error creando tabla nomina_calculo_diario_detalle")
         raise

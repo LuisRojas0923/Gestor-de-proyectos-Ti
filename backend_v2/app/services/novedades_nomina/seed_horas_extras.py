@@ -15,7 +15,6 @@ from ...models.novedades_nomina.horas_extras import (
     NominaFactorPrestacionalRiesgo,
     NominaParametroLegal,
 )
-from ...database import AsyncSessionLocal
 
 
 NOVEDADES_CATALOGO = [
@@ -368,9 +367,9 @@ PARAMETROS_LEGALES = [
 ]
 
 
-async def seed_horas_extras_catalogo():
+async def seed_horas_extras_catalogo(session_factory):
     """Seed del catálogo de novedades. Idempotente."""
-    async with AsyncSessionLocal() as session:
+    async with session_factory() as session:
         for n in NOVEDADES_CATALOGO:
             stmt = select(NominaCatalogoNovedad).where(
                 NominaCatalogoNovedad.codigo == n["codigo"]
@@ -381,9 +380,9 @@ async def seed_horas_extras_catalogo():
         await session.commit()
 
 
-async def seed_factores_prestacionales():
+async def seed_factores_prestacionales(session_factory):
     """Seed de los 5 niveles ARL. Idempotente."""
-    async with AsyncSessionLocal() as session:
+    async with session_factory() as session:
         for f in FACTORES_PRESTACIONALES:
             stmt = select(NominaFactorPrestacionalRiesgo).where(
                 NominaFactorPrestacionalRiesgo.nivel_riesgo == f["nivel_riesgo"]
@@ -394,9 +393,9 @@ async def seed_factores_prestacionales():
         await session.commit()
 
 
-async def seed_parametros_legales():
+async def seed_parametros_legales(session_factory):
     """Seed de parámetros legales con vigencia. Idempotente."""
-    async with AsyncSessionLocal() as session:
+    async with session_factory() as session:
         for p in PARAMETROS_LEGALES:
             stmt = select(NominaParametroLegal).where(
                 NominaParametroLegal.codigo == p["codigo"]
@@ -408,8 +407,8 @@ async def seed_parametros_legales():
         await session.commit()
 
 
-async def seed_horas_extras_completo():
+async def seed_horas_extras_completo(session_factory):
     """Ejecuta todos los seeds del módulo HE en orden."""
-    await seed_horas_extras_catalogo()
-    await seed_factores_prestacionales()
-    await seed_parametros_legales()
+    await seed_horas_extras_catalogo(session_factory)
+    await seed_factores_prestacionales(session_factory)
+    await seed_parametros_legales(session_factory)

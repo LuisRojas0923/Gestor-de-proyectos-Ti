@@ -11,6 +11,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 from app.config import config
 from app.core.config import obtener_configuracion
+from app.services.auth.protected_identity_service import (
+    actualizar_correo_protegido,
+    actualizar_hash_protegido,
+    actualizar_hash_si_vigente,
+)
+from app.services.auth.recovery_token_service import (
+    crear_token_recuperacion,
+    validar_token_recuperacion,
+)
 from app.models.auth.usuario import Usuario, PermisoRol
 from app.services.erp import EmpleadosService
 from app.services.erp.empleados_service import normalizar_bool_erp
@@ -210,28 +219,6 @@ class ServicioAuth:
         )
 
     @staticmethod
-    def crear_token_recuperacion(usuario_id: str) -> str:
-        """Genera un token JWT para recuperación de contraseña (Scope: password_recovery)"""
-        expira = datetime.now(timezone.utc) + timedelta(hours=1)
-        a_codificar = {"sub": usuario_id, "exp": expira, "scope": "password_recovery"}
-        return jwt.encode(
-            a_codificar, config.jwt_secret_key, algorithm=config.algorithm
-        )
-
-    @staticmethod
-    def validar_token_recuperacion(token: str) -> Optional[str]:
-        """Valida un token de recuperación y retorna el usuario_id si es válido"""
-        try:
-            payload = jwt.decode(
-                token, config.jwt_secret_key, algorithms=[config.algorithm]
-            )
-            if payload.get("scope") != "password_recovery":
-                return None
-            return payload.get("sub")
-        except Exception:
-            return None
-
-    @staticmethod
     def validar_token_verificacion(token: str) -> Optional[str]:
         """Valida un token de verificación de correo y retorna el usuario_id si es válido"""
         try:
@@ -290,7 +277,11 @@ class ServicioAuth:
             import logging
             logging.info(f"REPARACIÓN: Corrigiendo hash inválido para usuario {usuario.cedula}")
             portal_pending = obtener_configuracion().portal_pending_pwd or config.portal_pending_pwd
-            usuario.hash_contrasena = ServicioAuth.obtener_hash_contrasena(portal_pending)
+            await actualizar_hash_protegido(
+                db,
+                usuario.id,
+                ServicioAuth.obtener_hash_contrasena(portal_pending),
+            )
             await db.commit()
             await db.refresh(usuario)
             return True
@@ -307,10 +298,42 @@ class ServicioAuth:
         if not usuario:
             raise ValueError("Usuario no encontrado")
 
-        usuario.hash_contrasena = ServicioAuth.obtener_hash_contrasena(nueva_contrasena)
-        await db.commit()
+        try:
+            await actualizar_hash_protegido(
+                db,
+                usuario.id,
+                ServicioAuth.obtener_hash_contrasena(nueva_contrasena),
+            )
+            await invalidar_sesiones_usuario(db, usuario.id)
+            await db.commit()
+        except Exception:
+            await db.rollback()
+            raise
         await db.refresh(usuario)
         return usuario
+
+    @staticmethod
+    async def cambiar_contrasena_si_vigente(
+        db: AsyncSession,
+        usuario_id: str,
+        hash_esperado: str,
+        nueva_contrasena: str,
+    ) -> None:
+        """Consume un token de recuperación mediante CAS sobre el hash vigente."""
+        try:
+            actualizado = await actualizar_hash_si_vigente(
+                db,
+                usuario_id,
+                hash_esperado,
+                ServicioAuth.obtener_hash_contrasena(nueva_contrasena),
+            )
+            if not actualizado:
+                raise ValueError("Token de recuperación inválido o expirado.")
+            await invalidar_sesiones_usuario(db, usuario_id)
+            await db.commit()
+        except Exception:
+            await db.rollback()
+            raise
 
     @staticmethod
     async def sincronizar_perfil_desde_erp(
@@ -349,7 +372,13 @@ class ServicioAuth:
             
             # Sincronización de correo corporativo
             if datos_erp.get("correocorporativo"):
-                usuario.correo = datos_erp.get("correocorporativo").strip()
+                await actualizar_correo_protegido(
+                    db,
+                    usuario.id,
+                    datos_erp.get("correocorporativo").strip(),
+                    True,
+                    False,
+                )
             
             await db.commit()
             await db.refresh(usuario)
@@ -464,3 +493,5 @@ class ServicioAuth:
     registrar_sesion = staticmethod(registrar_sesion)
     marcar_fin_sesion = staticmethod(marcar_fin_sesion)
     invalidar_sesiones_usuario = staticmethod(invalidar_sesiones_usuario)
+    crear_token_recuperacion = staticmethod(crear_token_recuperacion)
+    validar_token_recuperacion = staticmethod(validar_token_recuperacion)

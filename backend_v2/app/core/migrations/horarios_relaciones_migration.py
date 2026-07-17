@@ -5,8 +5,24 @@ from sqlalchemy import text
 
 logger = logging.getLogger(__name__)
 
+APPEND_ONLY_FUNCTION_BODY = """
+BEGIN
+    RAISE EXCEPTION 'La tabla % es append-only', TG_TABLE_NAME USING ERRCODE = '55000';
+END;
+"""
+
 
 async def migrar_horarios_relaciones(conn) -> None:
+    await conn.execute(text("""  # @audit-ok: el job propaga cualquier fallo
+        DO $drop$ DECLARE signature text;
+        BEGIN
+            FOR signature IN
+                SELECT p.oid::regprocedure::text FROM pg_proc p
+                WHERE p.pronamespace = 'public'::regnamespace
+                  AND p.proname = 'rechazar_mutacion_append_only'
+            LOOP EXECUTE 'DROP FUNCTION ' || signature || ' CASCADE'; END LOOP;
+        END $drop$;
+    """))
     sentencias = (
         "ALTER TABLE nomina_horario_pactado_dia ADD COLUMN IF NOT EXISTS cruza_medianoche BOOLEAN NOT NULL DEFAULT FALSE",
         "ALTER TABLE nomina_calculo_diario_detalle ADD COLUMN IF NOT EXISTS cruza_medianoche BOOLEAN NOT NULL DEFAULT FALSE",
@@ -71,18 +87,16 @@ async def migrar_horarios_relaciones(conn) -> None:
             estado_anterior BOOLEAN NOT NULL, estado_nuevo BOOLEAN NOT NULL,
             creado_en TIMESTAMPTZ NOT NULL DEFAULT now()
         )""",
-        """CREATE OR REPLACE FUNCTION rechazar_mutacion_append_only() RETURNS trigger AS $$
-            BEGIN RAISE EXCEPTION 'La tabla % es append-only', TG_TABLE_NAME USING ERRCODE = '55000'; END;
+        f"""CREATE FUNCTION public.rechazar_mutacion_append_only() RETURNS trigger AS $$
+            {APPEND_ONLY_FUNCTION_BODY}
         $$ LANGUAGE plpgsql""",
+        "REVOKE ALL ON FUNCTION public.rechazar_mutacion_append_only() FROM PUBLIC",
     )
     for sentencia in sentencias:
         try:
             await conn.execute(text(sentencia))
         except Exception:
-            logger.exception(
-                "Fallo ejecutando DDL base de migracion horarios-relaciones: %.120s",
-                sentencia,
-            )
+            logger.error("Fallo ejecutando DDL base de migracion horarios-relaciones")
             raise
 
     constraints = (
@@ -114,18 +128,14 @@ async def migrar_horarios_relaciones(conn) -> None:
     )
     for tabla, nombre, definicion in constraints:
         try:
-            await conn.execute(text(f"""DO $$ BEGIN
-                IF NOT EXISTS (
-                    SELECT 1 FROM pg_constraint
-                    WHERE conrelid = '{tabla}'::regclass AND conname = '{nombre}'
-                ) THEN
-                    ALTER TABLE {tabla} ADD CONSTRAINT {nombre} {definicion};
-                END IF;
-            END $$"""))
+            await conn.execute(text(
+                f"ALTER TABLE {tabla} DROP CONSTRAINT IF EXISTS {nombre}"
+            ))
+            await conn.execute(text(
+                f"ALTER TABLE {tabla} ADD CONSTRAINT {nombre} {definicion}"
+            ))
         except Exception:
-            logger.exception(
-                "Fallo creando constraint critica %s en %s", nombre, tabla
-            )
+            logger.error("Fallo creando constraint critica de horarios-relaciones")
             raise
 
     for tabla in (
@@ -135,13 +145,15 @@ async def migrar_horarios_relaciones(conn) -> None:
         "historial_relaciones_gestor_empleado",
     ):
         try:
-            await conn.execute(text(f"""DO $$ BEGIN
-                IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'trg_{tabla}_append_only') THEN
-                    CREATE TRIGGER trg_{tabla}_append_only BEFORE UPDATE OR DELETE ON {tabla}
-                    FOR EACH ROW EXECUTE FUNCTION rechazar_mutacion_append_only();
-                END IF;
-            END $$"""))
+            await conn.execute(text(
+                f"DROP TRIGGER IF EXISTS trg_{tabla}_append_only ON {tabla}"
+            ))
+            await conn.execute(text(f"""
+                CREATE TRIGGER trg_{tabla}_append_only
+                BEFORE UPDATE OR DELETE ON {tabla}
+                FOR EACH ROW EXECUTE FUNCTION public.rechazar_mutacion_append_only()
+            """))
         except Exception:
-            logger.exception("Fallo creando trigger append-only critico en %s", tabla)
+            logger.error("Fallo creando trigger append-only critico")
             raise
     logger.info("Migracion critica de horarios y relaciones aplicada")

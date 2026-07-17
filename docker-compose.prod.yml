@@ -1,4 +1,53 @@
 services:
+  provision-roles:
+    image: postgres:15-alpine
+    profiles: ["database-admin"]
+    environment:
+      - PGHOST=db
+      - PGPASSWORD=${DB_PASS:?DB_PASS requerido}
+      - POSTGRES_PASSWORD=${DB_PASS:?DB_PASS requerido}
+      - POSTGRES_USER=${DB_USER:-user}
+      - POSTGRES_DB=${DB_NAME:-project_manager}
+      - APP_SCHEMA_OWNER_ROLE=${MIGRATION_SCHEMA_OWNER_ROLE:?MIGRATION_SCHEMA_OWNER_ROLE requerido}
+      - APP_MIGRATION_ROLE=${DB_MIGRATION_USER:?DB_MIGRATION_USER requerido}
+      - APP_MIGRATION_PASSWORD=${DB_MIGRATION_PASS:?DB_MIGRATION_PASS requerido}
+      - APP_RUNTIME_ROLE=${DB_RUNTIME_USER:?DB_RUNTIME_USER requerido}
+      - APP_RUNTIME_PASSWORD=${DB_RUNTIME_PASS:?DB_RUNTIME_PASS requerido}
+    volumes:
+      - ./postgres/init/01-gestor-roles.sh:/opt/gestor/01-gestor-roles.sh:ro
+    depends_on:
+      db:
+        condition: service_healthy
+    command: sh /opt/gestor/01-gestor-roles.sh
+    networks:
+      - app-network
+
+  migrate:
+    build:
+      context: ./backend_v2
+      dockerfile: Dockerfile
+    environment:
+      - MIGRATION_DATABASE_URL=postgresql://${DB_MIGRATION_USER:?DB_MIGRATION_USER requerido}:${DB_MIGRATION_PASS:?DB_MIGRATION_PASS requerido}@db:${DB_PORT:-5432}/${DB_NAME:-project_manager}
+      - APP_PROCESS_ROLE=migrate
+      - MIGRATION_DATABASE_ROLE=${DB_MIGRATION_USER:?DB_MIGRATION_USER requerido}
+      - MIGRATION_SCHEMA_OWNER_ROLE=${MIGRATION_SCHEMA_OWNER_ROLE:?MIGRATION_SCHEMA_OWNER_ROLE requerido}
+      - DATABASE_RUNTIME_ROLE=${DB_RUNTIME_USER:?DB_RUNTIME_USER requerido}
+      - DATABASE_MIGRATION_ROLE=${DB_MIGRATION_USER:?DB_MIGRATION_USER requerido}
+      - DATABASE_SCHEMA_OWNER_ROLE=${MIGRATION_SCHEMA_OWNER_ROLE:?MIGRATION_SCHEMA_OWNER_ROLE requerido}
+      - RBAC_ADMIN_CAPABILITY_FILE=/run/secrets/rbac_admin_capability
+      - ENVIRONMENT=production
+      - APP_VERSION=${APP_VERSION:-v2.1.0}
+      - TZ=America/Bogota
+    secrets:
+      - rbac_admin_capability
+    depends_on:
+      db:
+        condition: service_healthy
+    command: python -m app.manage migrate
+    restart: "no"
+    networks:
+      - app-network
+
   nginx:
     image: nginx:alpine
     container_name: gestor-de-proyectos-ti-nginx
@@ -25,21 +74,80 @@ services:
       context: ./backend_v2
       dockerfile: Dockerfile
     restart: always
-    env_file:
-      - .env
     environment:
+      - DATABASE_URL=postgresql://${DB_RUNTIME_USER:?DB_RUNTIME_USER requerido}:${DB_RUNTIME_PASS:?DB_RUNTIME_PASS requerido}@db:${DB_PORT:-5432}/${DB_NAME:-project_manager}
+      - BASE_DATOS_URL_ASYNC=postgresql+asyncpg://${DB_RUNTIME_USER:?DB_RUNTIME_USER requerido}:${DB_RUNTIME_PASS:?DB_RUNTIME_PASS requerido}@db:${DB_PORT:-5432}/${DB_NAME:-project_manager}
+      - DATABASE_RUNTIME_ROLE=${DB_RUNTIME_USER:?DB_RUNTIME_USER requerido}
+      - DATABASE_MIGRATION_ROLE=${DB_MIGRATION_USER:?DB_MIGRATION_USER requerido}
+      - DATABASE_SCHEMA_OWNER_ROLE=${MIGRATION_SCHEMA_OWNER_ROLE:?MIGRATION_SCHEMA_OWNER_ROLE requerido}
+      - RBAC_ADMIN_CAPABILITY_FILE=/run/secrets/rbac_admin_capability
+      - ENVIRONMENT=production
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY:?JWT_SECRET_KEY requerido}
+      - ALGORITHM=${ALGORITHM:-HS256}
+      - JWT_TOKEN_EXPIRE_MINUTES=${JWT_TOKEN_EXPIRE_MINUTES:-60}
+      - ERP_DATABASE_URL=${ERP_DATABASE_URL:?ERP_DATABASE_URL requerida}
+      - SYNC_EXTERNAL_URL=${SYNC_EXTERNAL_URL:?SYNC_EXTERNAL_URL requerida}
+      - FRONTEND_URL=${FRONTEND_URL:?FRONTEND_URL requerida}
+      - FRONTEND_HOST=${FRONTEND_HOST:-}
+      - FRONTEND_PORT=${FRONTEND_PORT:-}
+      - PORTAL_PENDING_PWD=${PORTAL_PENDING_PWD:?PORTAL_PENDING_PWD requerido}
+      - ENTORNO=produccion
+      - JWT_SECRETO=${JWT_SECRET_KEY:?JWT_SECRET_KEY requerido}
+      - JWT_ALGORITMO=${ALGORITHM:-HS256}
+      - JWT_EXPIRACION_MINUTOS=${JWT_TOKEN_EXPIRE_MINUTES:-60}
+      - CORS_ORIGENES_PERMITIDOS=${CORS_ORIGENES_PERMITIDOS:?CORS_ORIGENES_PERMITIDOS requerido}
+      - JIT_AUTO_APROBAR=false
+      - TRUSTED_PROXY_IPS=${TRUSTED_PROXY_IPS:-}
+      - VERIFY_ADMIN_RATE_LIMIT=${VERIFY_ADMIN_RATE_LIMIT:-5/5minute}
+      - AUDITORIA_EVENTO_LIMPIAR_DIAS=${AUDITORIA_EVENTO_LIMPIAR_DIAS:-365}
+      - RATE_LIMIT_LOGIN=${RATE_LIMIT_LOGIN:-5/minute;20/hour}
+      - RATE_LIMIT_SETUP_PASSWORD=${RATE_LIMIT_SETUP_PASSWORD:-30/hour}
+      - RATE_LIMIT_FORGOT_PASSWORD=${RATE_LIMIT_FORGOT_PASSWORD:-3/hour}
+      - RATE_LIMIT_RESET_PASSWORD=${RATE_LIMIT_RESET_PASSWORD:-5/hour}
+      - RATE_LIMIT_REGISTRO=${RATE_LIMIT_REGISTRO:-5/hour}
+      - RATE_LIMIT_PASSWORD_STATUS=${RATE_LIMIT_PASSWORD_STATUS:-5/minute}
+      - RATE_LIMIT_LOGOUT=${RATE_LIMIT_LOGOUT:-10/minute}
+      - RATE_LIMIT_MCP_TOKEN=${RATE_LIMIT_MCP_TOKEN:-5/hour}
+      - RATE_LIMIT_MCP_TOKENS_LIST=${RATE_LIMIT_MCP_TOKENS_LIST:-30/minute}
+      - RATE_LIMIT_MCP_TOKENS_REVOKE=${RATE_LIMIT_MCP_TOKENS_REVOKE:-10/minute}
+      - RATE_LIMIT_REFRESH=${RATE_LIMIT_REFRESH:-20/hour}
+      - LOCKOUT_UMBRAL_FALLOS=${LOCKOUT_UMBRAL_FALLOS:-10}
+      - LOCKOUT_VENTANA_MINUTOS=${LOCKOUT_VENTANA_MINUTOS:-15}
+      - LOCKOUT_DURACION_MINUTOS=${LOCKOUT_DURACION_MINUTOS:-15}
+      - SMTP_HOST=${SMTP_HOST:-}
+      - SMTP_PORT=${SMTP_PORT:-587}
+      - SMTP_USER=${SMTP_USER:-}
+      - SMTP_PASS=${SMTP_PASS:-}
+      - SMTP_FROM=${SMTP_FROM:-}
+      - SMTP_USE_SSL=${SMTP_USE_SSL:-true}
+      - NOTION_API_KEY=${NOTION_API_KEY:-}
+      - NOTION_DATABASE_ID=${NOTION_DATABASE_ID:-}
+      - CALENDARIFIC_API_KEY=${CALENDARIFIC_API_KEY:-}
+      - LIBRANZA_OCCIDENTE_PASSWORD=${LIBRANZA_OCCIDENTE_PASSWORD:?LIBRANZA_OCCIDENTE_PASSWORD requerida}
+      - BIOMETRIA_MAX_IMAGE_BYTES=${BIOMETRIA_MAX_IMAGE_BYTES:-5242880}
+      - HOSTVEREMAIL=${HOSTVEREMAIL:?HOSTVEREMAIL requerido}
+      - STORAGE_PATH=${STORAGE_PATH:-/app/storage/attachments}
+      - STORAGE_MAX_SIZE_MB=${STORAGE_MAX_SIZE_MB:-25}
+      - DEEPFACE_MODEL=${DEEPFACE_MODEL:-Facenet}
+      - DEEPFACE_DETECTOR=${DEEPFACE_DETECTOR:-opencv}
+      - ANTI_SPOOFING=${ANTI_SPOOFING:-1}
+      - MATCH_THRESHOLD=${MATCH_THRESHOLD:-0.40}
       - TZ=America/Bogota
       - REDIS_URL=redis://redis:6379/0
       - BIOMETRIA_ENGINE_URL=http://biometria-engine:8010
       - BIOMETRIA_ENGINE_TOKEN=${BIOMETRIA_ENGINE_TOKEN:?BIOMETRIA_ENGINE_TOKEN requerido para biometria-engine}
       - BIOMETRIA_ENGINE_TIMEOUT_SECONDS=${BIOMETRIA_ENGINE_TIMEOUT_SECONDS:-30}
+    secrets:
+      - rbac_admin_capability
     volumes:
       - ./GestionTi_SoporteFiles:/app/storage/attachments
       - ./GestionTi_SoporteFiles/biometria/perfiles:/app/storage/perfiles
       - ./GestionTi_SoporteFiles/biometria/asistencias:/app/storage/asistencias
     depends_on:
+      migrate:
+        condition: service_completed_successfully
       db:
-        condition: service_started
+        condition: service_healthy
       redis:
         condition: service_started
       biometria-engine:
@@ -97,14 +205,25 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./postgres/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro
+      - ./postgres/init/01-gestor-roles.sh:/docker-entrypoint-initdb.d/01-gestor-roles.sh:ro
     environment:
       - POSTGRES_USER=${DB_USER:-user}
-      - POSTGRES_PASSWORD=${DB_PASS:-password_segura_refridcol}
+      - POSTGRES_PASSWORD=${DB_PASS:?DB_PASS requerido}
       - POSTGRES_DB=${DB_NAME:-project_manager}
+      - APP_SCHEMA_OWNER_ROLE=${MIGRATION_SCHEMA_OWNER_ROLE:?MIGRATION_SCHEMA_OWNER_ROLE requerido}
+      - APP_MIGRATION_ROLE=${DB_MIGRATION_USER:?DB_MIGRATION_USER requerido}
+      - APP_MIGRATION_PASSWORD=${DB_MIGRATION_PASS:?DB_MIGRATION_PASS requerido}
+      - APP_RUNTIME_ROLE=${DB_RUNTIME_USER:?DB_RUNTIME_USER requerido}
+      - APP_RUNTIME_PASSWORD=${DB_RUNTIME_PASS:?DB_RUNTIME_PASS requerido}
       - TZ=America/Bogota
     command: postgres -c hba_file=/etc/postgresql/pg_hba.conf
     ports:
       - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-user} -d ${DB_NAME:-project_manager}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
     networks:
       - app-network
 
@@ -114,6 +233,10 @@ networks:
   biometria-internal:
     driver: bridge
     internal: true
+
+secrets:
+  rbac_admin_capability:
+    file: ${RBAC_ADMIN_CAPABILITY_FILE:?RBAC_ADMIN_CAPABILITY_FILE requerido}
 
 volumes:
   postgres_data:

@@ -7,10 +7,7 @@ logger = logging.getLogger(__name__)
 
 
 async def _safe_execute(conn, sql: str) -> None:
-    try:
-        await conn.execute(text(sql))
-    except Exception as e:
-        logger.warning("Migracion S8 ignorada/ya aplicada: %s", e)
+    await conn.execute(text(sql))  # @audit-ok: el job propaga cualquier fallo
 
 
 async def crear_tabla_planificador_dia_ot(conn) -> None:

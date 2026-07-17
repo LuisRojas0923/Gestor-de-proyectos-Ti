@@ -1,0 +1,12 @@
+services:
+  migrate:
+    environment:
+      - ADMIN_BOOTSTRAP_PASSWORD_FILE=/run/secrets/admin_bootstrap_password
+      - ADMIN_BOOTSTRAP_CEDULA=${ADMIN_BOOTSTRAP_CEDULA:?ADMIN_BOOTSTRAP_CEDULA requerida}
+      - ADMIN_BOOTSTRAP_NOMBRE=${ADMIN_BOOTSTRAP_NOMBRE:-Administrador inicial}
+    secrets:
+      - admin_bootstrap_password
+
+secrets:
+  admin_bootstrap_password:
+    file: ${ADMIN_BOOTSTRAP_PASSWORD_FILE:?ADMIN_BOOTSTRAP_PASSWORD_FILE requerido}

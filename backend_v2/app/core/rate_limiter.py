@@ -235,6 +235,10 @@ def _mcp_tokens_revoke_key_func(request: Request) -> str:
 # --- Lockout per-cuenta (defense-in-depth sobre el rate limit por IP) ---
 
 
+def _identificador_cedula(cedula: str) -> str:
+    return hashlib.sha256(cedula.encode("utf-8")).hexdigest()
+
+
 def _verificar_lockout_cedula(cedula: str) -> Optional[int]:
     """Si la cedula esta lockeada en Redis, retorna segundos restantes.
     Retorna None si no hay lockout activo o si Redis no esta disponible."""
@@ -245,13 +249,14 @@ def _verificar_lockout_cedula(cedula: str) -> Optional[int]:
         storage = limiter._storage
         if not isinstance(storage, RedisStorage):
             return None
-        key = f"LIMITER/lockout:{cedula}///{_settings.lockout_duracion_minutos * 60}/1/second"
+        identificador = _identificador_cedula(cedula)
+        key = f"LIMITER/lockout:{identificador}///{_settings.lockout_duracion_minutos * 60}/1/second"
         remaining = storage.get(key)
         if remaining and int(remaining) > 0:
             return _settings.lockout_duracion_minutos * 60
         return None
-    except Exception as e:
-        logger.warning("No se pudo consultar lockout para cedula=%s: %s", cedula, e)
+    except Exception:
+        logger.warning("No se pudo consultar lockout")
         return None
 
 
@@ -265,17 +270,18 @@ def _registrar_fallo_cedula(cedula: str) -> None:
         storage = limiter._storage
         if not isinstance(storage, RedisStorage):
             return
+        identificador = _identificador_cedula(cedula)
         ventana = _settings.lockout_ventana_minutos * 60
-        fail_key = f"LIMITER/login_fallos:{cedula}///{ventana}/1/second"
+        fail_key = f"LIMITER/login_fallos:{identificador}///{ventana}/1/second"
         current = storage.incr(fail_key, ventana)
         if current and int(current) >= _settings.lockout_umbral_fallos:
             lockout_ttl = _settings.lockout_duracion_minutos * 60
-            lockout_key = f"LIMITER/lockout:{cedula}///{lockout_ttl}/1/second"
+            lockout_key = f"LIMITER/lockout:{identificador}///{lockout_ttl}/1/second"
             storage.set(lockout_key, lockout_ttl, lockout_ttl)
             storage.delete(fail_key)
-            logger.warning("Lockout activado para cedula=%s tras %d fallos", cedula, current)
-    except Exception as e:
-        logger.warning("No se pudo registrar fallo de lockout para cedula=%s: %s", cedula, e)
+            logger.warning("Lockout activado tras %d fallos", current)
+    except Exception:
+        logger.warning("No se pudo registrar fallo de lockout")
 
 
 limiter = Limiter(

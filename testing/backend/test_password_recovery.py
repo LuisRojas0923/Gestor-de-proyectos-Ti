@@ -65,7 +65,9 @@ async def test_reset_password_success(fast_client, db_session):
     db_session.add(usuario)
     await db_session.commit()
 
-    token = ServicioAuth.crear_token_recuperacion(usuario_id)
+    token = ServicioAuth.crear_token_recuperacion(
+        usuario_id, usuario.hash_contrasena
+    )
     nueva_clave = "NuevaClaveSuperSegura123!"
 
     response = await fast_client.post("/auth/reset-password", json={
@@ -77,6 +79,10 @@ async def test_reset_password_success(fast_client, db_session):
 
     await db_session.refresh(usuario)
     assert ServicioAuth.verificar_contrasena(nueva_clave, usuario.hash_contrasena)
+    replay = await fast_client.post("/auth/reset-password", json={
+        "token": token, "nueva_contrasena": "OtroCambio123!"
+    })
+    assert replay.status_code == 400
 
 
 @pytest.mark.asyncio

@@ -6,14 +6,7 @@ logger = logging.getLogger(__name__)
 
 
 async def safe_execute(conn, query: str) -> None:
-    try:
-        await conn.execute(text(query))
-    except Exception as exc:
-        logger.warning(
-            "Error (ignorado) en migración auditoria_acciones_usuario: %s | Query: %s...",
-            exc,
-            query[:60],
-        )
+    await conn.execute(text(query))  # @audit-ok: el job propaga cualquier fallo
 
 
 async def crear_tabla_auditoria_acciones(conn) -> None:

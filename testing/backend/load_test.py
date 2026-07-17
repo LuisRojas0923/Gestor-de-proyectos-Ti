@@ -24,7 +24,7 @@ load_dotenv()
 
 # Credenciales desde .env
 USER_CEDULA = os.getenv("USER", "admin")
-USER_PASS = os.getenv("PASSWORD", "admin123")
+USER_PASS = os.getenv("PASSWORD", "")
 
 
 class UsuarioPortal(HttpUser):

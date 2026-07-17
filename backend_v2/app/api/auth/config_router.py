@@ -3,7 +3,6 @@ Router de Configuración Global del Sistema - Backend V2
 """
 import asyncio
 import logging
-from datetime import datetime, timezone
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -21,6 +20,7 @@ from app.models.auth.usuario import (
 )
 from app.api.auth.profile_router import obtener_usuario_actual_db
 from app.services.auth.servicio import ServicioAuth
+from app.services.auth.protected_rbac_service import actualizar_modulo_protegido
 from app.core.config import obtener_configuracion
 from app.core.rate_limiter import limiter
 
@@ -33,15 +33,6 @@ router = APIRouter(prefix="/config", tags=["configuracion"])
 
 class VerificarAccesoRequest(BaseModel):
     password: str = Field(min_length=8, max_length=128)
-
-
-class CrearModuloRequest(BaseModel):
-    id: str = Field(min_length=1, max_length=100)
-    nombre: Optional[str] = Field(default=None, max_length=100)
-    categoria: Optional[str] = Field(default="otros", max_length=50)
-    descripcion: Optional[str] = Field(default=None, max_length=255)
-    esta_activo: bool = True
-    es_critico: bool = False
 
 
 class ActualizarMetadatosModuloRequest(BaseModel):
@@ -205,9 +196,9 @@ async def toggle_modulo_global(
                 detail=f"El módulo '{modulo.nombre}' es crítico y no puede desactivarse"
             )
 
-        modulo.esta_activo = payload.esta_activo
-        modulo.actualizado_en = datetime.now(timezone.utc)
-
+        await actualizar_modulo_protegido(
+            db, usuario_actual.id, modulo_id, esta_activo=payload.esta_activo
+        )
         await db.commit()
         await db.refresh(modulo)
         return modulo
@@ -215,74 +206,6 @@ async def toggle_modulo_global(
         await db.rollback()
         logger.error("Error DB en toggle_modulo_global: %s", e)
         raise HTTPException(status_code=503, detail="Error de base de datos al actualizar módulo")
-
-
-@router.post("/modulos", response_model=ModuloPublico)
-async def crear_modulo_sistema(
-    payload: CrearModuloRequest,
-    db: AsyncSession = Depends(obtener_db),
-    usuario_actual: Usuario = Depends(obtener_usuario_actual_db),
-):
-    """Registra manualmente un nuevo módulo en el sistema."""
-    if usuario_actual.rol != "admin":
-        raise HTTPException(status_code=403, detail="Permisos insuficientes")
-
-    try:
-        nuevo_modulo = ModuloSistema(
-            id=payload.id,
-            nombre=payload.nombre or payload.id.title(),
-            categoria=payload.categoria or "otros",
-            descripcion=payload.descripcion,
-            esta_activo=payload.esta_activo,
-            es_critico=payload.es_critico,
-        )
-
-        db.add(nuevo_modulo)
-        await db.commit()
-        await db.refresh(nuevo_modulo)
-        return nuevo_modulo
-    except SQLAlchemyError as e:
-        await db.rollback()
-        logger.error("Error DB en crear_modulo_sistema: %s", e)
-        raise HTTPException(status_code=503, detail="Error al registrar módulo")
-
-
-@router.post("/init-modulos")
-async def inicializar_modulos_sistema(
-    db: AsyncSession = Depends(obtener_db),
-    usuario_actual: Usuario = Depends(obtener_usuario_actual_db),
-):
-    """Sincroniza dinámicamente el catálogo de módulos desde los permisos existentes."""
-    if usuario_actual.rol != "admin":
-        raise HTTPException(status_code=403, detail="Solo admin puede inicializar")
-
-    from app.models.auth.usuario import PermisoRol
-    try:
-        result_modulos = await db.execute(select(PermisoRol.modulo).distinct())
-        modulos_descubiertos = result_modulos.scalars().all()
-
-        count: int = 0
-        for mod_id in modulos_descubiertos:
-            if not mod_id:
-                continue
-            exists = await db.get(ModuloSistema, mod_id)
-            if not exists:
-                nuevo_m = ModuloSistema(
-                    id=mod_id,
-                    nombre=mod_id.replace("_", " ").replace("-", " ").title(),
-                    categoria="otros",
-                    esta_activo=True,
-                    es_critico=False,
-                )
-                db.add(nuevo_m)
-                count = count + 1
-
-        await db.commit()
-        return {"message": f"Se sincronizaron {count} módulos nuevos descubiertos."}
-    except SQLAlchemyError as e:
-        await db.rollback()
-        logger.error("Error DB en inicializar_modulos_sistema: %s", e)
-        raise HTTPException(status_code=503, detail="Error de base de datos al inicializar módulos")
 
 
 @router.get("/public/check-modules")
@@ -314,17 +237,15 @@ async def actualizar_metadatos_modulo(
     if not modulo:
         raise HTTPException(status_code=404, detail="Módulo no encontrado")
 
-    if payload.nombre is not None:
-        modulo.nombre = payload.nombre
-    if payload.categoria is not None:
-        modulo.categoria = payload.categoria
-    if payload.descripcion is not None:
-        modulo.descripcion = payload.descripcion
-    if payload.es_critico is not None:
-        modulo.es_critico = payload.es_critico
-
-    modulo.actualizado_en = datetime.now(timezone.utc)
-
+    await actualizar_modulo_protegido(
+        db,
+        usuario_actual.id,
+        modulo_id,
+        nombre=payload.nombre,
+        categoria=payload.categoria,
+        descripcion=payload.descripcion,
+        es_critico=payload.es_critico,
+    )
     await db.commit()
     await db.refresh(modulo)
     return modulo

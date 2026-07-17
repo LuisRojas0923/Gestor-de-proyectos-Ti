@@ -15,14 +15,43 @@ PERMISOS_HE_GRANULARES = (
 )
 
 
+async def verificar_manifiesto_rbac(db: AsyncSession):
+    """Valida módulos y permisos admin sin modificar la base de datos."""
+    modulos_requeridos = {modulo["id"] for modulo in SYSTEM_MODULES_REGISTRY}
+    modulos_result = await db.execute(
+        text("""
+            SELECT id
+            FROM modulos_sistema
+            WHERE id = ANY(:modulos)
+        """),
+        {"modulos": sorted(modulos_requeridos)},
+    )
+    modulos_existentes = set(modulos_result.scalars().all())
+
+    permisos_result = await db.execute(
+        text("""
+            SELECT modulo
+            FROM permisos_rol
+            WHERE rol = 'admin' AND permitido = TRUE AND modulo = ANY(:modulos)
+        """),
+        {"modulos": sorted(modulos_requeridos)},
+    )
+    permisos_admin = set(permisos_result.scalars().all())
+    faltantes = (
+        (modulos_requeridos - modulos_existentes)
+        | (modulos_requeridos - permisos_admin)
+    )
+    if faltantes:
+        raise RuntimeError("RBAC incompleto: faltan módulos o permisos requeridos")
+
+
 async def sincronizar_manifiesto_rbac(db: AsyncSession):
     """
     Auto-descubrimiento y sincronización de los módulos RBAC definidos
-    en el manifiesto hacia la base de datos local en el arranque de FastAPI.
+    en el manifiesto, ejecutada exclusivamente por el job migrador.
 
-    Usa INSERT ... ON CONFLICT (upsert nativo PostgreSQL) para módulos,
-    y SELECT + INSERT para permisos (sin constraint único en permisos_rol).
-    100% inmune a colisiones entre workers concurrentes de Uvicorn.
+    Usa UPSERT nativo PostgreSQL bajo el advisory lock del job migrador.
+    Conserva el estado de activación elegido por el administrador.
     """
     logger.info("Iniciando Auto-Discovery de Módulos RBAC...")
 
@@ -34,16 +63,13 @@ async def sincronizar_manifiesto_rbac(db: AsyncSession):
                 nombre      = EXCLUDED.nombre,
                 categoria   = EXCLUDED.categoria,
                 descripcion = COALESCE(EXCLUDED.descripcion, modulos_sistema.descripcion),
-                es_critico  = EXCLUDED.es_critico,
-                esta_activo = TRUE
+                es_critico  = EXCLUDED.es_critico
         """)
 
-        check_permiso = text("""
-            SELECT 1 FROM permisos_rol WHERE rol = :rol AND modulo = :modulo LIMIT 1
-        """)
-
-        insert_permiso = text("""
-            INSERT INTO permisos_rol (rol, modulo, permitido) VALUES (:rol, :modulo, TRUE)
+        upsert_permiso = text("""
+            INSERT INTO permisos_rol (rol, modulo, permitido)
+            VALUES (:rol, :modulo, TRUE)
+            ON CONFLICT (rol, modulo) DO UPDATE SET permitido = TRUE
         """)
 
         roles_con_he_legacy = text("""
@@ -71,20 +97,15 @@ async def sincronizar_manifiesto_rbac(db: AsyncSession):
             )
             modulos_sincronizados += 1
 
-            # Garantizar permiso de admin (check + insert)
-            existe = await db.execute(check_permiso, {"rol": "admin", "modulo": mod_id})
-            if existe.first() is None:
-                await db.execute(insert_permiso, {"rol": "admin", "modulo": mod_id})
-                permisos_reparados += 1
+            await db.execute(upsert_permiso, {"rol": "admin", "modulo": mod_id})
+            permisos_reparados += 1
 
         permisos_he_migrados = 0
         roles_legacy = (await db.execute(roles_con_he_legacy)).scalars().all()
         for rol in roles_legacy:
             for modulo in PERMISOS_HE_GRANULARES:
-                existe = await db.execute(check_permiso, {"rol": rol, "modulo": modulo})
-                if existe.first() is None:
-                    await db.execute(insert_permiso, {"rol": rol, "modulo": modulo})
-                    permisos_he_migrados += 1
+                await db.execute(upsert_permiso, {"rol": rol, "modulo": modulo})
+                permisos_he_migrados += 1
 
         await db.commit()
         logger.info(
@@ -94,6 +115,7 @@ async def sincronizar_manifiesto_rbac(db: AsyncSession):
             f"{permisos_he_migrados} permisos HE granulares migrados."
         )
 
-    except Exception as e:
+    except Exception:
         await db.rollback()
-        logger.error(f"Error crítico durante el Auto-Discovery RBAC: {e}")
+        logger.error("Error crítico durante el Auto-Discovery RBAC")
+        raise

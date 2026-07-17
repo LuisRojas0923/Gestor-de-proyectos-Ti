@@ -18,8 +18,8 @@ Ubicación: `testing/backend/`
 
 | Módulo | Archivo | Descripción | Estado |
 | :--- | :--- | :--- | :--- |
-| **Infra Health** | `test_infrastructure.py` | **Crítico**: Escritura en disco (Adjuntos) y Puente ERP. | ✅ PASSED |
-| **Regresiones** | `test_regresiones.py` | **Master Health Check**: Ciclo de vida, Adjuntos y RBAC. | ✅ 3 PASSED / 3 SKIPPED sin credenciales de prueba |
+| **Infra Health** | `test_infrastructure.py` | **Crítico**: Escritura en disco (Adjuntos) y Puente ERP. | ⚠️ 1 PASSED / 1 SKIPPED sin ERP objetivo |
+| **Regresiones** | `test_regresiones.py` | **Master Health Check**: Ciclo de vida, Adjuntos y RBAC. | ⚠️ 3 PASSED / 3 SKIPPED ERP tras cutover; aceptación FastAPI aislada OK |
 | **Autenticación** | `test_auth_verification.py` | Verificación de correo y flujo de seguridad. | ✅ PASSED |
 | **Autogestión ERP Auth** | `test_autogestion_usuarios_erp.py` | JIT, registro público y validación fail-closed contra empleados activos del ERP. | ✅ PASSED |
 | **Setup Password** | `test_setup_password.py` | Configuración de contraseña primera vez (setup-password), estado (password-status) y login con password no configurado. | ⚠️ BLOQUEADO LOCAL: credenciales PostgreSQL |
@@ -68,6 +68,10 @@ Ubicación: `testing/backend/`
 | **Alcance Gestor-Empleado** | `test_alcance_empleados.py` | Cédula canónica, M:N, límites bulk, autoedición, bypass admin, filtros/facetas, IDOR, RBAC y ciclo de sesión ERP. | ✅ PASSED (reporte focal) |
 | **Actualización de Tickets** | `test_ticket_update_errors.py` | Preserva errores HTTP de negocio, sanea fallos inesperados, garantiza rollback y mantiene el evento WebSocket si falla una notificación nativa. | ✅ PASSED |
 | **Horarios Migración/Integridad** | `test_horarios_migracion_seguridad.py` | Reparación de constraints PostgreSQL, rechazo de datos inválidos, triggers append-only y propagación de fallo crítico. | ✅ PASSED (reporte final) |
+| **Startup/Migrador Fase 1P** | `test_startup_migration_roles.py` | Startup verify-only, job exclusivo, capacidad por archivo, sesiones hasheadas, schemas estrictos, namespace/ACL, ausencia de DDL runtime y allowlist. | ✅ 30 PASSED |
+| **Sesión/Identidad Fase 1P** | `test_phase1p_auth_security.py` | Revocación fail-closed, refresh, reset CAS, guard JWT, onboarding de analistas, carrera de creación y payload MCP estricto. | ✅ 9 PASSED |
+| **Autorización HTTP Fase 1P** | `test_phase1p_endpoint_security.py` | Scope MCP persistido, bloqueo de mutaciones REST, Panel Control autenticado, PII de lockout hasheada, recuperación uniforme, migrador sin JWT y módulos RBAC protegidos. | ✅ 8 PASSED |
+| **Roles PostgreSQL Fase 1P** | `test_startup_migration_roles_postgres.py` | Dos migradores reales, FastAPI/Redis, reset concurrente, MCP, identidad protegida, namespace/ACL/trigger exactos y reparación de auditoría. | ✅ 1 PASSED en PostgreSQL 15 aislado |
 | **Horarios Seguridad HTTP** | `test_horarios_security_http.py` | IDOR de cálculo, alcance SQL GeoFace, redacción de cédulas y `Cache-Control: no-store, private`. | ✅ PASSED (reporte final) |
 | **Planificador Savepoints** | `test_planificador_savepoints.py` | Identidad canónica, éxito/error/éxito con savepoints y ciclo de sesión ERP del worker OT. | ✅ PASSED (reporte final) |
 | **Horarios Segunda Revisión** | `test_horarios_segunda_revision.py` | IDOR antes de ERP, cédula canónica, recursos indirectos, GeoFace relacionado/no relacionado, RBAC, jefe contractual, ERP `503`, disponibilidad VAC/INC/LIC y overrides GET/POST con alcance, admin, canonicalización y no-store. | ✅ PASSED (incluida en 154) |

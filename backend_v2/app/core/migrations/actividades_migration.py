@@ -4,11 +4,8 @@ from sqlalchemy import text
 logger = logging.getLogger(__name__)
 
 async def safe_execute(conn, query: str):
-    """Ejecuta una sentencia SQL de forma segura."""
-    try:
-        await conn.execute(text(query))
-    except Exception as e:
-        logger.warning(f"Error (ignorado) en migración de actividades: {e} | Query: {query[:50]}...")
+    """Ejecuta una sentencia y propaga cualquier fallo al job migrador."""
+    await conn.execute(text(query))  # @audit-ok: el job propaga cualquier fallo
 
 async def migrar_estados_actividades(conn):
     """

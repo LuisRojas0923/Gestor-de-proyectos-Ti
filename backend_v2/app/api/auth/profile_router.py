@@ -4,13 +4,15 @@ from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import obtener_db, obtener_erp_db_opcional
-from app.models.auth.usuario import Sesion, Usuario, UsuarioPublico, PasswordCambiar, EmailActualizar
+from app.models.auth.usuario import Usuario, UsuarioPublico, PasswordCambiar, EmailActualizar
 from app.database import AsyncSessionLocal
 from app.models.auditoria.accion_usuario import AccionAuditoria
 from app.services.auditoria.servicio import ServicioAuditoria
 from app.services.auth.servicio import ServicioAuth
 from app.services.erp import EmpleadosService
 from app.services.notifications.email_service import EmailService
+from app.services.auth.sesion_service import validar_sesion_activa
+from app.services.auth.protected_identity_service import actualizar_correo_protegido
 from app.utils_date import get_bogota_now
 
 logger = logging.getLogger(__name__)
@@ -44,26 +46,20 @@ async def obtener_usuario_actual_db(
         if not cedula:
             raise HTTPException(401, "Token sin sujeto")
 
-        # ── Validacion especifica para tokens MCP ──
-        if payload.get("token_type") == "mcp":
-            jti = payload.get("jti")
-            if not jti:
-                raise HTTPException(401, "Token MCP sin jti")
-            sesion = (
-                await db.execute(
-                    select(Sesion).where(
-                        Sesion.jti == jti,
-                        Sesion.tipo_sesion == "mcp",
-                    )
-                )
-            ).scalars().first()
-            # Chequear primero si la sesion existe antes de acceder a sus atributos
-            if not sesion:
-                raise HTTPException(401, "Token MCP revocado o expirado")
-            # Normalizar: sesion.expira_en viene AWARE (asyncpg), get_bogota_now() es naive
-            expira_naive = sesion.expira_en.replace(tzinfo=None) if sesion.expira_en else None
-            if sesion.fin_sesion is not None or (expira_naive and expira_naive < get_bogota_now()):
-                raise HTTPException(401, "Token MCP revocado o expirado")
+        es_mcp = payload.get("token_type") == "mcp"
+        jti = payload.get("jti") if es_mcp else None
+        if es_mcp and not jti:
+            raise HTTPException(401, "Token MCP sin jti")
+        sesion = await validar_sesion_activa(db, token, jti)
+        if not sesion:
+            raise HTTPException(401, "Token revocado o expirado")
+        if es_mcp:
+            scope = payload.get("scope", "read")
+            if scope not in ("read", "write") or sesion.scope != scope:
+                raise HTTPException(401, "Scope MCP inválido")
+            if request.method.upper() not in ("GET", "HEAD", "OPTIONS"):
+                raise HTTPException(403, "Los tokens MCP no pueden mutar la API REST")
+            request.state.mcp_scope = scope
             # Throttle: actualizar ultima_actividad_en solo si > 5 min desde la ultima
             ahora = get_bogota_now()
             ultima = sesion.ultima_actividad_en.replace(tzinfo=None) if sesion.ultima_actividad_en else None
@@ -113,14 +109,17 @@ async def obtener_usuario_actual_db(
             request.state.token_type = payload.get("token_type", "session")
             return usuario
 
+        if not usuario.esta_activo:
+            raise HTTPException(401, "Usuario inactivo")
+
         # Si el usuario es local y no tiene area/sede pero hay ERP disponible, sincronizar:
         if db_erp and (not usuario.area or not usuario.sede):
             try:
                 usuario = await ServicioAuth.sincronizar_perfil_desde_erp(
                     db, db_erp, usuario
                 )
-            except Exception as e:
-                print(f"DEBUG: ERP no disponible o fallo en sincronizacion local: {e}")
+            except Exception:
+                logger.warning("ERP no disponible durante sincronización de perfil")
 
         request.state.usuario_id = usuario.id
         request.state.usuario_nombre = usuario.nombre
@@ -129,10 +128,10 @@ async def obtener_usuario_actual_db(
         return usuario
     except HTTPException:
         raise
-    except Exception as e:
+    except Exception:
         logger.exception("obtener_usuario_actual_db: error inesperado")
         raise HTTPException(
-            status_code=500, detail=f"Error al validar usuario: {str(e)}"
+            status_code=500, detail="Error al validar usuario"
         )
 
 
@@ -166,7 +165,7 @@ async def obtener_usuario_actual(
     if not permisos and (usuario.rol == "usuario" or usuario.rol == "user"):
         permisos = ["service-portal"]
 
-    user_data = usuario.model_dump()
+    user_data = usuario.model_dump(exclude={"hash_contrasena"})
     user_data["permissions"] = permisos
     user_data["email_needs_update"] = not usuario.correo_actualizado
     user_data["password_set"] = ServicioAuth.es_password_configurado(usuario.hash_contrasena, usuario.cedula)
@@ -231,9 +230,9 @@ async def cambiar_contrasena(
         raise
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
+    except Exception:
         raise HTTPException(
-            status_code=500, detail=f"Error al cambiar contrasena: {str(e)}"
+            status_code=500, detail="Error al cambiar contraseña"
         )
 
 
@@ -256,8 +255,8 @@ async def actualizar_correo(
             exito_erp = await EmpleadosService.actualizar_correo_erp(
                 db_erp, usuario.cedula, datos.correo
             )
-    except Exception as e:
-        print(f"DEBUG: Error conectando a ERP para actualizar correo: {e}")
+    except Exception:
+        logger.warning("Error conectando a ERP para actualizar correo")
         # No bloqueamos si el ERP falla, pero notificamos el error
         raise HTTPException(status_code=503, detail="No se pudo conectar con el ERP para actualizar el correo")
 
@@ -266,10 +265,9 @@ async def actualizar_correo(
 
     # 3. Actualizar localmente
     try:
-        usuario.correo = datos.correo
-        usuario.correo_actualizado = True
-        usuario.correo_verificado = False  # Resetear verificacion al cambiar correo
-        db.add(usuario)
+        await actualizar_correo_protegido(
+            db, usuario.id, datos.correo, True, False
+        )
         await db.commit()
         await db.refresh(usuario)
         
@@ -288,15 +286,15 @@ async def actualizar_correo(
                 )
         except HTTPException:
             raise
-        except Exception as e:
-            print(f"WARNING: No se pudo enviar correo de verificacion: {e}")
+        except Exception:
+            logger.warning("No se pudo enviar correo de verificación")
 
         return usuario
     except HTTPException:
         raise
-    except Exception as e:
+    except Exception:
         await db.rollback()
-        raise HTTPException(status_code=500, detail=f"Error al actualizar registro local: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error al actualizar registro local")
 
 
 @router.get("/verify-email")
@@ -323,24 +321,25 @@ async def confirmar_correo(
         if usuario.correo_verificado:
             return {"message": "El correo ya estaba verificado"}
             
-        usuario.correo_verificado = True
-        db.add(usuario)
+        await actualizar_correo_protegido(
+            db, usuario.id, usuario.correo, True, True
+        )
         await db.commit()
         
         # Enviar notificación de éxito
         try:
             await EmailService.enviar_exito_verificacion(usuario.correo, usuario.nombre)
-        except Exception as e:
-            print(f"WARNING: No se pudo enviar confirmación de éxito: {e}")
+        except Exception:
+            logger.warning("No se pudo enviar confirmación de verificación")
         
         return {"message": "Correo verificado exitosamente"}
     except HTTPException:
         raise
-    except Exception as e:
+    except Exception:
         await db.rollback()
         raise HTTPException(
-            status_code=500, 
-            detail=f"Error inesperado durante la verificación: {str(e)}"
+            status_code=500,
+            detail="Error inesperado durante la verificación"
         )
 
 
@@ -371,5 +370,5 @@ async def reenviar_verificacion(
         return {"message": "Correo de verificación reenviado"}
     except HTTPException:
         raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al enviar el correo: {str(e)}")
+    except Exception:
+        raise HTTPException(status_code=500, detail="Error al enviar el correo")

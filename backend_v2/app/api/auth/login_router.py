@@ -106,6 +106,11 @@ async def login(
                             status_code=400,
                             detail="La contraseña no puede ser igual a la cédula. Por favor, elige una contraseña diferente.",
                         )
+                    if not config.portal_pending_pwd:
+                        raise HTTPException(
+                            status_code=503,
+                            detail="El alta automática no está disponible temporalmente.",
+                        )
                     hash_pendiente = ServicioAuth.obtener_hash_contrasena(config.portal_pending_pwd)
                     id_usuario = f"USR-P-{cedula_normalizada}"
                     viaticante_val = normalizar_bool_erp(empleado.get("viaticante"))
@@ -277,8 +282,7 @@ async def logout(
 
         exito = await ServicioAuth.marcar_fin_sesion(db, token)
         if not exito:
-            # No lanzamos error para que el frontend pueda limpiar localmente de todos modos
-            logger.info("No se encontro sesion activa para el token al intentar logout")
+            raise HTTPException(status_code=401, detail="Sesion no activa")
 
         if usuario:
             correlacion_id = getattr(request.state, "correlacion_id", None)
@@ -298,6 +302,8 @@ async def logout(
                 )
 
         return {"message": "Sesion cerrada correctamente"}
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error("Logout API error", exc_info=True, extra={"detail": enmascarar_pii(str(e))})
-        return {"message": "Sesion cerrada localmente con errores en servidor"}
+        raise HTTPException(status_code=503, detail="No fue posible cerrar la sesion")

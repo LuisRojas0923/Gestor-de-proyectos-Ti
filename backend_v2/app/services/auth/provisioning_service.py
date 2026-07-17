@@ -2,6 +2,7 @@
 Servicio de aprovisionamiento de usuarios desde ERP - Backend V2 (Async + SQLModel)
 """
 
+import secrets
 from typing import Optional
 
 from sqlalchemy.exc import IntegrityError
@@ -18,7 +19,7 @@ MENSAJE_AUTOGESTION_NO_HABILITADA = (
 
 
 async def crear_analista_desde_erp(
-    db: AsyncSession, db_erp, cedula: str
+    db: AsyncSession, db_erp, cedula: str, actor_id: str
 ) -> Usuario:
     """Consulta al ERP y crea un usuario analista si existe (Async)."""
     from .servicio import ServicioAuth
@@ -35,7 +36,7 @@ async def crear_analista_desde_erp(
 
     # 3. Crear usuario
     id_usuario = f"USR-{cedula}"
-    hash_pwd = ServicioAuth.obtener_hash_contrasena(cedula)
+    hash_pwd = ServicioAuth.obtener_hash_contrasena(secrets.token_urlsafe(48))
     correo_erp = (
         datos_erp.get("correocorporativo").strip()
         if datos_erp.get("correocorporativo")
@@ -57,11 +58,18 @@ async def crear_analista_desde_erp(
         viaticante=datos_erp.get("viaticante"),
         baseviaticos=datos_erp.get("baseviaticos"),
         correo_actualizado=bool(correo_erp),
-        correo_verificado=False,
+        correo_verificado=bool(correo_erp),
     )
 
-    db.add(nuevo_usuario)
-    await db.commit()
+    try:
+        db.add(nuevo_usuario)
+        await db.flush()
+        from app.services.auth.protected_identity_service import actualizar_rol_protegido
+        await actualizar_rol_protegido(db, actor_id, nuevo_usuario.id, "analyst")
+        await db.commit()
+    except IntegrityError:
+        await db.rollback()
+        raise ValueError("El usuario ya existe en el sistema")
     await db.refresh(nuevo_usuario)
 
     # 4. Notificar bienvenida/seguridad

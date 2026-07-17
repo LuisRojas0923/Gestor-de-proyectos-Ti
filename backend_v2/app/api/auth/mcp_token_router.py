@@ -16,7 +16,7 @@ from app.core.rate_limiter import (
     limiter,
 )
 from app.database import obtener_db
-from app.models.auth.usuario import Usuario
+from app.models.auth.usuario import McpTokenCrear, Usuario
 from app.services.auth.servicio import ServicioAuth, enmascarar_pii
 
 
@@ -28,7 +28,7 @@ _settings = obtener_configuracion()
 @limiter.limit(_settings.rate_limit_mcp_token, key_func=_mcp_token_key_func)
 async def emitir_token_mcp(
     request: Request,
-    payload: dict,
+    payload: McpTokenCrear,
     usuario_actual: Usuario = Depends(obtener_usuario_actual_db),
     db: AsyncSession = Depends(obtener_db),
 ):
@@ -54,9 +54,9 @@ async def emitir_token_mcp(
     return await svc(
         db,
         usuario_actual,
-        vigencia_dias=payload.get("vigencia_dias", 30),
-        scope=payload.get("scope", "read"),
-        motivo=enmascarar_pii(payload.get("motivo", "")),
+        vigencia_dias=payload.vigencia_dias,
+        scope=payload.scope,
+        motivo=enmascarar_pii(payload.motivo),
         direccion_ip=request.client.host if request.client else None,
     )
 

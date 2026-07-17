@@ -11,9 +11,8 @@ async def reparar_todas_las_secuencias(conn):
     logger.info("Iniciando saneamiento de secuencias de base de datos...")
     
     # 1. Reparación específica para Tickets (Formato TKT-XXXX)
-    try:
-        # Extraemos la parte numérica después de 'TKT-'
-        sql_tickets = """
+    # Extraemos la parte numérica después de 'TKT-'
+    sql_tickets = """
         DO $$
         DECLARE
             max_val INTEGER;
@@ -26,16 +25,13 @@ async def reparar_todas_las_secuencias(conn):
                 PERFORM setval('ticket_id_seq', max_val, true);
             END IF;
         END $$;
-        """
-        await conn.execute(text(sql_tickets))
-        logger.info("Secuencia 'ticket_id_seq' sincronizada exitosamente.")
-    except Exception as e:
-        logger.warning(f"No se pudo sincronizar 'ticket_id_seq' (puede que no exista aún): {e}")
+    """
+    await conn.execute(text(sql_tickets))  # @audit-ok: el job propaga cualquier fallo
+    logger.info("Secuencia 'ticket_id_seq' sincronizada exitosamente.")
 
     # 2. Reparación genérica para todas las demás secuencias (SERIAL / IDENTITY)
-    try:
-        # Esta consulta genera dinámicamente sentencias setval para cada secuencia encontrada
-        sql_generico = """
+    # Esta consulta genera dinámicamente sentencias setval para cada secuencia encontrada
+    sql_generico = """
         DO $$
         DECLARE
             row RECORD;
@@ -62,10 +58,8 @@ async def reparar_todas_las_secuencias(conn):
                 END IF;
             END LOOP;
         END $$;
-        """
-        await conn.execute(text(sql_generico))
-        logger.info("Todas las secuencias SERIAL/IDENTITY han sido sincronizadas.")
-    except Exception as e:
-        logger.error(f"Error durante el saneamiento genérico de secuencias: {e}")
+    """
+    await conn.execute(text(sql_generico))  # @audit-ok: el job propaga cualquier fallo
+    logger.info("Todas las secuencias SERIAL/IDENTITY han sido sincronizadas.")
 
     logger.info("Saneamiento de base de datos completado.")

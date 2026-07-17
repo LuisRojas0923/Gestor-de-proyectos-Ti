@@ -13,12 +13,15 @@ from app.database import obtener_db
 from app.utils_cache import global_cache
 from app.utils_date import get_bogota_now
 from app.services.ticket.mantenimiento_service import ServicioMantenimientoTicket
+from app.api.auth.profile_router import obtener_usuario_actual_db
+from app.api.panel_control.dependencies import requerir_admin_panel
+from app.services.auth.servicio import ServicioAuth
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(obtener_usuario_actual_db)])
 
 
 @router.post("/mantenimiento/limpiar-tickets")
-async def ejecutar_limpieza_tickets(db: AsyncSession = Depends(obtener_db)):
+async def ejecutar_limpieza_tickets(db: AsyncSession = Depends(obtener_db), _=Depends(requerir_admin_panel)):
     """Ejecuta el proceso de auto-cierre de tickets resueltos (>24h)"""
     try:
         procesados = (
@@ -29,7 +32,7 @@ async def ejecutar_limpieza_tickets(db: AsyncSession = Depends(obtener_db)):
             "tickets_cerrados": procesados,
         }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error en mantenimiento: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error en mantenimiento")
 
 
 @router.get("/metricas")
@@ -282,26 +285,27 @@ async def obtener_distribucion_prioridad(db: AsyncSession = Depends(obtener_db))
 
 @router.post("/torre-control/heartbeat")
 async def registrar_actividad(
-    token_sesion: str, db: AsyncSession = Depends(obtener_db)
+    token_sesion: str = Depends(ServicioAuth.oauth2_scheme), db: AsyncSession = Depends(obtener_db)
 ):
     """Actualiza la marca de tiempo de la última actividad de una sesión"""
     try:
         from app.models.auth.usuario import Sesion
+        from app.services.auth.sesion_service import hash_token_sesion
         from sqlalchemy import update
 
         await db.execute(
             update(Sesion)
-            .where(Sesion.token_sesion == token_sesion)
+            .where(Sesion.token_sesion == hash_token_sesion(token_sesion))
             .values(ultima_actividad_en=get_bogota_now())
         )
         await db.commit()
         return {"status": "ok"}
-    except Exception as e:
-        return {"status": "error", "detail": str(e)}
+    except Exception:
+        raise HTTPException(status_code=500, detail="Error al registrar actividad")
 
 
 @router.get("/torre-control/estado")
-async def obtener_estado_sistema(db: AsyncSession = Depends(obtener_db)):
+async def obtener_estado_sistema(db: AsyncSession = Depends(obtener_db), _=Depends(requerir_admin_panel)):
     """Retorna el estado detallado de salud y actividad del sistema"""
     try:
         from app.models.auth.usuario import Sesion, Usuario
@@ -387,12 +391,12 @@ async def obtener_estado_sistema(db: AsyncSession = Depends(obtener_db)):
         import logging
 
         logging.error(f"Error en torre-control/estado: {e}")
-        return {"error": str(e)}
+        return {"error": "Error interno"}
 
 
 @router.get("/torre-control/historial")
 async def obtener_historial_metricas(
-    horas: int = 24, db: AsyncSession = Depends(obtener_db)
+    horas: int = 24, db: AsyncSession = Depends(obtener_db), _=Depends(requerir_admin_panel)
 ):
     """Retorna el historial de métricas para gráficas de tendencias"""
     try:
@@ -426,7 +430,7 @@ async def obtener_historial_metricas(
 
 
 @router.get("/torre-control/sesiones-activas")
-async def obtener_sesiones_activas(db: AsyncSession = Depends(obtener_db)):
+async def obtener_sesiones_activas(db: AsyncSession = Depends(obtener_db), _=Depends(requerir_admin_panel)):
     """Retorna lista de sesiones ÚNICAS por usuario que no han cerrado sesion"""
     try:
         from app.models.auth.usuario import Sesion
