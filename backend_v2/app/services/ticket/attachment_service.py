@@ -3,7 +3,10 @@ from pathlib import Path
 from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.ticket.ticket import AdjuntoTicket, AdjuntoCrear, HistorialTicket
-from app.config import config
+from app.core.config import obtener_configuracion
+
+
+config = obtener_configuracion()
 
 
 class AttachmentService:

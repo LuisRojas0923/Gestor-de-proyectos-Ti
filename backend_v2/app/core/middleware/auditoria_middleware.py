@@ -178,11 +178,9 @@ async def auditoria_http_middleware(request: Request, call_next) -> Response:
 
         logger.debug(
 
-            "Auditoría omitida (sin actor): %s %s",
+            "Auditoría omitida (sin actor): %s",
 
             request.method,
-
-            request.url.path,
 
         )
 

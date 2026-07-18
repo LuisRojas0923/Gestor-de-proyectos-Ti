@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useId } from 'react';
 import { Text } from './Text';
 
 interface SelectOption {
@@ -18,6 +18,7 @@ interface SelectProps {
     helperText?: string;
     size?: 'xs' | 'sm' | 'md' | 'lg';
     className?: string;
+    id?: string;
     name?: string;
     ariaLabel?: string;
     onChange?: (e: React.ChangeEvent<HTMLSelectElement>) => void;
@@ -37,12 +38,22 @@ const Select: React.FC<SelectProps> = ({
     helperText,
     size = 'md',
     className = '',
+    id,
     name,
     ariaLabel,
     onChange,
     onFocus,
     onBlur,
 }) => {
+    const generatedId = useId();
+    const selectId = id ?? generatedId;
+    const errorId = `${selectId}-error`;
+    const helperId = `${selectId}-helper`;
+    const describedBy = error && errorMessage
+        ? errorId
+        : helperText
+            ? helperId
+            : undefined;
     const baseClasses = 'w-full border rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed';
 
     const sizeClasses = {
@@ -61,19 +72,23 @@ const Select: React.FC<SelectProps> = ({
     return (
         <div className={`w-full ${className}`}>
             {label && (
-                <Text as="label" variant="body2" weight="medium" color="text-primary" className="mb-1 block">
+                <Text as="label" htmlFor={selectId} variant="body2" weight="medium" color="text-primary" className="mb-1 block">
                     {label}
                     {required && <Text as="span" color="error" className="ml-1">*</Text>}
                 </Text>
             )}
 
             <select // @audit-ok
+                id={selectId}
                 value={value}
                 defaultValue={defaultValue}
                 disabled={disabled}
                 required={required}
                 name={name}
                 aria-label={ariaLabel}
+                aria-required={required}
+                aria-invalid={error}
+                aria-describedby={describedBy}
                 onChange={onChange}
                 onFocus={onFocus}
                 onBlur={onBlur}
@@ -87,11 +102,11 @@ const Select: React.FC<SelectProps> = ({
             </select>
 
             {error && errorMessage && (
-                <Text variant="caption" color="error" className="mt-1">{errorMessage}</Text>
+                <Text id={errorId} variant="caption" color="error" className="mt-1">{errorMessage}</Text>
             )}
 
             {!error && helperText && (
-                <Text variant="caption" color="text-secondary" className="mt-1">{helperText}</Text>
+                <Text id={helperId} variant="caption" color="text-secondary" className="mt-1">{helperText}</Text>
             )}
         </div>
     );

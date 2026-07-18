@@ -260,10 +260,59 @@
         "low": 2
       },
       "test_coverage_observations": "Revisión estática desde worktree base confiable, sin ejecutar candidata. Evidencia remota: backend 85 failed/322 passed/33 skipped/2 errors, dos fallos SALDO_FAVOR; frontend lint 552 y tsc/Vitest/build omitidos. El head cambia contratos SALDO_FAVOR y límite HdiPreview a 15 MiB sin actualizar tests; limiter global deshabilitado; pruebas ZIP no demuestran miembros/duplicados/SHA ni ruta real de rollback; catálogo marca PASS de forma incorrecta."
+    },
+    {
+      "date": "2026-07-15",
+      "scope": "build de carga y descarga privada de evidencias WBS",
+      "outcome": "blocked",
+      "finding_count_by_severity": {
+        "blocking": 4,
+        "high": 4,
+        "medium": 5,
+        "low": 1
+      },
+      "test_coverage_observations": "Se recolectan 7 tests backend de evidencia y 16 de anulación; se reportan 7/7 y 16/16 passed, Vitest 2 passed y build passed. Faltan pruebas HTTP de POST/GET/DELETE, matriz completa de tipos y auditoría real, y pruebas del flujo multipart/reintento frontend. Infraestructura 1 pass/1 skip y regresiones 3 pass/3 skip quedan parciales por falta de token; lint global carece de baseline focalizado."
+    },
+    {
+      "date": "2026-07-15",
+      "scope": "re-review docs/tests de evidencias WBS tras lifecycle HTTP, middleware 413, RBAC, modal y runbook",
+      "outcome": "approved_with_risks",
+      "finding_count_by_severity": {
+        "blocking": 0,
+        "conditional_out_of_scope": 1,
+        "high": 0,
+        "medium": 7,
+        "low": 3
+      },
+      "test_coverage_observations": "Se recolectan 10 tests backend y se reportan 10 passed; cubren servicio, 413 previo al parser, lifecycle HTTP POST/GET/DELETE y RBAC. Frontend reporta 3 passed, incluido éxito parcial y reintento sin duplicar. Persisten gaps no bloqueantes de DB real/rollback/auditoría, matriz de formatos, carga exitosa/edición/refresh 401, health checks con skips y sync_docs."
+    },
+    {
+      "date": "2026-07-18",
+      "scope": "merge-activo-rbac-uploads-rate-limiter-erp-cooperativas-facturas-pii-frontend-arnes",
+      "outcome": "blocked",
+      "finding_count_by_severity": {
+        "critical": 0,
+        "high": 5,
+        "medium": 5,
+        "low": 1
+      },
+      "test_coverage_observations": "Collect-only final: 135 casos (WBS 10, cooperativas 40, ERP 14, líneas/facturas 34, auditoría 15, arnés 22). No se ejecutaron suites. Bloquean la falta de 429, concurrencia PostgreSQL real, evidencia verde del snapshot final, persistencia productiva de uploads cooperativos, catálogo sin test_cooperativas_persistencia y servicios/tests funcionales aún no rastreados."
+    },
+    {
+      "date": "2026-07-18",
+      "scope": "staged-final-docs-tests-cooperativas-facturas-storage-compose-arnes",
+      "outcome": "approved_with_risks",
+      "finding_count_by_severity": {
+        "critical": 0,
+        "high": 0,
+        "medium": 3,
+        "low": 1
+      },
+      "test_coverage_observations": "Evidencia final comunicada: backend focal 78 passed; frontend focal verde tras rerun Select; tsc, eslint, build y pre-commit PASS; arnés 22 passed y 11 adaptadores. Catálogo, volúmenes prod/Pruebas3 y guía backup/retención quedan cerrados. Riesgos residuales: carreras PostgreSQL reales, HTTP 429 y exclusión exacta de GestionTi_SoporteFiles_Pruebas3/."
     }
   ],
   "stats": {
-    "total_reviews": 21,
-    "last_review": "2026-07-17"
+    "total_reviews": 25,
+    "last_review": "2026-07-18"
   }
 }

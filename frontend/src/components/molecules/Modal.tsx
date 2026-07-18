@@ -27,7 +27,7 @@ export interface ModalProps {
     onClose: () => void;
     title?: React.ReactNode;
     children: React.ReactNode;
-    size?: 'sm' | 'md' | 'lg' | 'xl' | 'full';
+    size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl' | '5xl' | '6xl' | 'full';
     showCloseButton?: boolean;
     closeButtonDisabled?: boolean;
     closeOnOverlayClick?: boolean;
@@ -35,6 +35,8 @@ export interface ModalProps {
     className?: string; // Para clases adicionales en el contenedor
     contentClassName?: string;
     headerClassName?: string;
+    ariaLabel?: string;
+    ariaDescribedBy?: string;
 }
 
 const Modal: React.FC<ModalProps> = ({
@@ -50,12 +52,13 @@ const Modal: React.FC<ModalProps> = ({
     className = '',
     contentClassName = '',
     headerClassName = '',
+    ariaLabel,
+    ariaDescribedBy,
 }) => {
     const modalRef = useRef<HTMLDivElement>(null);
     const modalId = useRef(Symbol('modal'));
     const openerRef = useRef<HTMLElement | null>(null);
     const titleId = useId();
-
     useEffect(() => {
         if (!isOpen) return undefined;
         const id = modalId.current;
@@ -99,7 +102,11 @@ const Modal: React.FC<ModalProps> = ({
                 'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
             ) ?? [],
         );
-        if (focusables.length === 0) return;
+        if (focusables.length === 0) {
+            event.preventDefault();
+            modalRef.current?.focus();
+            return;
+        }
         const first = focusables[0];
         const last = focusables[focusables.length - 1];
         if (event.shiftKey && document.activeElement === first) {
@@ -118,7 +125,12 @@ const Modal: React.FC<ModalProps> = ({
         md: 'max-w-md',
         lg: 'max-w-lg',
         xl: 'max-w-xl',
-        full: 'max-w-full m-4',
+        '2xl': 'max-w-2xl',
+        '3xl': 'max-w-3xl',
+        '4xl': 'max-w-4xl',
+        '5xl': 'max-w-5xl',
+        '6xl': 'max-w-6xl',
+        full: 'max-w-[95vw] w-full',
     };
 
     const modalContent = (
@@ -131,8 +143,9 @@ const Modal: React.FC<ModalProps> = ({
             />
 
             {/* Modal Container */}
-            <div
+            <MaterialCard
                 ref={modalRef}
+                elevation={4}
                 className={`
           relative w-full ${sizeClasses[size]} 
           transform transition-all animate-fade-in
@@ -140,11 +153,12 @@ const Modal: React.FC<ModalProps> = ({
         `}
                 role="dialog"
                 aria-modal="true"
-                aria-labelledby={title ? titleId : undefined}
+                aria-label={ariaLabel}
+                aria-labelledby={!ariaLabel && title ? titleId : undefined}
+                aria-describedby={ariaDescribedBy}
                 tabIndex={-1}
                 onKeyDown={handleKeyDown}
             >
-                <MaterialCard elevation={4} className="!flex w-full flex-col">
                 {/* Header (Optional) */}
                 {(title || showCloseButton) && (
                     <MaterialCard.Header className={`flex items-center justify-between !py-3 !px-4 ${headerClassName}`}>
@@ -175,8 +189,7 @@ const Modal: React.FC<ModalProps> = ({
                 <MaterialCard.Content className={`!p-6 overflow-y-auto ${contentClassName}`}>
                     {children}
                 </MaterialCard.Content>
-                </MaterialCard>
-            </div>
+            </MaterialCard>
         </div>
     );
 

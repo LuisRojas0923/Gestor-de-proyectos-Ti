@@ -4,6 +4,7 @@ import Modal from '../../components/molecules/Modal';
 import { Text, Button, Badge } from '../../components/atoms';
 import { ValidationStatusBadge } from '../../components/assignments/ValidationStatusBadge';
 import { WbsActivityTree } from '../../types/wbs';
+import { ActivityEvidenceButton } from './components/ActivityEvidenceButton';
 
 interface WbsDetailModalProps {
     isOpen: boolean;
@@ -209,14 +210,10 @@ export const WbsDetailModal: React.FC<WbsDetailModalProps> = ({
                                 {activity.archivo_url && (
                                     <div>
                                         <Text variant="caption" color="text-secondary" className="mb-1 block">Archivo</Text>
-                                        <a
-                                            href={activity.archivo_url}
-                                            target="_blank"
-                                            rel="noreferrer"
-                                            className="text-[var(--color-primary)] hover:underline text-xs break-all"
-                                        >
-                                            {activity.archivo_url}
-                                        </a>
+                                        <ActivityEvidenceButton
+                                            actividadId={activity.id}
+                                            archivoUrl={activity.archivo_url}
+                                        />
                                     </div>
                                 )}
                             </div>

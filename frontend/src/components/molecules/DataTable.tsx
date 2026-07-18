@@ -1,20 +1,10 @@
 import React, { useState, useCallback, useMemo, useRef, useLayoutEffect } from 'react';
-import { Text, Button } from '../atoms';
+import { Text, Button, Spinner } from '../atoms';
 import { FilterDropdown } from './FilterDropdown';
+import { MemoDataTableRow, type DataTableColumn } from './DataTableRow';
 import { ArrowUp, ArrowDown, Funnel, GripVertical } from 'lucide-react';
 
-export interface DataTableColumn<T> {
-    key: string;
-    label: string;
-    minWidth?: string;
-    maxWidth?: string;
-    flex?: boolean;
-    centered?: boolean;
-    filterable?: boolean;
-    cellClassName?: string;
-    render?: (row: T) => React.ReactNode;
-    subFilters?: { key: string; label: string }[];
-}
+export type { DataTableColumn } from './DataTableRow';
 
 export interface DataTableProps<T> {
     columns: DataTableColumn<T>[];
@@ -39,6 +29,8 @@ export interface DataTableProps<T> {
     remoteFilterSearch?: boolean;
     isFilterSearching?: boolean;
     onFilterSearchChange?: (columnKey: string, subFilterKey: string, searchTerm: string) => void;
+    filterTextAlign?: 'left' | 'right';
+    filterDropdownMaxWidth?: number;
     activeSortKey?: string | null;
     activeSortDir?: 'asc' | 'desc' | null;
     onSort?: (key: string, dir: 'asc' | 'desc' | null) => void;
@@ -50,72 +42,6 @@ export interface DataTableProps<T> {
     minHeight?: string;
     className?: string;
 }
-
-interface DataTableRowProps<T> {
-    row: T;
-    columns: DataTableColumn<T>[];
-    rowKey: string;
-    showRowIndicator: boolean;
-    rowIndicatorColor: string;
-    onRowClick?: (row: T) => void;
-    renderRowActions?: (row: T) => React.ReactNode;
-    onMouseEnterRow?: (row: T, event: React.MouseEvent) => void;
-    onMouseLeaveRow?: () => void;
-    getRowClassName?: (row: T) => string;
-}
-
-const DataTableRowInner = <T,>({
-    row,
-    columns,
-    showRowIndicator,
-    rowIndicatorColor,
-    onRowClick,
-    renderRowActions,
-    onMouseEnterRow,
-    onMouseLeaveRow,
-    getRowClassName,
-}: DataTableRowProps<T>) => (
-    <div
-        onClick={() => onRowClick?.(row)}
-        className={`group relative grid col-span-full grid-cols-subgrid border-b border-[var(--color-border)] hover:bg-[var(--color-surface-variant)] transition-colors ${onRowClick ? 'cursor-pointer' : ''} ${getRowClassName?.(row) ?? ''}`}
-        onMouseEnter={(e) => onMouseEnterRow?.(row, e)}
-        onMouseLeave={onMouseLeaveRow}
-    >
-        {showRowIndicator && (
-            <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${rowIndicatorColor}`} />
-        )}
-        {columns.map((col) => (
-            <div
-                key={col.key}
-                className={`flex items-center ${col.centered ? 'justify-center' : ''} py-3 px-4 min-w-0 ${col.cellClassName ?? ''}`}
-            >
-                {col.render ? col.render(row) : (
-                    <Text variant="caption" className="truncate">
-                        {String((row as Record<string, unknown>)[col.key] ?? '')}
-                    </Text>
-                )}
-            </div>
-        ))}
-        {renderRowActions && (
-            <div className="flex items-center justify-center py-3 px-4 gap-2">
-                {renderRowActions(row)}
-            </div>
-        )}
-    </div>
-);
-
-const MemoDataTableRow = React.memo(DataTableRowInner, (prev, next) => (
-    prev.row === next.row
-    && prev.columns === next.columns
-    && prev.rowKey === next.rowKey
-    && prev.showRowIndicator === next.showRowIndicator
-    && prev.rowIndicatorColor === next.rowIndicatorColor
-    && prev.onRowClick === next.onRowClick
-    && prev.renderRowActions === next.renderRowActions
-    && prev.onMouseEnterRow === next.onMouseEnterRow
-    && prev.onMouseLeaveRow === next.onMouseLeaveRow
-    && prev.getRowClassName === next.getRowClassName
-)) as typeof DataTableRowInner;
 
 export function DataTable<T>({
     columns,
@@ -139,6 +65,8 @@ export function DataTable<T>({
     remoteFilterSearch = false,
     isFilterSearching = false,
     onFilterSearchChange,
+    filterTextAlign = 'left',
+    filterDropdownMaxWidth,
     activeSortKey,
     activeSortDir,
     onSort,
@@ -236,6 +164,7 @@ export function DataTable<T>({
     }, [activeSubFilter]);
 
     const handleApplyFilter = useCallback(() => {
+        const filterKey = activeFilter;
         if (activeFilter && onFilterChange) {
             const col = columns.find(c => c.key === activeFilter);
             if (col?.subFilters && col.subFilters.length > 0) {
@@ -251,6 +180,7 @@ export function DataTable<T>({
         setAnchorRect(null);
         setFilterSearchTerm('');
         setActiveSubFilter(null);
+        requestAnimationFrame(() => filterKey && headerRefs.current[filterKey]?.focus());
     }, [activeFilter, activeSubFilter, tempSubFilters, onFilterChange, onFilterSearchChange, columns]);
 
     const getFilterOptions = useCallback((key: string) => {
@@ -292,12 +222,31 @@ export function DataTable<T>({
     };
 
     return (
-        <div className={`relative flex flex-col overflow-x-auto overflow-y-hidden border border-[var(--color-border)] bg-[var(--color-surface)] shadow-sm ${maxHeight} ${minHeight} ${className}`}>
+        <div
+            className={`relative flex flex-col overflow-x-auto overflow-y-hidden border border-[var(--color-border)] bg-[var(--color-surface)] shadow-sm ${maxHeight} ${minHeight} ${className}`}
+            role="table"
+            aria-rowcount={data.length + 1}
+        >
 
             {activeFilter && anchorRect && (
                 <FilterDropdown
                     isOpen
-                    onClose={() => { if (activeSubFilter) onFilterSearchChange?.(activeFilter, activeSubFilter, ''); setActiveFilter(null); setAnchorRect(null); setActiveSubFilter(null); }}
+                    onClose={() => {
+                        const filterKey = activeFilter;
+                        if (activeSubFilter) onFilterSearchChange?.(activeFilter, activeSubFilter, '');
+                        setActiveFilter(null);
+                        setAnchorRect(null);
+                        setActiveSubFilter(null);
+                        requestAnimationFrame(() => {
+                            const activeElement = document.activeElement as HTMLElement | null;
+                            if (
+                                filterKey &&
+                                (!activeElement || activeElement === document.body || !document.contains(activeElement))
+                            ) {
+                                headerRefs.current[filterKey]?.focus();
+                            }
+                        });
+                    }}
                     anchorRect={anchorRect}
                     title={columns.find(c => c.key === activeFilter)?.label}
                     type="categorical"
@@ -336,12 +285,15 @@ export function DataTable<T>({
                         if (activeFilter) onFilterSearchChange?.(activeFilter, subKey, '');
                     }}
                     isSearching={isFilterSearching}
+                    filterOptionsLocally={!remoteFilterSearch}
+                    optionTextAlign={filterTextAlign}
+                    maxWidth={filterDropdownMaxWidth}
                 />
             )}
 
             {isLoading ? (
-                <div className="flex-1 flex flex-col items-center justify-center gap-3 py-10">
-                    <div className="animate-spin w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full" />
+                <div className="flex-1 flex flex-col items-center justify-center gap-3 py-10" role="status" aria-live="polite">
+                    <Spinner size="lg" className="text-[var(--color-primary)]" />
                     <Text variant="body2" color="text-secondary" weight="medium">{loadingMessage}</Text>
                 </div>
             ) : (
@@ -349,6 +301,7 @@ export function DataTable<T>({
                     <div
                         ref={headerGridRef}
                         className={`shrink-0 bg-[var(--deep-navy)] border-b border-[var(--deep-navy)] overflow-hidden z-20 ${headerClassName}`}
+                        role="row"
                     >
                         {isRowDraggable && (
                             <div className="flex items-center justify-center py-2.5 px-2 border-r border-white/10">
@@ -356,14 +309,16 @@ export function DataTable<T>({
                             </div>
                         )}
                         {columns.map((col) => (
-                            <Button
-                                key={col.key}
+                            <div key={col.key} role="columnheader" className="min-w-0">
+                              <Button
                                 ref={(el) => { headerRefs.current[col.key] = el; }}
                                 variant="custom"
                                 disabled={!col.filterable}
                                 onClick={() => col.filterable && toggleFilter(col.key)}
+                                aria-haspopup={col.filterable ? 'dialog' : undefined}
                                 aria-expanded={col.filterable ? activeFilter === col.key : undefined}
                                 title={col.filterable ? `Filtrar ${col.label}` : col.label}
+                                fullWidth
                                 className={`
                                     flex items-center ${col.centered ? 'justify-center' : ''} py-2.5 px-4
                                     border-r border-white/10
@@ -394,10 +349,11 @@ export function DataTable<T>({
                                         <Funnel aria-hidden="true" size={11} className={`shrink-0 ${hasFilterActive(col.key) ? 'text-yellow-400' : 'text-white/60 group-hover:text-white'}`} />
                                     )}
                                 </div>
-                            </Button>
+                              </Button>
+                            </div>
                         ))}
                         {renderRowActions && (
-                            <div className="flex items-center justify-center py-2.5 px-4">
+                            <div className="flex items-center justify-center py-2.5 px-4" role="columnheader">
                                 <Text variant="caption" weight="bold" className="uppercase tracking-wider !text-[11px] text-white whitespace-nowrap">
                                     Acciones
                                 </Text>
@@ -406,7 +362,7 @@ export function DataTable<T>({
                     </div>
 
                     {data.length === 0 ? (
-                        <div className="flex-1 flex flex-col items-center justify-center gap-3 py-10">
+                        <div className="flex-1 flex flex-col items-center justify-center gap-3 py-10" role="status">
                             {emptyIcon}
                             <Text variant="body2" color="text-secondary" weight="medium">{emptyMessage}</Text>
                         </div>
@@ -417,6 +373,7 @@ export function DataTable<T>({
                                 if (bodyRef) bodyRef.current = el;
                             }}
                             className="overflow-y-auto custom-scrollbar"
+                            role="rowgroup"
                         >
                             {data.map((row, rowIndex) => {
                                 const rowKey = keyExtractor(row);
@@ -425,7 +382,15 @@ export function DataTable<T>({
                                         <div
                                             data-datatable-row="true"
                                             key={rowKey}
+                                            role="row"
+                                            tabIndex={onRowClick ? 0 : undefined}
                                             onClick={() => onRowClick?.(row)}
+                                            onKeyDown={(event) => {
+                                                if (!onRowClick || event.target !== event.currentTarget) return;
+                                                if (event.key !== 'Enter' && event.key !== ' ') return;
+                                                event.preventDefault();
+                                                onRowClick(row);
+                                            }}
                                             onDragOver={(e) => {
                                                 if (draggedRowIndex === null) return;
                                                 e.preventDefault();
@@ -445,7 +410,7 @@ export function DataTable<T>({
                                             {showRowIndicator && (
                                                 <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${rowIndicatorColor}`} />
                                             )}
-                                            <div className="flex items-center justify-center py-3 px-2 min-w-0">
+                                            <div className="flex items-center justify-center py-3 px-2 min-w-0" role="cell">
                                                 <Button
                                                     variant="custom"
                                                     size="xs"
@@ -468,7 +433,8 @@ export function DataTable<T>({
 
                                                         const sourceRow = e.currentTarget.closest('[data-datatable-row]') as HTMLElement | null;
                                                         if (sourceRow) {
-                                                            const dragImage = sourceRow.cloneNode(true) as HTMLElement;
+                                                        const dragImage = sourceRow.cloneNode(true) as HTMLElement;
+                                                        dragImage.setAttribute('aria-hidden', 'true');
                                                             const gridTemplate = bodyGridRef.current
                                                                 ? window.getComputedStyle(bodyGridRef.current).gridTemplateColumns
                                                                 : window.getComputedStyle(sourceRow).gridTemplateColumns;
@@ -505,6 +471,7 @@ export function DataTable<T>({
                                             {columns.map((col) => (
                                                 <div
                                                     key={col.key}
+                                                    role="cell"
                                                     className={`flex items-center ${col.centered ? 'justify-center' : ''} py-3 px-4 min-w-0 ${col.cellClassName ?? ''}`}
                                                 >
                                                     {col.render ? col.render(row) : (
@@ -515,7 +482,7 @@ export function DataTable<T>({
                                                 </div>
                                             ))}
                                             {renderRowActions && (
-                                                <div className="flex items-center justify-center py-3 px-4 gap-2">
+                                                <div className="flex items-center justify-center py-3 px-4 gap-2" role="cell">
                                                     {renderRowActions(row)}
                                                 </div>
                                             )}

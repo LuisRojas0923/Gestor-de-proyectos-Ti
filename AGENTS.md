@@ -40,9 +40,9 @@ Full-stack project management system with Python backend (FastAPI, SQLAlchemy as
 - [docs/ESQUEMA_BASE_DATOS.md](docs/ESQUEMA_BASE_DATOS.md) - Database schema
 - [docs/GUIA_DESARROLLO.md](docs/GUIA_DESARROLLO.md) - Development guide
 
-## Subagentes disponibles (OpenCode/Codex harness)
+## Subagentes disponibles (OpenCode/Codex/Antigravity harness)
 
-El arnes canonico expone 8 subagentes especializados en `.opencode/agent/`. Codex usa adaptadores con el mismo roster en `.codex/agents/`; esos TOML deben leer su definicion canonica homologa para evitar drift. Los revisores son de solo lectura y deben invocarse segun el alcance del trabajo (consultar `harness-router` para recomendacion, pero invocacion directa obligatoria). En OpenCode, `error-memory` es la unica excepcion con escritura, limitada a `errors_memory.json` y `.opencode/memory/`; en Codex, todos los adaptadores son de solo lectura y delegan esas escrituras al orquestador:
+El arnes canonico expone 8 roles de revision/memoria y ayudantes especializados en `.opencode/agent/`. Codex usa adaptadores con el mismo roster en `.codex/agents/`; esos TOML deben leer su definicion canonica homologa para evitar drift. Antigravity usa personas equivalentes en `.agent/skills/` y workflows en `.agent/workflows/`; no son subagentes aislados, por lo que devuelven reportes y propuestas de escritura al orquestador. Los revisores deben invocarse segun el alcance del trabajo (consultar `harness-router` para recomendacion, pero invocacion directa obligatoria). En OpenCode, `error-memory` es el unico rol con mutacion directa amplia de la memoria central; otros revisores solo pueden persistir reportes o memoria en sus rutas autorizadas. En Codex y Antigravity, los adaptadores delegan todas esas escrituras al orquestador:
 
 - `harness-router` — recomienda la matriz de subagentes segun alcance. Read-only, no aprueba ni invoca.
 - `scope-reviewer` — valida alcance y subagentes requeridos.
@@ -54,6 +54,11 @@ El arnes canonico expone 8 subagentes especializados en `.opencode/agent/`. Code
 - `error-memory` — memoria persistente de errores y decisiones (`errors_memory.json` + `.opencode/memory/`).
 - `graphify-searcher` — búsqueda read-only sobre `graphify-out/` (2928 nodos). Usa `graphify query/path/explain` antes de Glob/Grep. Modelo: `opencode-go/deepseek-v4-flash`.
 - `deepseek-searcher` — versión experimental A/B de `graphify-searcher` con el mismo modelo. **NO** para routing de producción; invocar manualmente.
+- `frontend-table-specialist` — revisa tablas de alto rendimiento, filtros por columna, virtualización ligera y estados de carga.
+
+Ayudante de exploracion canonico:
+
+- `graphify-searcher` — busqueda read-only sobre `graphify-out/`; usa `graphify query/path/explain` antes de Glob/Grep.
 
 Reportes no triviales se persisten en `docs/reviews/{plans,builds}/` usando las plantillas de `docs/reviews/templates/`.
 
@@ -63,13 +68,16 @@ Reportes no triviales se persisten en `docs/reviews/{plans,builds}/` usando las 
 
 Usar según dominio: cada skill vive en `.agents/skills/<nombre>/SKILL.md`. Los subagentes listan referencias obligatorias en `.opencode/agent/<revisor>.md`.
 
-### Protocolo del arnes OpenCode/Codex
+### Protocolo del arnes OpenCode/Codex/Antigravity
 
 Antes de revisar o implementar con subagentes, leer:
 
 - `.opencode/agent/_shared-discovery.md` — orden de resolución (skills locales → graphify → find-skills)
 - `docs/decisions/ADR-006-protocolo-descubrimiento-agentes.md` — matriz skill → subagente
 - `.codex/agents/*.toml` — adaptadores Codex; no duplican checklists ni memoria
+- `.agent/skills/*/SKILL.md` — adaptadores Antigravity; cada uno referencia su agente canonico
+- `.agent/workflows/*.md` — flujos Antigravity para preparar y validar PRs
+- `py -3.12 scripts/validate_antigravity_harness.py` — valida paridad y referencias
 
 ### Exploración del codebase (graphify)
 

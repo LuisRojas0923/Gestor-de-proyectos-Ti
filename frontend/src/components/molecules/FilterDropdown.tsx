@@ -25,6 +25,7 @@ interface FilterDropdownProps {
     tempValue?: string[];
     onToggleOption?: (value: string) => void;
     onClearSelection?: () => void;
+    optionTextAlign?: 'left' | 'right';
 
     // Props para Range (Numeric/Date)
     rangeValue?: { min: string | number; max: string | number };
@@ -37,10 +38,12 @@ interface FilterDropdownProps {
     onApply?: () => void;
     placeholder?: string;
     triggerHeight?: number;
+    maxWidth?: number;
     subFilters?: { key: string; label: string }[];
     activeSubFilter?: string;
     onSubFilterChange?: (key: string) => void;
     isSearching?: boolean;
+    filterOptionsLocally?: boolean;
 }
 
 export const FilterDropdown: React.FC<FilterDropdownProps> = (props) => {
@@ -64,11 +67,14 @@ export const FilterDropdown: React.FC<FilterDropdownProps> = (props) => {
         onApply,
         placeholder = 'Buscar...',
         triggerHeight = 40,
+        maxWidth,
         subFilters,
         activeSubFilter,
         onSubFilterChange,
         onClearSelection,
         isSearching = false,
+        filterOptionsLocally = true,
+        optionTextAlign = 'left',
     } = props;
 
     const [internalIsOpen, setInternalIsOpen] = useState(false);
@@ -83,9 +89,8 @@ export const FilterDropdown: React.FC<FilterDropdownProps> = (props) => {
     const effectiveAnchor = useMemo(() => {
         if (isSimpleMode) return internalAnchor;
         if (!anchorRect) return null;
-        const isDomRectLike = 'bottom' in anchorRect && 'right' in anchorRect;
         return {
-            top: isDomRectLike ? anchorRect.bottom : anchorRect.top,
+            top: anchorRect.bottom ?? anchorRect.top,
             left: anchorRect.left,
             width: anchorRect.width
         };
@@ -93,28 +98,61 @@ export const FilterDropdown: React.FC<FilterDropdownProps> = (props) => {
 
     const [position, setPosition] = useState<{ top: number; left: number } | null>(null);
     const [maxHeight, setMaxHeight] = useState<string>('450px');
+    const [viewportSize, setViewportSize] = useState(() => ({
+        width: window.visualViewport?.width ?? window.innerWidth,
+        height: window.visualViewport?.height ?? window.innerHeight,
+    }));
+    const anchorTop = effectiveAnchor?.top;
+    const anchorLeft = effectiveAnchor?.left;
 
     useEffect(() => {
-        if (effectiveIsOpen && effectiveAnchor) {
-            const windowHeight = window.innerHeight;
+        if (!effectiveIsOpen) return;
+        const updateViewportSize = () => setViewportSize({
+            width: window.visualViewport?.width ?? window.innerWidth,
+            height: window.visualViewport?.height ?? window.innerHeight,
+        });
+        updateViewportSize();
+        window.addEventListener('resize', updateViewportSize);
+        window.visualViewport?.addEventListener('resize', updateViewportSize);
+        return () => {
+            window.removeEventListener('resize', updateViewportSize);
+            window.visualViewport?.removeEventListener('resize', updateViewportSize);
+        };
+    }, [effectiveIsOpen]);
+
+    useEffect(() => {
+        if (effectiveIsOpen && anchorTop !== undefined && anchorLeft !== undefined) {
             const viewportMargin = 12;
             const desiredMaxHeight = 450;
-            const spaceBelow = windowHeight - effectiveAnchor.top - viewportMargin;
-            const spaceAbove = effectiveAnchor.top - viewportMargin;
+            const minimumUsableHeight = 96;
+            const viewportLimit = Math.max(
+                minimumUsableHeight,
+                viewportSize.height - viewportMargin * 2,
+            );
+            const spaceBelow = viewportSize.height - anchorTop - viewportMargin;
+            const spaceAbove = anchorTop - viewportMargin;
 
             if (spaceBelow < 300 && spaceAbove > spaceBelow) {
-                const height = Math.min(desiredMaxHeight, Math.max(220, spaceAbove - viewportMargin));
+                const height = Math.min(
+                    desiredMaxHeight,
+                    viewportLimit,
+                    Math.max(minimumUsableHeight, spaceAbove - triggerHeight - viewportMargin),
+                );
                 setPosition({
-                    top: Math.max(viewportMargin, effectiveAnchor.top - triggerHeight - height - 8),
-                    left: effectiveAnchor.left
+                    top: Math.max(viewportMargin, anchorTop - triggerHeight - height - 8),
+                    left: anchorLeft
                 });
                 setMaxHeight(`${height}px`);
             } else {
-                setPosition({ top: effectiveAnchor.top + 4, left: effectiveAnchor.left });
-                setMaxHeight(`${Math.min(desiredMaxHeight, Math.max(220, spaceBelow - 8))}px`);
+                setPosition({ top: anchorTop + 4, left: anchorLeft });
+                setMaxHeight(`${Math.min(
+                    desiredMaxHeight,
+                    viewportLimit,
+                    Math.max(minimumUsableHeight, spaceBelow - 8),
+                )}px`);
             }
         }
-    }, [effectiveIsOpen, effectiveAnchor, triggerHeight]);
+    }, [effectiveIsOpen, anchorTop, anchorLeft, triggerHeight, viewportSize.height]);
 
     const toggleSimple = (e: React.MouseEvent) => {
         e.stopPropagation();
@@ -143,10 +181,13 @@ export const FilterDropdown: React.FC<FilterDropdownProps> = (props) => {
     }, [effectiveIsOpen, isSimpleMode, onClose]);
 
     useEffect(() => {
+        if (!effectiveIsOpen) return;
         const handleEscape = (event: KeyboardEvent) => {
-            if (!effectiveIsOpen || event.key !== 'Escape') return;
+            if (event.key !== 'Escape') return;
+            event.preventDefault();
             if (isSimpleMode) setInternalIsOpen(false);
             else onClose?.();
+            requestAnimationFrame(() => triggerRef.current?.focus());
         };
         document.addEventListener('keydown', handleEscape);
         return () => document.removeEventListener('keydown', handleEscape);
@@ -159,10 +200,8 @@ export const FilterDropdown: React.FC<FilterDropdownProps> = (props) => {
             if (isSimpleMode) setInternalIsOpen(false);
             else onClose?.();
         };
-        window.addEventListener('resize', closeOnViewportChange);
         window.addEventListener('scroll', closeOnViewportChange, true);
         return () => {
-            window.removeEventListener('resize', closeOnViewportChange);
             window.removeEventListener('scroll', closeOnViewportChange, true);
         };
     }, [effectiveIsOpen, isSimpleMode, onClose]);
@@ -223,19 +262,27 @@ export const FilterDropdown: React.FC<FilterDropdownProps> = (props) => {
         else onApply?.();
     };
 
-    const filteredOptions = currentOptions.filter(o => 
-        o.label.toLowerCase().includes(currentSearch.toLowerCase())
-    );
+    const filteredOptions = filterOptionsLocally
+        ? currentOptions.filter(option =>
+            option.label.toLowerCase().includes(currentSearch.toLowerCase())
+        )
+        : currentOptions;
 
     const isAllSelected = isSimpleMode 
         ? (currentOptions.length > 0 && currentSelected.length === currentOptions.length)
         : (propIsAllSelected ?? (currentOptions.length > 0 && currentSelected.length === currentOptions.length));
 
-    const maxDropdownWidth = Math.max(160, window.innerWidth - 24);
-    const dropdownWidth = Math.min(Math.max(effectiveAnchor.width, 280), maxDropdownWidth);
+    const viewportMargin = 12;
+    const availableWidth = Math.max(viewportSize.width - viewportMargin * 2, 0);
+    const minimumWidth = Math.min(280, availableWidth);
+    const dropdownWidth = Math.min(
+        Math.max(effectiveAnchor.width, minimumWidth),
+        maxWidth ?? Number.POSITIVE_INFINITY,
+        availableWidth
+    );
     const dynamicStyle: React.CSSProperties = {
         top: position.top,
-        left: Math.max(12, Math.min(position.left, window.innerWidth - dropdownWidth - 12)),
+        left: Math.max(viewportMargin, Math.min(position.left, viewportSize.width - dropdownWidth - viewportMargin)),
         width: dropdownWidth,
         maxHeight: maxHeight
     };
@@ -243,8 +290,10 @@ export const FilterDropdown: React.FC<FilterDropdownProps> = (props) => {
     return createPortal(
         <div
             ref={dropdownRef}
-            className="fixed z-[9999] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 flex flex-col min-w-[280px]"
+            className="fixed z-[9999] min-w-0 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 flex flex-col"
             style={dynamicStyle}
+            role="dialog"
+            aria-label={title || 'Filtrar columna'}
         >
             {/* Header */}
             <div className="p-3 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 flex items-center justify-between">
@@ -256,6 +305,7 @@ export const FilterDropdown: React.FC<FilterDropdownProps> = (props) => {
                     size="sm"
                     onClick={isSimpleMode ? handleApply : onClose}
                     title="Cerrar"
+                    aria-label="Cerrar filtro"
                     className="!w-5 !h-5 !p-0 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-200 dark:hover:text-slate-200 dark:hover:bg-slate-700"
                 >
                     <X size={12} />
@@ -293,7 +343,7 @@ export const FilterDropdown: React.FC<FilterDropdownProps> = (props) => {
                         {/* Ordenación */}
                         {!isSimpleMode && onSort && (
                             <div className="flex items-center gap-1.5 px-3 py-2 border-b border-slate-100 dark:border-slate-800">
-                                <Text variant="caption" className="text-[9px] uppercase tracking-wider text-slate-400 dark:text-slate-500 mr-auto">
+                                <Text variant="caption" align={optionTextAlign} className="flex-1 text-[9px] uppercase tracking-wider text-slate-400 dark:text-slate-500">
                                     Ordenar
                                 </Text>
                                 <Button
@@ -331,9 +381,10 @@ export const FilterDropdown: React.FC<FilterDropdownProps> = (props) => {
                                 size="xs"
                                 icon={Search}
                                 value={currentSearch}
+                                aria-label={`Buscar valores de ${title || 'la columna'}`}
                                 onChange={(e) => handleSearch(e.target.value)}
                                 autoFocus
-                                className="[&_input]:h-8 [&_input]:text-[11px] [&_input]:bg-slate-100 dark:[&_input]:bg-slate-800 [&_input]:border-none"
+                                className={`[&_input]:h-8 [&_input]:text-[11px] [&_input]:bg-[var(--color-surface-variant)] [&_input]:border-none ${optionTextAlign === 'right' ? 'text-right' : ''}`}
                             />
                         </div>
 
@@ -343,12 +394,15 @@ export const FilterDropdown: React.FC<FilterDropdownProps> = (props) => {
                             wrapContent={false}
                             onClick={handleSelectAll}
                             aria-pressed={isAllSelected}
-                            className="w-full justify-start gap-2 rounded-none border-b border-slate-100 px-3 py-2 text-left transition-colors hover:bg-slate-50 focus:ring-1 focus:ring-primary-500 focus:ring-offset-0 dark:border-slate-800 dark:hover:bg-slate-800/50"
+                            fullWidth
+                            className={`flex items-center px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer border-b border-slate-100 dark:border-slate-800 transition-colors ${optionTextAlign === 'right' ? '!justify-end' : '!justify-start'}`}
                         >
-                            <div aria-hidden="true" className={`w-3.5 h-3.5 rounded border flex items-center justify-center transition-colors ${isAllSelected ? 'bg-primary-500 border-primary-500' : 'border-slate-300 dark:border-slate-600'}`}>
-                                {isAllSelected && <Check className="w-2.5 h-2.5 text-white" />}
+                            <div className="inline-flex w-fit max-w-full min-w-0 items-center gap-2">
+                                <div aria-hidden="true" className={`w-3.5 h-3.5 shrink-0 rounded border flex items-center justify-center transition-colors ${isAllSelected ? 'bg-primary-500 border-primary-500' : 'border-slate-300 dark:border-slate-600'}`}>
+                                    {isAllSelected && <Check className="w-2.5 h-2.5 text-white" />}
+                                </div>
+                                <Text variant="caption" weight="bold" align={optionTextAlign} className="min-w-0 text-[11px] truncate">Seleccionar Todos</Text>
                             </div>
-                            <Text variant="caption" weight="bold" className="text-[11px]">Seleccionar Todos</Text>
                         </Button>
 
                         <div className="py-1">
@@ -363,14 +417,17 @@ export const FilterDropdown: React.FC<FilterDropdownProps> = (props) => {
                                     type="button"
                                     variant="custom"
                                     wrapContent={false}
-                                    onClick={() => handleToggle(opt.value)}
+                                    fullWidth
                                     aria-pressed={currentSelected.includes(opt.value)}
-                                    className="w-full justify-start gap-2 rounded-none px-3 py-1.5 text-left hover:bg-primary-50 focus:ring-1 focus:ring-primary-500 focus:ring-offset-0 dark:hover:bg-primary-900/10"
+                                    onClick={() => handleToggle(opt.value)}
+                                    className={`flex items-center px-3 py-1.5 hover:bg-primary-50 dark:hover:bg-primary-900/10 cursor-pointer ${optionTextAlign === 'right' ? '!justify-end' : '!justify-start'}`}
                                 >
-                                    <div aria-hidden="true" className={`w-4 h-4 rounded border flex items-center justify-center ${currentSelected.includes(opt.value) ? 'bg-primary-500 border-primary-500' : 'border-slate-300 dark:border-slate-600'}`}>
-                                        {currentSelected.includes(opt.value) && <Check className="w-3 h-3 text-white" />}
+                                    <div className="inline-flex w-fit max-w-full min-w-0 items-center gap-2">
+                                        <div aria-hidden="true" className={`w-4 h-4 shrink-0 rounded border flex items-center justify-center ${currentSelected.includes(opt.value) ? 'bg-primary-500 border-primary-500' : 'border-slate-300 dark:border-slate-600'}`}>
+                                            {currentSelected.includes(opt.value) && <Check className="w-3 h-3 text-white" />}
+                                        </div>
+                                        <Text variant="caption" align={optionTextAlign} className="min-w-0 text-[11px] truncate" title={opt.label || '(Vacío)'}>{opt.label || '(Vacío)'}</Text>
                                     </div>
-                                    <Text variant="caption" className="text-[11px] truncate">{opt.label || '(Vacío)'}</Text>
                                 </Button>
                             ))}
                             {!isSearching && filteredOptions.length === 0 && (

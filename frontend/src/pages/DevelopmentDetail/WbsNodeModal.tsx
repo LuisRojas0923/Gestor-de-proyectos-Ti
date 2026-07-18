@@ -5,6 +5,17 @@ import { Title, Button, Input, Select, Textarea, Text, ProgressBar, Checkbox } f
 import { WbsActivityCreate, WbsActivityUpdate, WbsActivityTree } from '../../types/wbs';
 import { AssignableUserSelect } from '../../components/assignments/AssignableUserSelect';
 import { useAppContext } from '../../context/AppContext';
+import FilePicker from '../../components/molecules/FilePicker';
+import { ActivityEvidenceButton } from './components/ActivityEvidenceButton';
+import Modal from '../../components/molecules/Modal';
+import { API_ENDPOINTS } from '../../config/api';
+
+interface ActivityEvidenceUploadResponse {
+    archivo_url: string;
+    nombre_archivo: string;
+    tipo_mime: string;
+    tamano_bytes: number;
+}
 
 interface WbsNodeModalProps {
     isOpen: boolean;
@@ -18,7 +29,8 @@ interface WbsNodeModalProps {
 export const WbsNodeModal: React.FC<WbsNodeModalProps> = ({
     isOpen, onClose, onSaved, developmentId, editNode
 }) => {
-    const { post, patch } = useApi();
+    const { post, patch } = useApi<WbsActivityTree>();
+    const { post: uploadEvidence } = useApi<ActivityEvidenceUploadResponse>();
     const { state } = useAppContext();
     const [loading, setLoading] = useState(false);
     const [step, setStep] = useState(1);
@@ -33,6 +45,9 @@ export const WbsNodeModal: React.FC<WbsNodeModalProps> = ({
     const [compromisoFecha, setCompromisoFecha] = useState('');
     const [compromisoCumplido, setCompromisoCumplido] = useState(false);
     const [archivoUrl, setArchivoUrl] = useState('');
+    const [archivo, setArchivo] = useState<File | null>(null);
+    const [persistedActivityId, setPersistedActivityId] = useState<number | null>(null);
+    const [saveError, setSaveError] = useState('');
     const [responsableId, setResponsableId] = useState('');
     const [asignadoAId, setAsignadoAId] = useState('');
     
@@ -50,6 +65,9 @@ export const WbsNodeModal: React.FC<WbsNodeModalProps> = ({
     useEffect(() => {
         if (isOpen) {
             setStep(1);
+            setArchivo(null);
+            setPersistedActivityId(editNode?.id || null);
+            setSaveError('');
             if (editNode) {
                 setTitulo(editNode.titulo);
                 setDescripcion(editNode.descripcion || '');
@@ -91,9 +109,12 @@ export const WbsNodeModal: React.FC<WbsNodeModalProps> = ({
     const handleSave = async () => {
         if (!titulo.trim()) return;
         setLoading(true);
+        setSaveError('');
 
+        let activityPersisted = false;
         try {
-            if (editNode) {
+            let activityId = editNode?.id || persistedActivityId;
+            if (activityId) {
                 const payload: WbsActivityUpdate = {
                     titulo,
                     descripcion,
@@ -105,13 +126,14 @@ export const WbsNodeModal: React.FC<WbsNodeModalProps> = ({
                     compromiso,
                     compromiso_fecha: compromisoFecha || undefined,
                     compromiso_cumplido: compromisoCumplido,
-                    archivo_url: archivoUrl,
                     fecha_inicio_estimada: fechaInicioEstimada || undefined,
                     fecha_fin_estimada: fechaFinEstimada || undefined,
                     fecha_inicio_real: fechaInicioReal || undefined,
                     fecha_fin_real: fechaFinReal || undefined
                 };
-                await patch(`/actividades/${editNode.id}`, payload);
+                const updated = await patch(API_ENDPOINTS.WBS_ACTIVITY_BY_ID(activityId), payload);
+                if (!updated) throw new Error('No se pudo actualizar la tarea.');
+                activityPersisted = true;
             } else {
                 const payload: WbsActivityCreate = {
                     desarrollo_id: developmentId,
@@ -127,18 +149,39 @@ export const WbsNodeModal: React.FC<WbsNodeModalProps> = ({
                     compromiso,
                     compromiso_fecha: compromisoFecha || undefined,
                     compromiso_cumplido: compromisoCumplido,
-                    archivo_url: archivoUrl,
                     fecha_inicio_estimada: fechaInicioEstimada || undefined,
                     fecha_fin_estimada: fechaFinEstimada || undefined,
                     fecha_inicio_real: fechaInicioReal || undefined,
                     fecha_fin_real: fechaFinReal || undefined
                 };
-                await post(`/actividades/`, payload);
+                const created = await post(API_ENDPOINTS.WBS_ACTIVITIES, payload);
+                if (!created?.id) throw new Error('No se pudo obtener la tarea creada.');
+                activityId = created.id;
+                setPersistedActivityId(activityId);
+                activityPersisted = true;
+            }
+
+            if (archivo && activityId) {
+                const formData = new FormData();
+                formData.append('archivo', archivo);
+                const uploaded = await uploadEvidence(
+                    API_ENDPOINTS.WBS_ACTIVITY_EVIDENCE(activityId),
+                    formData
+                );
+                if (!uploaded) throw new Error('No se pudo guardar la evidencia.');
+                setArchivoUrl(uploaded.archivo_url);
+                setArchivo(null);
             }
             onSaved();
             onClose();
         } catch (error) {
             console.error('Error saving WBS node:', error);
+            if (activityPersisted && archivo) {
+                onSaved();
+                setSaveError('La tarea se guardó, pero no fue posible adjuntar la evidencia. Puede reintentar sin crear otra tarea.');
+            } else {
+                setSaveError(error instanceof Error ? error.message : 'No se pudo guardar la tarea.');
+            }
         } finally {
             setLoading(false);
         }
@@ -154,8 +197,18 @@ export const WbsNodeModal: React.FC<WbsNodeModalProps> = ({
     ];
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-            <div className="w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden flex flex-col bg-[var(--color-surface)] border border-[var(--color-border)] transition-all duration-300">
+        <Modal
+            isOpen={isOpen}
+            onClose={onClose}
+            size="lg"
+            showCloseButton={false}
+            closeOnOverlayClick={!loading}
+            closeOnEscape={!loading}
+            ariaLabel={editNode ? 'Editar tarea WBS' : 'Nueva tarea WBS'}
+            className="!p-0 overflow-hidden rounded-3xl"
+            contentClassName="!p-0 !overflow-hidden"
+        >
+            <div className="flex max-h-[90vh] flex-col">
                 {/* Header con Step Indicator */}
                 <div className="p-6 border-b border-[var(--color-border)] bg-[var(--color-surface-variant)]/30">
                     <div className="flex justify-between items-center mb-6">
@@ -167,7 +220,14 @@ export const WbsNodeModal: React.FC<WbsNodeModalProps> = ({
                                 {editNode ? 'Editar Tarea' : 'Nueva Tarea'}
                             </Title>
                         </div>
-                        <Button variant="ghost" onClick={onClose} icon={X} className="!p-1.5 text-neutral-400 hover:text-neutral-500 rounded-full" />
+                        <Button
+                            variant="ghost"
+                            onClick={onClose}
+                            icon={X}
+                            disabled={loading}
+                            aria-label="Cerrar modal"
+                            className="!p-1.5 text-neutral-400 hover:text-neutral-500 rounded-full"
+                        />
                     </div>
 
                     <div className="flex items-center justify-between px-2 relative">
@@ -321,12 +381,28 @@ export const WbsNodeModal: React.FC<WbsNodeModalProps> = ({
                                     />
                                 </div>
                             </div>
-                            <Input
-                                label="URL de Evidencia / Entregable"
-                                placeholder="https://sharepoint.com/..."
-                                value={archivoUrl}
-                                onChange={(e) => setArchivoUrl(e.target.value)}
-                            />
+                            <div className="space-y-2">
+                                <Text variant="body2" weight="medium">Evidencia / Entregable</Text>
+                                <FilePicker
+                                    id="wbs-evidence-upload"
+                                    files={archivo ? [archivo] : []}
+                                    multiple={false}
+                                    accept=".pdf,.png,.jpg,.jpeg,.txt,.csv,.docx,.xlsx,.pptx"
+                                    placeholder="Seleccionar archivo o arrastrarlo aquí"
+                                    onChange={(event) => setArchivo(event.target.files?.[0] || null)}
+                                />
+                                <Text variant="caption" color="text-secondary">
+                                    PDF, imágenes, texto u Office sin macros. Máximo 25 MB.
+                                </Text>
+                                {archivoUrl && !archivo && (editNode?.id || persistedActivityId) && (
+                                    <ActivityEvidenceButton
+                                        actividadId={editNode?.id || persistedActivityId!}
+                                        archivoUrl={archivoUrl}
+                                        label="Ver evidencia actual"
+                                    />
+                                )}
+                                {saveError && <Text variant="caption" color="error">{saveError}</Text>}
+                            </div>
                         </div>
                     )}
                 </div>
@@ -366,6 +442,6 @@ export const WbsNodeModal: React.FC<WbsNodeModalProps> = ({
                     </div>
                 </div>
             </div>
-        </div>
+        </Modal>
     );
 };

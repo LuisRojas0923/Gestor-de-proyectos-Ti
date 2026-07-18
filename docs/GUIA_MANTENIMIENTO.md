@@ -2,6 +2,8 @@
 
 Este manual operativo detalla los procedimientos esenciales para el despliegue, mantenimiento y monitoreo del servidor de **Producción** (IP: `192.168.0.21`).
 
+El almacenamiento sensible de nómina se opera según `docs/GUIA_ALMACENAMIENTO_NOMINA.md`.
+
 ---
 
 ## 🏗️ 1. Instalación Inicial (Setup desde Cero)

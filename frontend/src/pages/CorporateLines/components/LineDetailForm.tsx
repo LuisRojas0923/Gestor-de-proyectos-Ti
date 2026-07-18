@@ -1,7 +1,7 @@
 import React from 'react';
 import { Smartphone, User, CreditCard, Save, Trash2, ArrowLeft, AlertTriangle } from 'lucide-react';
 import { 
-  Button, Input, Select, Textarea, MaterialCard as Card, Title, Text
+  Button, Input, Select, Textarea, MaterialCard as Card, Title, Text, SearchableSelect
 } from '../../../components/atoms';
 import { CorporateLine, EquipoMovil } from '../useCorporateLines';
 
@@ -13,17 +13,42 @@ interface FormProps {
   onBack: () => void;
   onSave: () => void;
   onDelete: () => void;
-  onInputChange: (field: keyof CorporateLine, value: any) => void;
+  canEdit: boolean;
+  isProcessing: boolean;
+  onInputChange: <K extends keyof CorporateLine>(field: K, value: CorporateLine[K]) => void;
   activeSubTab: 'general' | 'tecnico' | 'finanzas';
   setActiveSubTab: (tab: 'general' | 'tecnico' | 'finanzas') => void;
+  companyOptions: { label: string; value: string }[];
 }
+
+type FinancialField =
+  | 'cfm_con_iva'
+  | 'cfm_sin_iva'
+  | 'descuento_39'
+  | 'vr_factura'
+  | 'pago_empleado'
+  | 'pago_empresa'
+  | 'primera_quincena'
+  | 'segunda_quincena';
+
+const FINANCIAL_FIELDS: Array<{ label: string; field: FinancialField }> = [
+  { label: 'CFM con IVA ($)', field: 'cfm_con_iva' },
+  { label: 'CFM sin IVA ($)', field: 'cfm_sin_iva' },
+  { label: 'Descuento 39% ($)', field: 'descuento_39' },
+  { label: 'V/R Factura Operador ($)', field: 'vr_factura' },
+  { label: 'Deducción Empleado ($)', field: 'pago_empleado' },
+  { label: 'Deducción Empresa ($)', field: 'pago_empresa' },
+  { label: '1era Quincena ($)', field: 'primera_quincena' },
+  { label: '2da Quincena ($)', field: 'segunda_quincena' },
+];
 
 export const LineDetailForm: React.FC<FormProps> = ({
   formData, equipos, employeeAlerts, isCreating,
-  onBack, onSave, onDelete, onInputChange,
-  activeSubTab, setActiveSubTab
+  onBack, onSave, onDelete, onInputChange, canEdit, isProcessing,
+  activeSubTab, setActiveSubTab, companyOptions
 }) => {
   const hasAlert = formData.documento_asignado && employeeAlerts[formData.documento_asignado];
+  const fieldsDisabled = !canEdit || isProcessing;
 
   return (
     <div className="max-w-5xl mx-auto space-y-6 animate-in slide-in-from-right-4 duration-500 pb-20">
@@ -42,14 +67,16 @@ export const LineDetailForm: React.FC<FormProps> = ({
           </div>
         </div>
         <div className="flex gap-3 w-full md:w-auto">
-          {!isCreating && (
-            <Button variant="outline" onClick={onDelete} icon={Trash2} className="text-red-500 hover:bg-red-50 hover:border-red-200 flex-1 md:flex-none">
+          {canEdit && !isCreating && (
+            <Button variant="outline" onClick={onDelete} icon={Trash2} disabled={isProcessing} className="text-red-500 hover:bg-red-50 hover:border-red-200 flex-1 md:flex-none">
               Dar de Baja
             </Button>
           )}
-          <Button variant="primary" onClick={onSave} icon={Save} className="shadow-lg shadow-primary-500/20 flex-1 md:flex-none">
-            {isCreating ? 'Guardar Registro' : 'Actualizar Cambios'}
-          </Button>
+          {canEdit && (
+            <Button variant="primary" onClick={onSave} icon={Save} loading={isProcessing} className="shadow-lg shadow-primary-500/20 flex-1 md:flex-none">
+              {isCreating ? 'Guardar Registro' : 'Actualizar Cambios'}
+            </Button>
+          )}
         </div>
       </div>
 
@@ -107,24 +134,29 @@ export const LineDetailForm: React.FC<FormProps> = ({
                 label="Número de Línea Móvil" 
                 value={formData.linea || ''} 
                 onChange={(e) => onInputChange('linea', e.target.value)} 
+                disabled={fieldsDisabled}
                 placeholder="Ej. +57 311..."
                 className="!rounded-2xl"
               />
-              <Select
+              <Input
                 label="Empresa Responsable"
-                value={formData.empresa || 'RDC'}
+                value={formData.empresa || ''}
                 onChange={(e) => onInputChange('empresa', e.target.value)}
-                options={[
-                  { label: 'RDC', value: 'RDC' },
-                  { label: 'CRUZTOR', value: 'CRUZTOR' },
-                  { label: 'GTC', value: 'GTC' },
-                ]}
+                disabled={fieldsDisabled}
+                placeholder="Ej. RDC, CRUZTOR..."
+                list="empresas-list"
                 className="!rounded-2xl"
               />
+              <datalist id="empresas-list">
+                {companyOptions.map((opt) => (
+                  <option key={opt.value} value={opt.value} />
+                ))}
+              </datalist>
               <Select
                 label="Estado de la Línea"
                 value={formData.estatus || 'ACTIVA'}
                 onChange={(e) => onInputChange('estatus', e.target.value)}
+                disabled={fieldsDisabled}
                 options={[
                   { label: 'ACTIVA', value: 'ACTIVA' },
                   { label: 'INACTIVA', value: 'INACTIVA' },
@@ -139,14 +171,16 @@ export const LineDetailForm: React.FC<FormProps> = ({
               <Input 
                 label="Identificación Usuario (Cédula)" 
                 value={formData.documento_asignado || ''} 
-                onChange={(e) => onInputChange('documento_asignado', e.target.value)} 
+                onChange={(e) => onInputChange('documento_asignado', e.target.value === '' ? null : e.target.value)}
+                disabled={fieldsDisabled}
                 icon={User}
                 className="!rounded-2xl"
               />
               <Input 
                 label="Responsable del Cobro" 
                 value={formData.documento_cobro || ''} 
-                onChange={(e) => onInputChange('documento_cobro', e.target.value)} 
+                onChange={(e) => onInputChange('documento_cobro', e.target.value === '' ? null : e.target.value)}
+                disabled={fieldsDisabled}
                 icon={CreditCard}
                 className="!rounded-2xl"
               />
@@ -154,6 +188,7 @@ export const LineDetailForm: React.FC<FormProps> = ({
                 label="Tipo de Asignación"
                 value={formData.estado_asignacion || 'ASIGNADA'}
                 onChange={(e) => onInputChange('estado_asignacion', e.target.value)}
+                disabled={fieldsDisabled}
                 options={[
                   { label: 'ASIGNADA', value: 'ASIGNADA' },
                   { label: 'DISPONIBLE (LIBRE)', value: 'LIBRE' },
@@ -170,20 +205,21 @@ export const LineDetailForm: React.FC<FormProps> = ({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div className="space-y-4">
                 <Title variant="h6" weight="bold">Hardware Asignado</Title>
-                <Select
+                <SearchableSelect
                   label="Dispositivo del Inventario"
                   value={formData.equipo_id?.toString() || ''}
-                  onChange={(e) => onInputChange('equipo_id', e.target.value === '' ? null : parseInt(e.target.value))}
+                  onChange={(val) => onInputChange('equipo_id', val === '' ? null : parseInt(val))}
+                  disabled={fieldsDisabled}
                   options={[
                     { label: 'Seleccionar del catálogo...', value: '' },
                     ...equipos.map(e => ({ label: `${e.modelo} - ${e.imei || 'Sin IMEI'}`, value: (e.id || '').toString() })),
                   ]}
-                  className="!rounded-2xl"
                 />
                 <Input 
                    label="Nombre del Plan Contratado"
                    value={formData.nombre_plan || ''}
                    onChange={(e) => onInputChange('nombre_plan', e.target.value)}
+                   disabled={fieldsDisabled}
                    placeholder="Ej. Plan Empresarial 60GB"
                    className="!rounded-2xl"
                 />
@@ -193,6 +229,7 @@ export const LineDetailForm: React.FC<FormProps> = ({
                   label="Bitácora Técnica & Observaciones"
                   value={formData.observaciones || ''}
                   onChange={(e) => onInputChange('observaciones', e.target.value)}
+                  disabled={fieldsDisabled}
                   placeholder="Registre incidencias, cambios de equipo o notas importantes..."
                   rows={6}
                   className="!rounded-3xl"
@@ -205,7 +242,7 @@ export const LineDetailForm: React.FC<FormProps> = ({
         {activeSubTab === 'finanzas' && (
           <div className="space-y-8">
              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-               <div className="p-5 bg-primary-50 dark:bg-primary-900/10 rounded-3xl border border-primary-100 dark:border-primary-800/50 space-y-4">
+               <div className="p-5 bg-primary-50 dark:bg-primary-800/20 rounded-3xl border border-primary-100 dark:border-primary-800/50 space-y-4">
                   <Title variant="h6" weight="bold" color="text-primary">Parámetros de Dispersión (Motor IA)</Title>
                   <Text variant="caption" className="opacity-70 mb-4 block">Define qué porcentaje asume el empleado en la liquidación automática.</Text>
                   <div className="grid grid-cols-2 gap-4">
@@ -213,6 +250,7 @@ export const LineDetailForm: React.FC<FormProps> = ({
                         label="Cobro Cargo Fijo"
                         value={formData.cobro_fijo_coef?.toString() || "0.5"}
                         onChange={(e) => onInputChange('cobro_fijo_coef', parseFloat(e.target.value))}
+                        disabled={fieldsDisabled}
                         options={[
                           { label: 'Empresa 100% (0)', value: '0' },
                           { label: 'Mitad / Mitad (0.5)', value: '0.5' },
@@ -224,6 +262,7 @@ export const LineDetailForm: React.FC<FormProps> = ({
                         label="Cobro Especiales"
                         value={formData.cobro_especiales_coef?.toString() || "1"}
                         onChange={(e) => onInputChange('cobro_especiales_coef', parseFloat(e.target.value))}
+                        disabled={fieldsDisabled}
                         options={[
                           { label: 'Empresa 100% (0)', value: '0' },
                           { label: 'Mitad / Mitad (0.5)', value: '0.5' },
@@ -245,28 +284,21 @@ export const LineDetailForm: React.FC<FormProps> = ({
                     label="Convenio / Aprobado Por" 
                     value={formData.aprobado_por || ''} 
                     onChange={(e) => onInputChange('aprobado_por', e.target.value)}
+                    disabled={fieldsDisabled}
                     className="!rounded-2xl"
                   />
                </div>
              </div>
 
              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                 {[
-                   { label: 'CFM con IVA ($)', field: 'cfm_con_iva' },
-                   { label: 'CFM sin IVA ($)', field: 'cfm_sin_iva' },
-                   { label: 'Descuento 39% ($)', field: 'descuento_39' },
-                   { label: 'V/R Factura Operador ($)', field: 'vr_factura' },
-                   { label: 'Deducción Empleado ($)', field: 'pago_empleado' },
-                   { label: 'Deducción Empresa ($)', field: 'pago_empresa' },
-                   { label: '1era Quincena ($)', field: 'primera_quincena' },
-                   { label: '2da Quincena ($)', field: 'segunda_quincena' },
-                 ].map((item) => (
-                   <Input 
+                  {FINANCIAL_FIELDS.map((item) => (
+                    <Input
                       key={item.field}
                       label={item.label} 
                       type="number" 
-                      value={(formData as any)[item.field]?.toString()} 
-                      onChange={(e) => onInputChange(item.field as any, parseFloat(e.target.value) || 0)} 
+                       value={formData[item.field]?.toString() || ''}
+                       onChange={(e) => onInputChange(item.field, parseFloat(e.target.value) || 0)}
+                      disabled={fieldsDisabled}
                       className="!rounded-2xl"
                    />
                  ))}

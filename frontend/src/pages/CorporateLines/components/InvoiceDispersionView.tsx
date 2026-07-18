@@ -10,42 +10,30 @@ import {
 } from '../../../components/atoms';
 import { AlertCircle, ArrowRight } from 'lucide-react';
 import { useNotifications } from '../../../components/notifications/NotificationsContext';
-
-interface ReportRow {
-  co: string;
-  cargo_mes: number;
-  descuento_mes: number;
-  impoconsumo: number;
-  descuento_iva: number;
-  iva_19: number;
-  total: number;
-}
-
-interface FacturaAlert {
-  id: number;
-  linea_id: number;
-  numero: string;
-  total: number;
-}
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import { FacturaAlerta, ResumenCORow } from '../useCorporateLines';
 
 interface Props {
-  onImport: (periodo: string, file: File) => Promise<any>;
-  onFetchReport: (periodo: string) => Promise<any>;
-  onFetchAlerts: (periodo: string) => Promise<any>;
+  onImport: (periodo: string, file: File) => Promise<unknown>;
+  onFetchReport: (periodo: string) => Promise<ResumenCORow[]>;
+  onFetchAlerts: (periodo: string) => Promise<FacturaAlerta[]>;
   onSelectLine: (id: number) => void;
+  canImport: boolean;
 }
 
 export const InvoiceDispersionView: React.FC<Props> = ({ 
   onImport, 
   onFetchReport, 
   onFetchAlerts, 
-  onSelectLine 
+  onSelectLine,
+  canImport,
 }) => {
   const [periodo, setPeriodo] = useState(new Date().toISOString().slice(0, 7).replace('-', ''));
   const [file, setFile] = useState<File | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [report, setReport] = useState<ReportRow[]>([]);
-  const [alerts, setAlerts] = useState<FacturaAlert[]>([]);
+  const [report, setReport] = useState<ResumenCORow[]>([]);
+  const [alerts, setAlerts] = useState<FacturaAlerta[]>([]);
   const { addNotification } = useNotifications();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -70,8 +58,8 @@ export const InvoiceDispersionView: React.FC<Props> = ({
       ]);
       setReport(reportData);
       setAlerts(alertsData);
-    } catch (err: any) {
-      addNotification('error', err.message || 'Error al procesar factura');
+    } catch (err: unknown) {
+      addNotification('error', err instanceof Error ? err.message : 'Error al procesar factura');
     } finally {
       setIsProcessing(false);
     }
@@ -86,11 +74,40 @@ export const InvoiceDispersionView: React.FC<Props> = ({
       ]);
       setReport(reportData);
       setAlerts(alertsData);
-    } catch (err: any) {
+    } catch {
       addNotification('error', 'Error al cargar reporte');
     } finally {
       setIsProcessing(false);
     }
+  };
+
+  const exportToPdf = () => {
+    if (report.length === 0) {
+      addNotification('warning', 'No hay datos para exportar.');
+      return;
+    }
+    const doc = new jsPDF();
+    doc.text(`Resumen Contable - Periodo ${periodo}`, 14, 15);
+    const tableColumn = ["C.O", "Cargo Mes", "Desc. Mes", "Impoconsumo", "Desc. IVA", "IVA 19%", "Total"];
+    const tableRows = report.map(row => [
+      row.co,
+      `$${row.cargo_mes?.toLocaleString()}`,
+      `$${row.descuento_mes?.toLocaleString()}`,
+      `$${row.impoconsumo?.toLocaleString()}`,
+      `$${row.descuento_iva?.toLocaleString()}`,
+      `$${row.iva_19?.toLocaleString()}`,
+      `$${row.total?.toLocaleString()}`
+    ]);
+
+    autoTable(doc, {
+      head: [tableColumn],
+      body: tableRows,
+      startY: 25,
+      theme: 'grid',
+      headStyles: { fillColor: [59, 130, 246] } // Color primary de Tailwind
+    });
+
+    doc.save(`Resumen_Contable_${periodo}.pdf`);
   };
 
   return (
@@ -108,7 +125,7 @@ export const InvoiceDispersionView: React.FC<Props> = ({
             />
           </div>
           
-          <div className="flex-[2] space-y-2">
+          {canImport && <div className="flex-[2] space-y-2">
             <Text variant="caption" weight="bold" className="uppercase tracking-wider opacity-60">Archivo de Factura (Excel Claro)</Text>
             <div className="relative group h-12">
               <Input 
@@ -125,10 +142,10 @@ export const InvoiceDispersionView: React.FC<Props> = ({
                 </Text>
               </div>
             </div>
-          </div>
+          </div>}
 
           <div className="flex gap-2">
-            <Button 
+            {canImport && <Button
               variant="primary" 
               onClick={handleUpload} 
               disabled={isProcessing || !file}
@@ -136,10 +153,12 @@ export const InvoiceDispersionView: React.FC<Props> = ({
               className="rounded-2xl h-12 px-6"
             >
               Procesar dispersión
-            </Button>
+            </Button>}
             <Button 
               variant="outline" 
               onClick={loadReport}
+              disabled={isProcessing}
+              loading={isProcessing}
               className="rounded-2xl h-12 px-6"
             >
               Cargar Reporte
@@ -168,6 +187,15 @@ export const InvoiceDispersionView: React.FC<Props> = ({
               <div 
                 key={alert.id}
                 onClick={() => onSelectLine(alert.linea_id)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    onSelectLine(alert.linea_id);
+                  }
+                }}
+                role="button"
+                tabIndex={0}
+                aria-label={`Gestionar línea ${alert.numero}`}
                 className="group flex justify-between items-center p-3 bg-white dark:bg-neutral-800 rounded-2xl border border-amber-200 dark:border-neutral-700 hover:border-amber-500 transition-all cursor-pointer shadow-sm hover:shadow-md"
               >
                 <div className="flex flex-col">
@@ -188,7 +216,7 @@ export const InvoiceDispersionView: React.FC<Props> = ({
         <div className="overflow-hidden rounded-3xl">
           <div className="p-6 border-b border-neutral-100 dark:border-neutral-700 flex justify-between items-center">
              <Title variant="h4">Resumen Contable por Centro de Costo (C.O)</Title>
-             <Button variant="outline" size="sm" icon={Download} className="rounded-xl">Exportar PDF</Button>
+             <Button variant="outline" size="sm" icon={Download} onClick={exportToPdf} className="rounded-xl">Exportar PDF</Button>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-left">
@@ -205,7 +233,7 @@ export const InvoiceDispersionView: React.FC<Props> = ({
               </thead>
               <tbody className="divide-y divide-neutral-100 dark:divide-neutral-700">
                 {report.map((row, idx) => (
-                  <tr key={`${row.id || row.cedula || 'row'}-${idx}`} className="hover:bg-neutral-50/50 dark:hover:bg-neutral-900/20 transition-colors">
+                  <tr key={`${row.co}-${idx}`} className="hover:bg-neutral-50/50 dark:hover:bg-neutral-900/20 transition-colors">
                     <td className="px-6 py-4 font-medium text-primary">{row.co}</td>
                     <td className="px-6 py-4 text-right">${row.cargo_mes?.toLocaleString()}</td>
                     <td className="px-6 py-4 text-right text-red-500">${row.descuento_mes?.toLocaleString()}</td>

@@ -28,6 +28,16 @@ def test_enmascarar_datos_oculta_secretos():
     assert resultado["anidado"]["nombre"] == "hijo"
 
 
+def test_enmascarar_datos_oculta_numero_de_linea_solo_en_modulo_corporativo():
+    datos = {"linea": "3001234567", "estado": "ACTIVA"}
+
+    corporativo = _enmascarar_datos(datos, modulo="lineas_corporativas")
+    otro_modulo = _enmascarar_datos(datos, modulo="tickets")
+
+    assert corporativo == {"linea": "[REDACTED]", "estado": "ACTIVA"}
+    assert otro_modulo == datos
+
+
 def test_inferir_modulo_desde_ruta():
     assert inferir_modulo_desde_ruta("/api/v2/tickets/123") == "tickets"
     assert inferir_modulo_desde_ruta("/api/v2/desarrollos") == "desarrollos"

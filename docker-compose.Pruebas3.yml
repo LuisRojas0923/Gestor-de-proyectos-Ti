@@ -144,6 +144,7 @@ services:
       - rbac_admin_capability
     volumes:
       - ./GestionTi_SoporteFiles_Pruebas3:/app/storage/attachments
+      - ./GestionTi_SoporteFiles_Pruebas3/nomina:/app/uploads/nomina
       - ./GestionTi_SoporteFiles_Pruebas3/biometria/perfiles:/app/storage/perfiles
       - ./GestionTi_SoporteFiles_Pruebas3/biometria/asistencias:/app/storage/asistencias
     depends_on:

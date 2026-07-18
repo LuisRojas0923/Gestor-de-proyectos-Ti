@@ -63,17 +63,32 @@ scratch/
 backend_v2/scratch/
 frontend/dist/
 GestionTi_SoporteFiles/
+GestionTi_SoporteFiles_Pruebas3/
 resources/data_maestra/
 testing/logs/
 *.log
 test_output.txt
 graphify-out/
-.agent/
+# Google Antigravity project harness. Ignore local state but version the
+# project rules, skills, and workflows shared by the team.
+.agent/*
+!.agent/rules/
+.agent/rules/*
+!.agent/rules/*.md
+!.agent/skills/
+.agent/skills/*
+!.agent/skills/*/
+.agent/skills/*/*
+!.agent/skills/*/SKILL.md
+!.agent/workflows/
+.agent/workflows/*
+!.agent/workflows/*.md
 # Respaldo de codigo muerto de React Doctor (ignorado en builds)
 /frontend/respaldo_codigo_muerto/
 
 # Archivos cargados por el modulo de Nomina/Descuentos
 backend_v2/uploads/nomina/
+/uploads/nomina/
 
 # Almacenamiento runtime sensible (biometria, cuarentena y perfiles)
 backend_v2/storage/

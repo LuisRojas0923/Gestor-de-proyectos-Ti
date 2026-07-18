@@ -1,5 +1,7 @@
 import logging
 from typing import List, Dict, Optional
+
+from fastapi.concurrency import run_in_threadpool
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 
@@ -144,7 +146,12 @@ class EmpleadosService:
 
     @staticmethod
     async def obtener_empleado_por_cedula(db_erp: Session, cedula: str, solo_activos: bool = True) -> Optional[Dict]:
-        return EmpleadosService.obtener_empleado_por_cedula_sync(db_erp, cedula, solo_activos)
+        return await run_in_threadpool(
+            EmpleadosService.obtener_empleado_por_cedula_sync,
+            db_erp,
+            cedula,
+            solo_activos,
+        )
 
     @staticmethod
     async def validar_empleado_activo_autogestion(db_erp: Session, cedula: str) -> Optional[Dict]:
@@ -203,8 +210,22 @@ class EmpleadosService:
         return mapa
 
     @staticmethod
-    async def actualizar_correo_erp(db_erp: Session, cedula: str, nuevo_correo: str) -> bool:
-        """Actualiza el correo corporativo y el flag de sincronización en el ERP (Solid)"""
+    async def consultar_empleados_bulk_async(
+        db_erp: Session,
+        cedulas: List[str],
+    ) -> Dict[str, Dict]:
+        return await run_in_threadpool(
+            EmpleadosService.consultar_empleados_bulk,
+            db_erp,
+            cedulas,
+        )
+
+    @staticmethod
+    def actualizar_correo_erp_sync(
+        db_erp: Session,
+        cedula: str,
+        nuevo_correo: str,
+    ) -> bool:
         try:
             logger.info("Actualizando correo corporativo en ERP")
             query = text("""
@@ -219,6 +240,20 @@ class EmpleadosService:
             logger.exception("Error al actualizar correo corporativo en ERP")
             db_erp.rollback()
             return False
+
+    @staticmethod
+    async def actualizar_correo_erp(
+        db_erp: Session,
+        cedula: str,
+        nuevo_correo: str,
+    ) -> bool:
+        """Actualiza el correo corporativo en ERP fuera del event loop."""
+        return await run_in_threadpool(
+            EmpleadosService.actualizar_correo_erp_sync,
+            db_erp,
+            cedula,
+            nuevo_correo,
+        )
 
     @staticmethod
     def listar_empleados_paginado(
@@ -389,6 +424,15 @@ class EmpleadosService:
                 "empresa": r.empresa or ""
             } for r in resultados
         ]
+
+    @staticmethod
+    async def obtener_todos_los_empleados_activos_async(
+        db_erp: Session,
+    ) -> List[Dict]:
+        return await run_in_threadpool(
+            EmpleadosService.obtener_todos_los_empleados_activos,
+            db_erp,
+        )
 
     @staticmethod
     async def sincronizar_solicitudes(db: Session):

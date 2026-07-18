@@ -1,21 +1,41 @@
-import hashlib
+import asyncio
+import logging
 from datetime import datetime
-from typing import List, Dict, Any, Optional
-from fastapi import APIRouter, Depends, UploadFile, File, Form, Query, HTTPException
+from typing import List
+from fastapi import APIRouter, Depends, UploadFile, File, Form, Query, HTTPException, Request
+from anyio import to_process
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlmodel import Session, select, delete
+from sqlmodel import select
 from ....database import obtener_db, obtener_erp_db_opcional
-from ....models.novedades_nomina.nomina import (
-    NominaArchivo, NominaRegistroNormalizado, NominaExcepcion
-)
+from ....models.novedades_nomina.nomina import NominaRegistroNormalizado, NominaExcepcion
 from ....services.erp.empleados_service import EmpleadosService
-from ....services.novedades_nomina.grancoop_extractor import extraer_grancoop
+from ....services.novedades_nomina.grancoop_extractor import (
+    LimiteExtraccionGrancoopError,
+    extraer_grancoop,
+)
 from ....services.novedades_nomina.excepcion_service import ExcepcionService
+from ....services.novedades_nomina.validacion_archivos_cooperativas import leer_archivos_grancoop
+from ....services.novedades_nomina.persistencia_cooperativas import (
+    guardar_archivos_cooperativa,
+    preparar_reemplazo_cooperativa,
+    registrar_archivos_cooperativa,
+)
+from ....services.auditoria.snapshots import asignar_evento_segura
+from ..dependencies import requiere_permiso_nomina_novedades
+from ....core.rate_limiter import limiter
 
-router = APIRouter(tags=["Cooperativas - Grancoop"])
+
+logger = logging.getLogger(__name__)
+
+router = APIRouter(
+    tags=["Cooperativas - Grancoop"],
+    dependencies=[Depends(requiere_permiso_nomina_novedades)],
+)
 
 @router.post("/grancoop/preview")
+@limiter.limit("5/minute")
 async def preview_grancoop(
+    request: Request,
     mes: int = Form(...),
     anio: int = Form(...),
     files: List[UploadFile] = File(...),
@@ -23,14 +43,42 @@ async def preview_grancoop(
     db_erp = Depends(obtener_erp_db_opcional),
 ):
     """Procesa PDFs de GRANCOOP, enriquece con ERP, guarda en BD."""
-    archivos_binarios = []
-    for f in files:
-        contenido = await f.read()
-        archivos_binarios.append(contenido)
+    try:
+        archivos_binarios, archivos_nombres = await leer_archivos_grancoop(files)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
-    rows, summary, warnings_txt = extraer_grancoop(archivos_binarios)
+    try:
+        rows, summary, warnings_txt = await asyncio.wait_for(
+            to_process.run_sync(
+                extraer_grancoop,
+                archivos_binarios,
+                archivos_nombres,
+                cancellable=True,
+            ),
+            timeout=60,
+        )
+    except LimiteExtraccionGrancoopError as exc:
+        raise HTTPException(status_code=422, detail="El PDF supera los límites permitidos") from exc
+    except asyncio.TimeoutError as exc:
+        raise HTTPException(status_code=422, detail="El procesamiento del PDF excedió el tiempo permitido") from exc
+    except Exception as exc:
+        logger.error("No fue posible extraer el archivo Grancoop")
+        raise HTTPException(status_code=422, detail="No fue posible procesar el PDF") from exc
+    if not rows:
+        raise HTTPException(status_code=422, detail="Los archivos no contienen filas válidas de Grancoop")
     summary["mes"] = mes
     summary["anio"] = anio
+
+    try:
+        await preparar_reemplazo_cooperativa(session, "GRANCOOP", mes, anio)
+    except Exception as exc:
+        await session.rollback()
+        logger.error("Error al bloquear el período de Grancoop")
+        raise HTTPException(
+            status_code=500,
+            detail="Error al preparar registros de Grancoop",
+        ) from exc
 
     # ── Obtener excepciones dinámicas de la DB ──
     stmt_exc = select(NominaExcepcion).where(
@@ -40,8 +88,10 @@ async def preview_grancoop(
     try:
         result_exc = await session.execute(stmt_exc)
         excepciones_db = result_exc.scalars().all()
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al consultar excepciones para Grancoop: {str(e)}")
+    except Exception as exc:
+        await session.rollback()
+        logger.error("Error al consultar excepciones de Grancoop")
+        raise HTTPException(status_code=500, detail="Error al consultar excepciones") from exc
     
     mapa_excepciones = {
         e.cedula: {
@@ -62,7 +112,7 @@ async def preview_grancoop(
         logger_route = logging.getLogger(__name__)
 
         # 1. Resolver cédulas vacías por coincidencia de nombre
-        empleados_activos = EmpleadosService.obtener_todos_los_empleados_activos(db_erp)
+        empleados_activos = await EmpleadosService.obtener_todos_los_empleados_activos_async(db_erp)
         nombres_resueltos = set()
         for row in rows:
             if not row.get("cedula"):
@@ -71,10 +121,10 @@ async def preview_grancoop(
                 if cedula_resuelta:
                     row["cedula"] = cedula_resuelta
                     row["observaciones"] = "Cédula resuelta por coincidencia de nombre en ERP."
-                    logger_route.info(f"Cédula resuelta por nombre para '{nombre_asoc}': {cedula_resuelta}")
+                    logger_route.info("Cédula de asociado resuelta por coincidencia ERP")
                     nombres_resueltos.add(nombre_asoc)
                 else:
-                    logger_route.warning(f"No se pudo resolver la cédula por nombre para: '{nombre_asoc}'")
+                    logger_route.warning("No se pudo resolver la cédula de un asociado en ERP")
 
         # Filtrar de warnings_txt aquellos que fueron resueltos con éxito por nombre
         warnings_txt = [
@@ -84,14 +134,15 @@ async def preview_grancoop(
 
         cedulas_sin_erp = set(mapa_excepciones.keys())
         cedulas_para_erp = list(set(r["cedula"] for r in rows if r["cedula"] and r["cedula"] not in cedulas_sin_erp))
-        mapa_erp = EmpleadosService.consultar_empleados_bulk(db_erp, cedulas_para_erp)
+        mapa_erp = await EmpleadosService.consultar_empleados_bulk_async(db_erp, cedulas_para_erp)
 
         for row in rows:
             ced = row["cedula"]
             if not ced:
                 row["estado_erp"] = "NO ENCONTRADO"
                 continue
-            if ced in mapa_excepciones: continue
+            if ced in mapa_excepciones:
+                continue
             info = mapa_erp.get(ced)
             if info:
                 row["nombre_asociado"] = info["nombre"] or row["nombre_asociado"]
@@ -106,7 +157,8 @@ async def preview_grancoop(
             if not ced:
                 warnings_detalle.append({"cedula": "SIN_CEDULA", "nombre": row.get("nombre_asociado", "Desconocido"), "motivo": "No se pudo resolver la cédula por nombre en ERP"})
                 continue
-            if ced in cedulas_ya or ced in mapa_excepciones: continue
+            if ced in cedulas_ya or ced in mapa_excepciones:
+                continue
             cedulas_ya.add(ced)
             estado = row.get("estado_erp", "")
             if estado == "NO ENCONTRADO":
@@ -116,7 +168,8 @@ async def preview_grancoop(
         
         for row in rows:
             ced = row["cedula"]
-            if not ced: continue
+            if not ced:
+                continue
             if ced in mapa_excepciones:
                 exc = mapa_excepciones[ced]
                 valor_orig = row["valor"]
@@ -130,7 +183,10 @@ async def preview_grancoop(
                     row["observaciones"] = f"Cobro original para {ced} ({exc['nombre']}). Redirigido a pagador {exc['pagador_cedula']}"
                     row["cedula"] = exc["pagador_cedula"]
                     if db_erp:
-                        info_pag = EmpleadosService.consultar_empleados_bulk(db_erp, [exc["pagador_cedula"]])
+                        info_pag = await EmpleadosService.consultar_empleados_bulk_async(
+                            db_erp,
+                            [exc["pagador_cedula"]],
+                        )
                         if info_pag.get(exc["pagador_cedula"]):
                             row["nombre_asociado"], row["empresa"] = info_pag[exc["pagador_cedula"]]["nombre"], info_pag[exc["pagador_cedula"]]["empresa"]
                     row["estado_erp"] = "REDIRECCIONADO"
@@ -183,19 +239,17 @@ async def preview_grancoop(
     })
 
     try:
-        # Guardar archivo físico en disco para permitir descargas posteriores
-        import os, hashlib
-        STORAGE_DIR = "uploads/nomina"
-        os.makedirs(STORAGE_DIR, exist_ok=True)
-        contenido = archivos_binarios[0] if archivos_binarios else b""
-        file_hash = hashlib.sha256(contenido).hexdigest()
-        filename = f"{file_hash}.pdf"
-        path = os.path.join(STORAGE_DIR, filename)
-        with open(path, "wb") as f_out: f_out.write(contenido)
-
-        await session.execute(delete(NominaRegistroNormalizado).where(NominaRegistroNormalizado.subcategoria_final == "GRANCOOP", NominaRegistroNormalizado.mes_fact == mes, NominaRegistroNormalizado.año_fact == anio))
-        archivo = NominaArchivo(nombre_archivo=f"grancoop_{mes}_{anio}.pdf", hash_archivo=file_hash, tamaño_bytes=sum(len(b) for b in archivos_binarios), tipo_archivo="pdf", ruta_almacenamiento=path, mes_fact=mes, año_fact=anio, categoria="COOPERATIVAS", subcategoria="GRANCOOP", estado="Procesado")
-        session.add(archivo); await session.flush()
+        archivos_guardados = await guardar_archivos_cooperativa(
+            archivos_binarios,
+            archivos_nombres,
+        )
+        archivo = await registrar_archivos_cooperativa(
+            session,
+            archivos_guardados,
+            mes,
+            anio,
+            "GRANCOOP",
+        )
         for idx, row in enumerate(rows_facturables):
             reg = NominaRegistroNormalizado(archivo_id=archivo.id, fecha_creacion=datetime.now(), mes_fact=mes, año_fact=anio, cedula=row["cedula"], nombre_asociado=row.get("nombre_asociado", ""), valor=row["valor"], empresa=row.get("empresa", ""), concepto=row["concepto"], categoria_final="COOPERATIVAS", subcategoria_final="GRANCOOP", estado_validacion="OK" if str(row.get("estado_erp")).upper() == "ACTIVO" else row.get("estado_erp", "OK"), observaciones=row.get("observaciones"), fila_origen=idx + 1)
             session.add(reg)
@@ -203,9 +257,24 @@ async def preview_grancoop(
             reg = NominaRegistroNormalizado(archivo_id=archivo.id, fecha_creacion=datetime.now(), mes_fact=mes, año_fact=anio, cedula=row["cedula"], nombre_asociado=row.get("nombre_asociado", ""), valor=row["valor"], empresa=row.get("empresa", ""), concepto=row["concepto"], categoria_final="COOPERATIVAS", subcategoria_final="GRANCOOP", estado_validacion=row.get("estado_erp", "ADVERTENCIA"), observaciones=row.get("observaciones"), fila_origen=len(rows_facturables) + idx + 1)
             session.add(reg)
         await session.commit()
-    except Exception as e:
+        asignar_evento_segura(
+            request,
+            modulo="nomina_novedades",
+            accion="importar",
+            entidad_tipo="lote_cooperativa",
+            entidad_id=f"GRANCOOP:{anio}:{mes}",
+            metadatos={
+                "subcategoria": "GRANCOOP",
+                "mes": mes,
+                "anio": anio,
+                "archivos": len(archivos_guardados),
+                "registros": len(rows),
+            },
+        )
+    except Exception as exc:
         await session.rollback()
-        raise HTTPException(status_code=500, detail=f"Error al guardar registros de Grancoop: {str(e)}")
+        logger.error("Error al guardar registros de Grancoop")
+        raise HTTPException(status_code=500, detail="Error al guardar registros de Grancoop") from exc
 
     formatted_rows = [{"cedula": r["cedula"], "nombre_asociado": r.get("nombre_asociado", ""), "empresa": r.get("empresa", ""), "valor": r["valor"], "concepto": r["concepto"]} for r in rows_facturables]
     return {"rows": formatted_rows, "summary": summary, "warnings": warnings_txt, "warnings_detalle": warnings_detalle}
@@ -215,9 +284,11 @@ async def obtener_datos_grancoop(mes: int = Query(...), anio: int = Query(...), 
     """Devuelve datos GRANCOOP guardados para un mes/año."""
     stmt = select(NominaRegistroNormalizado).where(NominaRegistroNormalizado.subcategoria_final == "GRANCOOP", NominaRegistroNormalizado.mes_fact == mes, NominaRegistroNormalizado.año_fact == anio)
     try:
-        result = await session.execute(stmt); registros = result.scalars().all()
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al consultar datos de Grancoop: {str(e)}")
+        result = await session.execute(stmt)
+        registros = result.scalars().all()
+    except Exception as exc:
+        logger.error("Error al consultar datos de Grancoop")
+        raise HTTPException(status_code=500, detail="Error al consultar datos de Grancoop") from exc
 
     rows_final = [{"cedula": r.cedula, "nombre_asociado": r.nombre_asociado, "empresa": r.empresa, "valor": r.valor, "concepto": r.concepto, "estado_validacion": r.estado_validacion} 
                   for r in registros 

@@ -1,6 +1,6 @@
-# Protocolo de descubrimiento — arnés OpenCode
+# Protocolo de descubrimiento — arnés OpenCode/Codex/Antigravity
 
-Aplica a **todos** los subagentes en `.opencode/agent/` y a sus adaptadores en `.codex/agents/`. Léelo al inicio de cada revisión o consulta de memoria.
+Aplica a **todos** los subagentes en `.opencode/agent/` y a sus adaptadores en `.codex/agents/` y `.agent/skills/`. Léelo al inicio de cada revisión o consulta de memoria.
 
 ## 1. Skills de proyecto
 
@@ -114,11 +114,14 @@ Al tocar `.agents/skills/` en un build, `docs-tests-reviewer` debe verificar que
 
 Al añadir/modificar permisos de un subagente, actualizar esta tabla.
 
-## 9. Adaptadores Codex
+## 9. Adaptadores Codex y Antigravity
 
 - `.opencode/agent/*.md` es la fuente canonica para roles, checklists, routing y memoria.
 - `.codex/agents/*.toml` mantiene el mismo roster de ocho agentes y referencia el Markdown homologo; no debe copiar sus reglas completas.
 - Todos los adaptadores Codex usan `sandbox_mode = "read-only"` y devuelven sus reportes inline.
 - Si una revision o `error-memory` requiere persistencia, devuelve el cambio propuesto al orquestador para aplicarlo solo en las rutas autorizadas.
 - La memoria local `.codex/agent-memory/` no forma parte del proyecto y permanece ignorada.
-- Al agregar, retirar o renombrar un agente canonico, actualizar en el mismo cambio su adaptador Codex y este protocolo.
+- `.agent/skills/<agente>/SKILL.md` adapta cada definicion canonica para Google Antigravity sin copiar su checklist.
+- Antigravity no ofrece aislamiento equivalente a los subagentes personalizados; sus personas deben trabajar read-only y devolver reportes o escrituras propuestas al orquestador.
+- `.agent/rules/` enruta el dominio y `.agent/workflows/` orquesta la invocacion directa de cada persona requerida.
+- Al agregar, retirar o renombrar un agente canonico, actualizar en el mismo cambio sus adaptadores aplicables y ejecutar `py -3.12 scripts/validate_antigravity_harness.py`.

@@ -24,10 +24,13 @@ Ubicación: `testing/backend/`
 | **Autogestión ERP Auth** | `test_autogestion_usuarios_erp.py` | JIT, registro público y validación fail-closed contra empleados activos del ERP. | ✅ PASSED |
 | **Setup Password** | `test_setup_password.py` | Configuración de contraseña primera vez (setup-password), estado (password-status) y login con password no configurado. | ⚠️ BLOQUEADO LOCAL: credenciales PostgreSQL |
 | **Escalado de Roles** | `test_auth_escalation.py` | **Seguridad**: Escalado de roles, invalidación de sesiones, cambio forzado de contraseña. | ✅ PASSED |
-| **Líneas Corp.** | `test_lineas_corporativas.py` | Gestión de equipos móviles y personal. | ✅ PASSED |
+| **Líneas Corp.** | `test_lineas_corporativas.py` | CRUD autenticado de equipos, personas y líneas; reportes del módulo. | ✅ PASSED |
+| **Seguridad Líneas Corp.** | `test_lineas_corporativas_seguridad.py` | RBAC administrativo, archivos, transacciones, auditoría sin PII, errores seguros y degradación del ERP. | ✅ PASSED |
+| **Facturas Líneas Corp.** | `test_lineas_corporativas_facturas.py` | Advisory lock por período, período canónico `AAAA-MM` y reemplazo idempotente de detalle/resumen financiero. | ✅ 4 PASSED |
 | **Core API** | `test_api_v2.py` | Salud general y Auth básico. | ✅ PASSED |
 | **ERP Sync** | `test_requisiciones.py` | Sincronización de catálogos con el ERP. | ✅ PASSED |
 | **ERP Empleados** | `test_erp_empleados_service.py` | Contrato ERP de empleado para HE: autorización, `beneficio.salario`, resolución de salario/ARL, firma de pre-liquidación y rechazo de importes manipulados. | ✅ PASSED |
+| **ERP Empleados Offload** | `test_erp_empleados_offload.py` | Lecturas, consultas masivas y actualización de correo ERP delegadas fuera del event loop. | ✅ 4 PASSED |
 | **Viáticos** | `test_viaticos.py` | Flujo de legalización y solicitudes. | ✅ PASSED |
 | **Desarrollos** | `test_desarrollos_update.py` | Actualización de proyectos/desarrollos existentes y manejo 404. | ✅ PASSED |
 | **Desarrollos Autoridad** | `test_desarrollos_autoridad.py` | Persistencia y respuesta del campo autoridad en proyectos/desarrollos. | ✅ PASSED |
@@ -37,6 +40,7 @@ Ubicación: `testing/backend/`
 | **Asignación Jerárquica** | `test_asignacion_desarrollos_actividades.py` | Persistencia de responsable, ejecutor, delegador y estado de validación. | ✅ PASSED |
 | **Validaciones Asignación** | `test_validaciones_asignacion.py` | Creación automática de validaciones indirectas y resolución aprobada/rechazada. | ✅ PASSED |
 | **Anulación Actividades** | `test_actividad_delete.py` | Anulación lógica recursiva de actividades, metadatos de anulación y limpieza de validaciones asociadas. | ✅ PASSED |
+| **Evidencias WBS** | `test_actividad_archivos.py` | Persistencia física, validación de tipo/tamaño/firma, aislamiento por actividad, auditoría y carga por ejecutor distinto del creador. | ✅ PASSED |
 | **Prioridad Desarrollos** | `test_desarrollo_prioridad.py` | Ciclo CRUD de prioridades en desarrollos. | ✅ PASSED |
 | **Notificaciones** | `test_notificaciones.py` | Ciclo CRUD de notificaciones persistentes de usuario. | ✅ PASSED |
 | **Horas Extras S0 Semillas** | `test_horas_extras_s0.py` | Semillado, catalogo base, factores legales y topes iniciales del modulo. | ✅ PASSED |
@@ -81,24 +85,45 @@ Ubicación: `testing/backend/`
 | **Overrides HE - Alcance** | `test_horarios_segunda_revision.py` (casos de overrides) | POST relacionado canoniza antes de mutar; POST/GET no relacionado no opera; GET relacionado/admin canoniza y usa `no-store, private`. | ✅ FOCAL 19 PASSED |
 | **Concurrencia PostgreSQL Real** | `test_relaciones_concurrencia.py` | Dos sesiones reales: serialización de una relación con UUID distintos y replay concurrente del mismo ledger de aplicación. | ✅ 2 PASSED |
 | **Horas Extras S7 Helpers** | `horas_extras_s7_helpers.py` | Helpers y fixtures extraídos de S7 para dividir la suite sin duplicar preparación del planificador. | Soporte de suite |
+| **ETL Beneficiar** | `test_beneficiar_prima.py` | Prima opcional, meses ordinarios y rechazo de columnas obligatorias ausentes. | ✅ PASSED |
+| **ETL Grancoop** | `test_grancoop_nombre_matching.py` | CREDIPRIMA, NOMPRI estricto, sumatoria sin duplicar y límites PDF. | ✅ PASSED |
+| **Seguridad Cooperativas** | `test_cooperativas_archivos_seguridad.py` | Firmas, límites, nombres, permiso `nomina_novedades`, cierre RBAC de rutas genéricas y lectura acotada a 20 MiB. | ✅ PASSED |
+| **Persistencia Cooperativas** | `test_cooperativas_persistencia.py` | Persistencia física y metadatos de lotes múltiples, más advisory lock por cooperativa/período. | ✅ 3 PASSED |
 
 ### 2. Frontend (Vitest)
 Ubicación: `frontend/src/`
 
 | Módulo | Archivo | Descripción | Estado |
 | :--- | :--- | :--- | :--- |
-| **Registro** | `pages/Login/RegisterSidebar.test.tsx` | Mensajes de autoactivación y normalización de errores de registro. | ✅ PASSED |
+| **Registro** | `pages/Login/RegisterSidebar.test.tsx` | Mensajes de autoactivación y normalización de errores de registro. | ⚠️ Expectativa desactualizada en última suite global reportada |
 | **Áreas** | `components/molecules/__tests__/AreaAutocomplete.test.tsx` | Selector buscable cerrado, requerido y con opciones estrictas. | ✅ PASSED |
 | **Anulación WBS** | `pages/DevelopmentDetail/DeleteActivityModal.test.tsx` | Modal confirma anulación lógica y evita copy de eliminación física. | ✅ PASSED |
+| **Descarga Evidencias WBS** | `services/ActivityEvidenceService.test.ts` | Clasificación de enlaces legados y descarga autenticada de archivos internos. | ✅ PASSED |
+| **Carga Evidencias WBS** | `pages/DevelopmentDetail/WbsNodeModal.test.tsx` | Éxito parcial, mensaje de error y reintento de carga sin duplicar la actividad. | ✅ PASSED |
+| **Selector y filtros WBS** | `components/molecules/__tests__/{FilePicker,DataTable}.test.tsx` | Área completa del selector, agrupación checkbox-texto, ancho máximo y reajuste responsivo con margen. | ✅ PASSED |
 | **Indicadores de Auditoría** | `pages/ServicePortal/pages/AuditoriaIndicadores/index.test.tsx` | Estados de éxito, error y actualización manual del dashboard. | ✅ PASSED |
 | **Organigrama interactivo** | `pages/OrganizationalHierarchy/*.test.tsx` y `utils.test.ts` | Expansión inicial, paneo móvil, layout aislado y controles accesibles. | ✅ PASSED |
+| **Líneas Corporativas** | `components/atoms/SearchableSelect.test.tsx`, `components/molecules/__tests__/{DataTable,Modal}.test.tsx`, `pages/CorporateLines/**/*.test.tsx` | Teclado, tabla/filtros accesibles, modales, confirmaciones, reintentos y estados de gestores. | ✅ PASSED |
 
-### 3. Rendimiento (Locust)
+### 3. Arnés de agentes (Pytest)
+Ubicación: `testing/agent_harness/`
+
+| Módulo | Archivo | Descripción | Estado |
+| :--- | :--- | :--- | :--- |
+| **Google Antigravity** | `test_validate_antigravity_harness.py` | Paridad canónica, frontmatter, referencias, reglas, workflows, guardrails, documentación y salida CLI. | ✅ 22 PASSED |
+
+Ejecución:
+
+```powershell
+py -3.12 -m pytest testing/agent_harness/test_validate_antigravity_harness.py
+```
+
+### 4. Rendimiento (Locust)
 Ubicación: `testing/backend/load_test.py`
 *   **Escenario Base**: Autenticación y navegación por el portal.
 *   **Capacidad**: Hasta 400 usuarios concurrentes.
 
-### 2.1 Frontend focal: horarios y relaciones
+### 4.1 Evidencia focal complementaria: horarios y relaciones
 
 Ubicación: `frontend/src/tests/`
 
@@ -134,7 +159,7 @@ La evidencia del planificador tabular ejecutada el 2026-07-17 es 33/33 focales; 
 
 Backend consolidado final reportado: 154 passed; focal overrides: 19 passed; health: 4 passed/4 skipped; carreras PostgreSQL reales: 2 passed. La suite ERP no recolecta localmente sin `pdfplumber`; el import Docker reporta 318 rutas.
 
-### 3. Scripts de Verificación Manual
+### 5. Scripts de Verificación Manual
 Ubicación: `testing/backend/scripts/`
 Estos scripts se utilizan para validaciones específicas que requieren intervención manual o envío de datos reales.
 
