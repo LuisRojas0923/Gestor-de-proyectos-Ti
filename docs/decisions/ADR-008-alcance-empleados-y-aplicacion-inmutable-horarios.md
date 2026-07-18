@@ -18,7 +18,7 @@ Las plantillas semanales tambien requieren trazabilidad. Si el horario aplicado 
 
 `relaciones_gestor_empleado` expresa exclusivamente autorizacion por fila: un usuario gestor puede consultar u operar una cedula ERP. No representa jefe, subordinado, delegacion ni aprobador. Un empleado puede estar relacionado con varios gestores y la relacion puede desactivarse o reactivarse sin borrado fisico.
 
-La autorizacion combina el permiso funcional del endpoint con el alcance por cedula. Solo el rol canonico `admin` omite el filtro de filas; no omite autenticacion ni RBAC. La resolucion incierta falla cerrada.
+La autorizacion combina el permiso funcional del endpoint con el alcance por cedula. El rol canonico `admin` conserva el bypass de filas para autorizar operaciones y no omite autenticacion ni RBAC. En el listado operativo del planificador, las relaciones activas del `admin` configuran su subconjunto visible; si no tiene relaciones activas, conserva el universo ERP para mantener la capacidad administrativa de recuperacion. Los usuarios no admin sin relaciones reciben un conjunto vacio. La resolucion incierta falla cerrada.
 
 ### Identidad por cedula canonica
 

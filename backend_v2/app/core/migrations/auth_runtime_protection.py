@@ -35,7 +35,8 @@ async def instalar_proteccion_auth_runtime(session, runtime_role: str) -> None:
     if re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", runtime_role) is None:
         raise RuntimeError("El rol runtime configurado no es válido")
     body = AUTH_PROTECTION_FUNCTION_BODY.format(runtime_role=runtime_role)
-    await session.execute(text("""  # @audit-ok: migración fail-fast
+    await session.execute(text(  # @audit-ok: migración fail-fast
+        """
         DO $drop$ DECLARE signature text;
         BEGIN
             FOR signature IN
@@ -45,7 +46,8 @@ async def instalar_proteccion_auth_runtime(session, runtime_role: str) -> None:
             LOOP EXECUTE 'DROP FUNCTION ' || signature || ' CASCADE'; END LOOP;
         END $drop$;
     """))
-    await session.execute(text(f"""  # @audit-ok: migración fail-fast
+    await session.execute(text(  # @audit-ok: migración fail-fast
+        f"""
         CREATE FUNCTION public.proteger_credenciales_admin_runtime()
         RETURNS trigger AS $$
         {body}
@@ -53,7 +55,8 @@ async def instalar_proteccion_auth_runtime(session, runtime_role: str) -> None:
     """))
     await session.execute(text("REVOKE ALL ON FUNCTION public.proteger_credenciales_admin_runtime() FROM PUBLIC"))  # @audit-ok: migración fail-fast
     await session.execute(text("DROP TRIGGER IF EXISTS trg_usuarios_proteger_admin_runtime ON public.usuarios"))  # @audit-ok: migración fail-fast
-    await session.execute(text("""  # @audit-ok: migración fail-fast
+    await session.execute(text(  # @audit-ok: migración fail-fast
+        """
         CREATE TRIGGER trg_usuarios_proteger_admin_runtime
         BEFORE INSERT OR UPDATE OR DELETE ON public.usuarios
         FOR EACH ROW EXECUTE FUNCTION public.proteger_credenciales_admin_runtime()

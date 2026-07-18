@@ -16,8 +16,8 @@ Cobertura:
   - compensar_bolsa: horas > disponibles → 409
   - compensar_bolsa: horas <= 0 → 409
 
-Usa cédulas únicas con prefijo TEST-S4- para evitar choques con datos de
-producción o de otros tests.
+Usa una cédula numérica reservada para evitar choques con datos de producción
+o de otros tests.
 """
 import pytest
 from datetime import date
@@ -41,7 +41,7 @@ from app.models.novedades_nomina.schemas_horas_extras import (
     CompensarBolsaRequest,
 )
 from app.models.auth.usuario import Usuario
-from app.api.novedades_nomina.routers.horas_extras import (
+from app.api.novedades_nomina.routers.horas_extras_workflow import (
     transicionar_calculo_endpoint,
     compensar_bolsa_endpoint,
 )
@@ -59,7 +59,7 @@ from app.services.novedades_nomina.horas_extras_workflow import (
 # Fixtures auxiliares
 # ---------------------------------------------------------------------------
 
-CEDULA_BASE = "TEST-S4-1234567890"
+CEDULA_BASE = "9900000000000401"
 ANIO = 2026
 SEMANA = 30
 OT_ID = 9101
@@ -550,7 +550,7 @@ class TestCompensarBolsa:
 
     @pytest.mark.asyncio
     async def test_endpoint_compensar_bolsa_persiste_commit(self, db_session):
-        cedula = "TEST-S4-DIRECT-ENDPOINT"
+        cedula = "9900000000000402"
         await _cleanup(db_session, cedula)
         try:
             bolsa = NominaBolsaHoras(cedula=cedula, horas_acreditadas=5.0)

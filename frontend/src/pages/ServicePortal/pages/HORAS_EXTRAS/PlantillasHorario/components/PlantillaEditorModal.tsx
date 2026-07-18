@@ -45,7 +45,7 @@ const PlantillaEditorModal = ({ open, plantilla, guardando, onClose, onSave }: P
           <Input label="Nombre" value={nombre} maxLength={120} onChange={(event) => setNombre(event.target.value)} disabled={guardando} />
           <Textarea label="Descripción" value={descripcion} maxLength={500} rows={2} onChange={(event) => setDescripcion(event.target.value)} disabled={guardando} />
         </div>
-        <WeeklyScheduleEditor value={dias} onChange={setDias} disabled={guardando} />
+        <WeeklyScheduleEditor value={dias} onChange={setDias} disabled={guardando} showHoursSummary />
         {error && <Callout variant="error" role="alert">{error}</Callout>}
         <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
           <Button variant="ghost" onClick={onClose} disabled={guardando}>Cancelar</Button>

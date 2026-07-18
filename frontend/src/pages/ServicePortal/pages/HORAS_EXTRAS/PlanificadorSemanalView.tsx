@@ -1,33 +1,21 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Text, Button } from '../../../../components/atoms';
-import { CheckCircle2 } from 'lucide-react';
-import Modal from '../../../../components/molecules/Modal';
 import { useNotifications } from '../../../../components/notifications/NotificationsContext';
-import {
-  guardarBorradorPlan,
-  preCalcularPlan,
-  confirmarPlan,
-} from '../../../../services/horasExtrasService';
-import type {
-  EmpleadoERPRead,
-  PlanBulkRequest,
-  PlanAsignacionOtIn,
-  PlanConfirmarRequest,
-  PlanDiaIn,
-  PlanEmpleadoInBase,
-  PlanPreCalculoResponse,
-  PlanSemanaIn,
-} from '../../../../types/horasExtrasPlanificador';
+import { confirmarPlan, guardarBorradorPlan, preCalcularPlan } from '../../../../services/horasExtrasService';
+import type { EmpleadoERPRead, PlanAsignacionOtIn, PlanBulkRequest, PlanConfirmarRequest,
+  PlanDiaIn, PlanEmpleadoInBase, PlanPreCalculoResponse, PlanSemanaIn } from '../../../../types/horasExtrasPlanificador';
 import CeldaDiaEditor from './components/CeldaDiaEditor';
 import ResumenPlan from './components/ResumenPlan';
 import PlanificadorHeader from './components/PlanificadorHeader';
 import HorarioMasivoCard from './components/HorarioMasivoCard';
 import AsignacionOtMasivaCard from './components/AsignacionOtMasivaCard';
 import EmpleadosActivosPanel from './components/EmpleadosActivosPanel';
+import ConfirmarSemanaModal from './components/ConfirmarSemanaModal';
+import SelectorVistaHorario, { type VistaHorario } from './components/SelectorVistaHorario';
+import VistaTabularHorarios from './components/VistaTabularHorarios';
 import PlanificadorAccionesSemana from './components/PlanificadorAccionesSemana';
 import SelectorPlantillaPlanificador from './components/SelectorPlantillaPlanificador';
-import { fechasDeSemanaIso, fechaIsoCorta, semanaIsoDesdeFecha } from './utils/horarioUtils';
+import { fechasDeSemanaIso, fechaIsoCorta, labelDia, semanaIsoDesdeFecha } from './utils/horarioUtils';
 import {
   CODIGOS_NOVEDAD,
   DIAS_SEMANA,
@@ -38,20 +26,16 @@ import {
   normalizarDiasPlan,
 } from './utils/planificadorSemanalUtils';
 import { errorTurno } from './utils/validarTurno';
-import { labelDia } from './utils/horarioUtils';
 import { crearOverridesDesdePlantilla, diasActivosDePlantilla } from './utils/planificadorPlantillas';
 import type { PlantillaHorario } from '../../../../types/horariosRelaciones';
 import {
   PLANIFICADOR_DRAFT_KEY,
-  guardarBorradorPlanificadorLocal,
   leerBorradorPlanificador,
   type PlanificadorDraft,
   type ResultadoConfirmacion,
 } from './utils/planificadorDraft';
-
-interface PlanEmpleadoTabla extends PlanEmpleadoInBase {
-  empleado?: EmpleadoERPRead;
-}
+import { usePersistirBorradorPlanificador } from './hooks/usePersistirBorradorPlanificador';
+interface PlanEmpleadoTabla extends PlanEmpleadoInBase { empleado?: EmpleadoERPRead }
 const PlanificadorSemanalView: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -74,7 +58,6 @@ const PlanificadorSemanalView: React.FC = () => {
           7,
       ),
   );
-
   const semana = useMemo<PlanSemanaIn>(() => {
     const fechas = fechasDeSemanaIso(anio, semanaIso);
     return {
@@ -84,9 +67,7 @@ const PlanificadorSemanalView: React.FC = () => {
       fecha_fin: fechaIsoCorta(fechas[6]),
     };
   }, [anio, semanaIso]);
-
   const fechasSemana = useMemo(() => fechasDeSemanaIso(anio, semanaIso), [anio, semanaIso]);
-
   const [seleccionados, setSeleccionados] = useState<Set<string>>(new Set(borradorInicial?.seleccionados ?? []));
   const [empleadosInfo, setEmpleadosInfo] = useState<Map<string, EmpleadoERPRead>>(
     new Map(borradorInicial?.empleadosInfo ?? []),
@@ -110,34 +91,8 @@ const PlanificadorSemanalView: React.FC = () => {
     new Map(borradorInicial?.erroresConfirmacion ?? []),
   );
   const [resultado, setResultado] = useState<ResultadoConfirmacion | null>(borradorInicial?.resultado ?? null);
-  const borradorPendienteRef = useRef<PlanificadorDraft | null>(null);
-  const guardadoBorradorTimerRef = useRef<number | null>(null);
-
-  const vaciarGuardadoBorradorPendiente = useCallback(() => {
-    if (guardadoBorradorTimerRef.current !== null) {
-      window.clearTimeout(guardadoBorradorTimerRef.current);
-      guardadoBorradorTimerRef.current = null;
-    }
-    if (!borradorPendienteRef.current) return;
-    guardarBorradorPlanificadorLocal(borradorPendienteRef.current);
-    borradorPendienteRef.current = null;
-  }, []);
-
-  const programarGuardadoBorrador = useCallback((draft: PlanificadorDraft) => {
-    borradorPendienteRef.current = draft;
-    if (guardadoBorradorTimerRef.current !== null) {
-      window.clearTimeout(guardadoBorradorTimerRef.current);
-    }
-    guardadoBorradorTimerRef.current = window.setTimeout(vaciarGuardadoBorradorPendiente, 150);
-  }, [vaciarGuardadoBorradorPendiente]);
-
-  useEffect(() => vaciarGuardadoBorradorPendiente, [vaciarGuardadoBorradorPendiente]);
-
-  useEffect(() => {
-    window.addEventListener('beforeunload', vaciarGuardadoBorradorPendiente);
-    return () => window.removeEventListener('beforeunload', vaciarGuardadoBorradorPendiente);
-  }, [vaciarGuardadoBorradorPendiente]);
-
+  const [vistaHorario, setVistaHorario] = useState<VistaHorario>('matriz');
+  const versionSemanaRef = useRef(0);
   const desplazarATablaEmpleados = useCallback(() => {
     const target = tablaEmpleadosRef.current;
     if (target && typeof target.scrollIntoView === 'function') {
@@ -149,7 +104,6 @@ const PlanificadorSemanalView: React.FC = () => {
     if (!mostrarEmpleadosInicial) return;
     window.setTimeout(desplazarATablaEmpleados, 0);
   }, [desplazarATablaEmpleados, mostrarEmpleadosInicial]);
-
   const limpiarResultadosSemana = () => {
     setPreCalculo(null);
     setResultado(null);
@@ -159,8 +113,12 @@ const PlanificadorSemanalView: React.FC = () => {
   const cambiarFechaReferencia = (fechaIso: string) => {
     const next = semanaIsoDesdeFecha(fechaIso);
     if (!next) return;
+    versionSemanaRef.current += 1;
     setAnio(next.anio);
     setSemanaIso(next.semanaIso);
+    setSeleccionados(new Set()); setEmpleadosInfo(new Map()); setOverrides(new Map());
+    window.sessionStorage.removeItem(PLANIFICADOR_DRAFT_KEY);
+    setPreCalculando(false); setGuardando(false); setConfirmando(false); setConfirmacionAbierta(false);
     limpiarResultadosSemana();
   };
 
@@ -182,6 +140,7 @@ const PlanificadorSemanalView: React.FC = () => {
     nextEmpleadosInfo = empleadosInfo,
     nextOverrides = overrides,
   ): PlanificadorDraft => ({
+    usuario: localStorage.getItem('user_cedula'),
     anio,
     semanaIso,
     seleccionados: Array.from(nextSeleccionados),
@@ -197,6 +156,7 @@ const PlanificadorSemanalView: React.FC = () => {
     resultado,
     erroresConfirmacion: Array.from(erroresConfirmacion.entries()),
   });
+  usePersistirBorradorPlanificador(crearDraftActual(), !(resultado && resultado.error === 0));
 
   const actualizarSeleccionEmpleados = (
     nextSeleccionados: Set<string>,
@@ -204,15 +164,7 @@ const PlanificadorSemanalView: React.FC = () => {
   ) => {
     setSeleccionados(new Set(nextSeleccionados));
     setEmpleadosInfo(new Map(nextEmpleadosInfo));
-    setPreCalculo(null);
-    setResultado(null);
-    setErroresConfirmacion(new Map());
-    programarGuardadoBorrador({
-      ...crearDraftActual(nextSeleccionados, nextEmpleadosInfo),
-      preCalculo: null,
-      resultado: null,
-      erroresConfirmacion: [],
-    });
+    limpiarResultadosSemana();
   };
 
   const toggleDiaDestino = (dia: number) => {
@@ -244,7 +196,7 @@ const PlanificadorSemanalView: React.FC = () => {
       }
       return next;
     });
-    setPreCalculo(null);
+    limpiarResultadosSemana();
   };
 
   const aplicarCambiosMasivos = () => {
@@ -301,6 +253,11 @@ const PlanificadorSemanalView: React.FC = () => {
     addNotification('success', `OT aplicada a ${seleccionados.size} empleados en ${diasDestino.size} días.`);
   };
 
+  const aplicarActividadMasiva = (actividad: string) => {
+    actualizarDiasSeleccionados((dia) => ({ ...dia, actividad }));
+    addNotification('success', `Actividad aplicada a ${seleccionados.size} empleados en ${diasDestino.size} días.`);
+  };
+
   const limpiarDiasMasivo = () => {
     actualizarDiasSeleccionados((dia) => ({
       ...dia,
@@ -308,6 +265,7 @@ const PlanificadorSemanalView: React.FC = () => {
       hora_salida: null,
       minutos_almuerzo: 0,
       cruza_medianoche: false,
+      actividad: null,
       novedades: [],
       asignaciones_ot: [],
     }));
@@ -325,25 +283,16 @@ const PlanificadorSemanalView: React.FC = () => {
       );
       return next;
     });
-    setPreCalculo(null);
+    limpiarResultadosSemana();
     setCeldaEdit(null);
   };
+  const editarDia = useCallback((cedula: string, diaSemana: number) => setCeldaEdit({ cedula, diaSemana }), []);
 
   const buildBulkRequest = (): PlanBulkRequest => ({ semana, empleados: empleadoBasePlan });
 
   const validarSeleccion = () => {
     if (seleccionados.size === 0) {
       addNotification('error', 'Selecciona al menos un empleado.');
-      return false;
-    }
-    const noAutorizados = empleadosPlan.filter(
-      (empleado) => empleado.empleado && empleado.empleado.autoriza_he !== true,
-    );
-    if (noAutorizados.length > 0) {
-      setErroresConfirmacion(
-        new Map(noAutorizados.map((empleado) => [empleado.cedula, 'Empleado no autorizado para horas extras'])),
-      );
-      addNotification('error', 'Hay empleados sin autorización HE. Retíralos antes de confirmar o guardar.');
       return false;
     }
     for (const empleado of empleadosPlan) {
@@ -358,33 +307,42 @@ const PlanificadorSemanalView: React.FC = () => {
 
   const handlePreCalcular = async () => {
     if (!validarSeleccion()) return;
+    const versionSemana = versionSemanaRef.current;
     setPreCalculando(true);
     setErroresConfirmacion(new Map());
     try {
       const r = await preCalcularPlan(buildBulkRequest(), token);
+      if (versionSemana !== versionSemanaRef.current) return;
       setPreCalculo(r);
-      addNotification('success', `Pre-cálculo: ${r.resumen.total_horas_extras.toFixed(1)}h HE estimadas`);
+      addNotification(
+        'success',
+        `Pre-cálculo: ${r.resumen.total_horas_extras.toFixed(1)}h HE, ${r.resumen.total_horas_festivas.toFixed(1)}h festivas`,
+      );
     } catch (e: unknown) {
+      if (versionSemana !== versionSemanaRef.current) return;
       addNotification('error', e instanceof Error ? e.message : 'Error al pre-calcular');
     } finally {
-      setPreCalculando(false);
+      if (versionSemana === versionSemanaRef.current) setPreCalculando(false);
     }
   };
 
   const handleGuardarBorrador = async () => {
     if (!validarSeleccion()) return;
+    const versionSemana = versionSemanaRef.current;
     setGuardando(true);
     try {
       const r = await guardarBorradorPlan(buildBulkRequest(), token);
+      if (versionSemana !== versionSemanaRef.current) return;
       if (r.errores.length > 0) {
         addNotification('warning', `Borrador guardado con ${r.errores.length} errores.`);
       } else {
         addNotification('success', `Borrador guardado: ${r.registros_horario_creados} nuevos, ${r.registros_horario_actualizados} actualizados`);
       }
     } catch (e: unknown) {
+      if (versionSemana !== versionSemanaRef.current) return;
       addNotification('error', e instanceof Error ? e.message : 'Error al guardar');
     } finally {
-      setGuardando(false);
+      if (versionSemana === versionSemanaRef.current) setGuardando(false);
     }
   };
 
@@ -394,6 +352,7 @@ const PlanificadorSemanalView: React.FC = () => {
   };
 
   const handleConfirmar = async () => {
+    const versionSemana = versionSemanaRef.current;
     setConfirmacionAbierta(false);
     setConfirmando(true);
     setResultado(null);
@@ -405,24 +364,35 @@ const PlanificadorSemanalView: React.FC = () => {
         empleados: empleadoBasePlan,
       };
       const r = await confirmarPlan(payload, token);
+      if (versionSemana !== versionSemanaRef.current) return;
       setErroresConfirmacion(new Map(r.errores.map((e) => [e.cedula, e.motivo])));
       setResultado({
         ok: r.resumen.ok_count,
         error: r.resumen.error_count,
         he: r.resumen.total_horas_extras,
+        hf: r.resumen.total_horas_festivas,
         costo: r.resumen.total_costo,
       });
       if (r.resumen.error_count === 0) {
         window.sessionStorage.removeItem(PLANIFICADOR_DRAFT_KEY);
-        addNotification('success', `Plan confirmado: ${r.resumen.ok_count} cálculos generados`);
-        setTimeout(() => navigate('/service-portal/horas-extras/calculos'), 1200);
+        const pendientes = r.calculos.filter((calculo) => calculo.estado === 'PENDIENTE_AUTORIZACION').length;
+        addNotification(
+          pendientes > 0 ? 'warning' : 'success',
+          pendientes > 0
+            ? `Plan finalizado: ${r.resumen.ok_count} cálculos, ${pendientes} pendientes de autorización`
+            : `Plan confirmado: ${r.resumen.ok_count} cálculos generados`,
+        );
+        setTimeout(() => {
+          if (versionSemana === versionSemanaRef.current) navigate('/service-portal/horas-extras/calculos');
+        }, 1200);
       } else {
         addNotification('warning', `Confirmación parcial: ${r.resumen.ok_count} OK, ${r.resumen.error_count} errores`);
       }
     } catch (e: unknown) {
+      if (versionSemana !== versionSemanaRef.current) return;
       addNotification('error', e instanceof Error ? e.message : 'Error al confirmar');
     } finally {
-      setConfirmando(false);
+      if (versionSemana === versionSemanaRef.current) setConfirmando(false);
     }
   };
 
@@ -490,19 +460,33 @@ const PlanificadorSemanalView: React.FC = () => {
         />
       </PlanificadorHeader>
 
+      <SelectorVistaHorario vista={vistaHorario} onChange={setVistaHorario} />
+
       <div ref={tablaEmpleadosRef} id="tabla-horarios-empleados">
-        <EmpleadosActivosPanel
-          seleccionados={seleccionados}
-          empleadosInfo={empleadosInfo}
-          maxSeleccion={MAX_SELECCION}
-          diasSemana={DIAS_SEMANA}
-          defaultDias={defaultDias}
-          overrides={overrides}
-          preCalculo={preCalculo}
-          errores={erroresConfirmacion}
-          onSelectionChange={actualizarSeleccionEmpleados}
-          onCeldaClick={(cedula, diaSemana) => setCeldaEdit({ cedula, diaSemana })}
-        />
+        {vistaHorario === 'matriz' ? (
+          <EmpleadosActivosPanel
+            anio={anio}
+            semanaIso={semanaIso}
+            seleccionados={seleccionados}
+            empleadosInfo={empleadosInfo}
+            maxSeleccion={MAX_SELECCION}
+            diasSemana={DIAS_SEMANA}
+            defaultDias={defaultDias}
+            overrides={overrides}
+            preCalculo={preCalculo}
+            errores={erroresConfirmacion}
+            onSelectionChange={actualizarSeleccionEmpleados}
+            onCeldaClick={(cedula, diaSemana) => setCeldaEdit({ cedula, diaSemana })}
+          />
+        ) : (
+          <VistaTabularHorarios
+            empleados={empleadosPlan}
+            fechasSemana={fechasSemana}
+            diasDestino={diasDestino}
+            onEditarDia={editarDia}
+            onAplicarActividad={aplicarActividadMasiva}
+          />
+        )}
       </div>
 
       <ResumenPlan preCalculo={preCalculo} confirmado={resultado} />
@@ -518,33 +502,15 @@ const PlanificadorSemanalView: React.FC = () => {
           onGuardar={guardarCelda}
         />
       )}
-
-      <Modal
-        isOpen={confirmacionAbierta}
-        onClose={() => setConfirmacionAbierta(false)}
-        title="Confirmar semana"
-        size="md"
-      >
-        <div className="space-y-4">
-          <Text className="text-sm text-[var(--color-text-secondary)]">
-            Se generarán los cálculos de horas extras para {seleccionados.size} empleados en la semana {semana.semana_iso} de {semana.anio}.
-          </Text>
-          <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-primary)]/5 p-4">
-            <Text className="text-xs text-[var(--color-text-secondary)]">Rango a confirmar</Text>
-            <Text className="font-semibold text-[var(--color-primary)]">{semana.fecha_inicio} → {semana.fecha_fin}</Text>
-          </div>
-          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-            <Button variant="ghost" onClick={() => setConfirmacionAbierta(false)} disabled={confirmando}>
-              Revisar de nuevo
-            </Button>
-            <Button variant="primary" onClick={handleConfirmar} loading={confirmando} icon={CheckCircle2}>
-              Confirmar y guardar
-            </Button>
-          </div>
-        </div>
-      </Modal>
+      <ConfirmarSemanaModal
+        abierto={confirmacionAbierta}
+        confirmando={confirmando}
+        empleadosCount={seleccionados.size}
+        semana={semana}
+        onCerrar={() => setConfirmacionAbierta(false)}
+        onConfirmar={handleConfirmar}
+      />
     </div>
   );
 };
-
 export default PlanificadorSemanalView;

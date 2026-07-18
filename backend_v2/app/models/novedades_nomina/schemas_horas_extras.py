@@ -287,6 +287,7 @@ class PreLiquidacionConfirmada(SQLModel):
     horas_acreditadas_bolsa: float = 0.0
     movimientos_bolsa: List[int] = Field(default_factory=list)
     costo_ot_id: Optional[int] = None
+    estado: str = "CONFIRMADO"
     bolsa_habilitada_en_confirmacion: bool = True
     bolsa_fuente: str = "DEFAULT"
     mensaje: str = "Cálculo confirmado y persistido"
@@ -388,6 +389,17 @@ class WorkflowTransicionResult(SQLModel):
     evento_id: int
     movimiento_bolsa_id: Optional[int] = None
     horas_afectadas: float = 0.0
+    mensaje: str
+
+
+class AutorizarCalculoResult(SQLModel):
+    calculo_id: int
+    estado_anterior: str
+    estado_nuevo: str
+    evento_id: Optional[int] = None
+    movimiento_bolsa_id: Optional[int] = None
+    horas_afectadas: float = 0.0
+    ya_autorizado: bool = False
     mensaje: str
 
 

@@ -212,10 +212,58 @@
         "low": 0
       },
       "test_coverage_observations": "El build reporta 16 pruebas del hub y 8 de versionado, pero no conserva comandos/salidas y los 16 casos no cubren Vite. Faltan pruebas de polling/fallback/warmup/ignored/holdUntilCrawlEnd y evidencia de suites de componentes modificados. Collect-only local del baseline: 2 pruebas recolectadas. Las metricas posteriores carecen de JSON crudo y la meta CPU <10 % no se alcanza."
+    },
+    {
+      "date": "2026-07-16",
+      "scope": "planilla-regional-fase0-final-docs-tdd",
+      "outcome": "blocked",
+      "finding_count_by_severity": {
+        "blocking": 0,
+        "high": 3,
+        "medium": 0,
+        "low": 0
+      },
+      "test_coverage_observations": "Fase 0 solo documental: no existen ni corresponden todavía suites test_planilla_regional_*. El plan exige rojo/verde por fase y mapea 22 CA, pero debe cerrar paridad DTO para manifiestos y pruebas de nombres/definiciones de todos los constraints. Graphify local del 2026-07-16 coincide con 4756 nodos/9276 aristas e incluye los contratos revisados."
+    },
+    {
+      "date": "2026-07-17",
+      "scope": "fase-1p-rerevision-final-docs-tests",
+      "outcome": "approved_with_risks",
+      "finding_count_by_severity": {
+        "critical": 0,
+        "high": 0,
+        "medium": 2,
+        "low": 1
+      },
+      "test_coverage_observations": "Evidencia reportada: run combinado 44 passed, rerun endpoint 6 passed, aceptación PostgreSQL 1 passed/195.17 s y legacy 9 passed/3 failed/179.04 s con causa ambiental. Collect-only local: 30+9+6 focales y 1 aceptación. ERP/waiver queda como gate posterior, no bloqueo documental; catálogo requiere aclarar la diferencia entre el run histórico de 44 y los 45 casos vigentes."
+    },
+    {
+      "date": "2026-07-17",
+      "scope": "fase-1p-cierre-hallazgos-docs-tests",
+      "outcome": "approved",
+      "finding_count_by_severity": {
+        "critical": 0,
+        "high": 0,
+        "medium": 0,
+        "low": 0
+      },
+      "test_coverage_observations": "Cerrados los tres hallazgos previos: build final 47 passed/388.45 s, catálogo reconciliado 30+9+8, aceptación PostgreSQL 1 passed/215.25 s; collect-only local confirmó 47 focales y 1 aceptación. Nota histórica global del plan MCP y docstring UPSERT/advisory lock verificados. Gate humano/ERP permanece pendiente por separado."
+    },
+    {
+      "date": "2026-07-17",
+      "scope": "PR-16-static-rereview-head-55aabda",
+      "outcome": "blocked",
+      "finding_count_by_severity": {
+        "critical": 0,
+        "high": 6,
+        "medium": 4,
+        "low": 2
+      },
+      "test_coverage_observations": "Revisión estática desde worktree base confiable, sin ejecutar candidata. Evidencia remota: backend 85 failed/322 passed/33 skipped/2 errors, dos fallos SALDO_FAVOR; frontend lint 552 y tsc/Vitest/build omitidos. El head cambia contratos SALDO_FAVOR y límite HdiPreview a 15 MiB sin actualizar tests; limiter global deshabilitado; pruebas ZIP no demuestran miembros/duplicados/SHA ni ruta real de rollback; catálogo marca PASS de forma incorrecta."
     }
   ],
   "stats": {
-    "total_reviews": 17,
-    "last_review": "2026-07-13"
+    "total_reviews": 21,
+    "last_review": "2026-07-17"
   }
 }

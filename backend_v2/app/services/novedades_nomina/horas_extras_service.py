@@ -248,26 +248,24 @@ async def _aplicar_contexto_festivos_y_novedades(
     fecha_fin = fecha_inicio + timedelta(days=6)
 
     # Festivos del año, filtrados al rango de la semana
-    try:
-        festivos_anio = await listar_festivos(session, input_data.anio, fuente="auto")
-    except Exception as exc:
-        logger.warning("No se pudieron cargar festivos para auto-fill: %s", exc)
-        festivos_anio = []
-    festivos_set: set[date] = {f["fecha"] for f in festivos_anio}
+    festivos_set: set[date] = set()
+    for anio_calendario in sorted({fecha_inicio.year, fecha_fin.year}):
+        festivos_anio = await listar_festivos(
+            session,
+            anio_calendario,
+            fuente="auto",
+        )
+        festivos_set.update(f["fecha"] for f in festivos_anio)
 
     # Novedades CONFIRMADAS que intersectan la semana (semántica overlap del listar)
-    try:
-        novedades_semana = await listar_novedades(
-            session,
-            cedula=input_data.cedula,
-            fecha_desde=fecha_inicio,
-            fecha_hasta=fecha_fin,
-            estado="CONFIRMADO",
-            limit=200,
-        )
-    except Exception as exc:
-        logger.warning("No se pudieron cargar novedades para auto-fill: %s", exc)
-        novedades_semana = []
+    novedades_semana = await listar_novedades(
+        session,
+        cedula=input_data.cedula,
+        fecha_desde=fecha_inicio,
+        fecha_hasta=fecha_fin,
+        estado="CONFIRMADO",
+        limit=200,
+    )
 
     # Indexar novedades por fecha: para cada día de la semana, qué códigos
     # de supresión aplican.

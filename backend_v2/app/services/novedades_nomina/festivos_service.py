@@ -45,10 +45,20 @@ async def listar_festivos(
 
     # auto
     en_db = await _leer_db(session, anio)
-    if en_db:
+    calculados = [
+        {"fecha": f["fecha"], "nombre": f["nombre"], "fuente": "LEY_EMILIANI"}
+        for f in festivos_colombia(anio)
+    ]
+    fechas_esperadas = {f["fecha"] for f in calculados}
+    fechas_db = {f["fecha"] for f in en_db}
+    if en_db and fechas_esperadas.issubset(fechas_db):
         return en_db
-    return [{"fecha": f["fecha"], "nombre": f["nombre"], "fuente": "LEY_EMILIANI"}
-            for f in festivos_colombia(anio)]
+    if en_db:
+        logger.warning(
+            "Calendario festivo %s incompleto o inconsistente; se usa Ley Emiliani",
+            anio,
+        )
+    return calculados
 
 
 async def _leer_db(

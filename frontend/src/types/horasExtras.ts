@@ -12,7 +12,7 @@
 
 export type NivelRiesgoARL = 'I' | 'II' | 'III' | 'IV' | 'V';
 
-export type EstadoCalculo = 'BORRADOR' | 'CONFIRMADO' | 'PAGADO' | 'COMPENSADO' | 'ANULADO';
+export type EstadoCalculo = 'BORRADOR' | 'PENDIENTE_AUTORIZACION' | 'CONFIRMADO' | 'PAGADO' | 'COMPENSADO' | 'ANULADO';
 export type EstadoOverride = 'ACTIVO' | 'REVOCADO' | 'EXPIRADO';
 
 import type { CalculoDiarioDetalle, DetalleDiarioEstado } from './horasExtrasTrazabilidad';
@@ -250,6 +250,7 @@ export interface PreLiquidacionConfirmada {
   horas_acreditadas_bolsa: number;
   movimientos_bolsa: number[];
   costo_ot_id: number | null;
+  estado: EstadoCalculo;
   mensaje: string;
 }
 
@@ -295,6 +296,17 @@ export interface CalculoSemanal {
   detalles: CalculoDetalleRead[];
   detalle_diario_estado: DetalleDiarioEstado;
   detalle_diario: CalculoDiarioDetalle[];
+}
+
+export interface AutorizarCalculoResult {
+  calculo_id: number;
+  estado_anterior: EstadoCalculo;
+  estado_nuevo: 'CONFIRMADO';
+  evento_id: number | null;
+  movimiento_bolsa_id: number | null;
+  horas_afectadas: number;
+  ya_autorizado: boolean;
+  mensaje: string;
 }
 
 export interface CostoOt {

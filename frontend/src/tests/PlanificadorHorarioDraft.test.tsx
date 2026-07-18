@@ -25,7 +25,7 @@ describe('DefaultHorarioSemana', () => {
 });
 
 describe('planificadorDraft', () => {
-  afterEach(() => sessionStorage.clear());
+  afterEach(() => { sessionStorage.clear(); localStorage.clear(); });
 
   it('guarda y lee valores normalizados', () => {
     guardarBorradorPlanificadorLocal({
@@ -44,5 +44,14 @@ describe('planificadorDraft', () => {
     expect(leido?.seleccionados).toEqual([]);
     expect(leido?.empleadosInfo).toEqual([]);
     expect(leido?.diasDestino).toEqual([1, 2, 3, 4, 5]);
+  });
+
+  it('descarta el borrador de otro usuario', () => {
+    localStorage.setItem('user_cedula', 'analista-1');
+    guardarBorradorPlanificadorLocal(crearBorradorPlanificadorBase());
+    localStorage.setItem('user_cedula', 'analista-2');
+
+    expect(leerBorradorPlanificador()).toBeNull();
+    expect(sessionStorage.getItem(PLANIFICADOR_DRAFT_KEY)).toBeNull();
   });
 });

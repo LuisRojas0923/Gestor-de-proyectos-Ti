@@ -32,6 +32,7 @@ from app.services.novedades_nomina.horas_extras_service import (
     _aplicar_contexto_festivos_y_novedades,
     _lunes_de_semana_iso,
 )
+from app.services.novedades_nomina.festivos_colombia import festivos_colombia
 
 
 CEDULA = "TEST-S5PPP-1107068093"
@@ -80,13 +81,15 @@ async def _setup_horario(db_session, cedula: str = CEDULA) -> None:
 
 
 async def _insertar_festivo(db_session, fecha: date, nombre: str = "Festivo test") -> None:
-    fest = NominaFestivoCalendario(
-        anio=ANIO,
-        fecha=fecha,
-        nombre=nombre,
-        fuente="LEY_EMILIANI",
-    )
-    db_session.add(fest)
+    calendario = {item["fecha"]: item["nombre"] for item in festivos_colombia(ANIO)}
+    calendario[fecha] = nombre
+    for fecha_calendario, nombre_calendario in calendario.items():
+        db_session.add(NominaFestivoCalendario(
+            anio=ANIO,
+            fecha=fecha_calendario,
+            nombre=nombre_calendario,
+            fuente="LEY_EMILIANI",
+        ))
     await db_session.commit()
 
 
@@ -248,7 +251,8 @@ class TestAplicarContextoFestivos:
             r = await _aplicar_contexto_festivos_y_novedades(db_session, input_data)
             assert r.codigos_por_dia is not None
             assert r.codigos_por_dia[3] == ["HF", "HEFN"]  # jueves
-            for i in (0, 1, 2, 4, 5, 6):
+            assert r.codigos_por_dia[0] == ["HF", "HEFN"]  # Sagrado Corazón
+            for i in (1, 2, 4, 5, 6):
                 assert r.codigos_por_dia[i] == ["HEN"]
         finally:
             await _cleanup(db_session)

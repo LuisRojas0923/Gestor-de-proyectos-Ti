@@ -66,7 +66,8 @@ async def ejecutar_migraciones(async_engine, AsyncSessionLocal):
 
 async def preparar_integridad_rbac(session):
     """Consolida permisos duplicados y crea la clave natural de RBAC."""
-    await session.execute(text("""  # @audit-ok: migración fail-fast
+    await session.execute(text(  # @audit-ok: migración fail-fast
+        """
         WITH duplicados AS (
             SELECT id, ROW_NUMBER() OVER (
                 PARTITION BY rol, modulo ORDER BY permitido DESC, id
@@ -76,10 +77,12 @@ async def preparar_integridad_rbac(session):
         DELETE FROM public.permisos_rol
         WHERE id IN (SELECT id FROM duplicados WHERE posicion > 1)
     """))
-    await session.execute(text("""  # @audit-ok: migración fail-fast
+    await session.execute(text(  # @audit-ok: migración fail-fast
+        """
         DROP INDEX IF EXISTS public.ux_permisos_rol_rol_modulo
     """))
-    await session.execute(text("""  # @audit-ok: migración fail-fast
+    await session.execute(text(  # @audit-ok: migración fail-fast
+        """
         CREATE UNIQUE INDEX ux_permisos_rol_rol_modulo
         ON public.permisos_rol (rol, modulo)
     """))
@@ -88,7 +91,8 @@ async def preparar_integridad_rbac(session):
 
 async def verificar_admin_preexistente(session):
     """Evita desplegar una instancia nueva sin una cuenta administrativa."""
-    admin = await session.execute(text("""  # @audit-ok: verificación fail-fast
+    admin = await session.execute(text(  # @audit-ok: verificación fail-fast
+        """
         SELECT 1
         FROM public.usuarios
         WHERE esta_activo = TRUE AND rol = 'admin'
@@ -111,7 +115,8 @@ async def sembrar_roles_sistema(session):
         ("usuario", "Usuario Estándar", True),
     )
     for role_id, nombre, es_sistema in roles:
-        await session.execute(text("""  # @audit-ok: seed idempotente fail-fast
+        await session.execute(text(  # @audit-ok: seed idempotente fail-fast
+            """
             INSERT INTO public.roles_sistema (id, nombre, es_sistema)
             VALUES (:id, :nombre, :es_sistema)
             ON CONFLICT (id) DO UPDATE SET nombre = EXCLUDED.nombre
@@ -154,7 +159,8 @@ async def init_db_process(async_engine, AsyncSessionLocal):
     async with async_engine.begin() as conn:
         await conn.run_sync(SQLModel.metadata.create_all)
         await conn.execute(text("CREATE SEQUENCE IF NOT EXISTS public.ticket_id_seq"))  # @audit-ok: migración fail-fast
-        await conn.execute(text("""  # @audit-ok: migración fail-fast
+        await conn.execute(text(  # @audit-ok: migración fail-fast
+            """
             UPDATE public.sesiones
             SET token_sesion = encode(sha256(convert_to(token_sesion, 'UTF8')), 'hex')
             WHERE token_sesion !~ '^[0-9a-f]{64}$'

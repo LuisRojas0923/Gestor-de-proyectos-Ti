@@ -175,20 +175,23 @@ async def instalar_procedimientos_admin(
     await session.execute(text(  # @audit-ok: migración fail-fast
         "DROP TABLE IF EXISTS public.configuracion_seguridad_runtime CASCADE"
     ))
-    await session.execute(text("""  # @audit-ok: migración fail-fast
+    await session.execute(text(  # @audit-ok: migración fail-fast
+        """
         CREATE TABLE public.configuracion_seguridad_runtime (
             clave VARCHAR(50) PRIMARY KEY,
             valor_hash CHAR(64) NOT NULL
         )
     """))
-    await session.execute(text("""  # @audit-ok: migración fail-fast
+    await session.execute(text(  # @audit-ok: migración fail-fast
+        """
         INSERT INTO public.configuracion_seguridad_runtime (clave, valor_hash)
         VALUES ('rbac_admin', encode(sha256(convert_to(:capacidad, 'UTF8')), 'hex'))
         ON CONFLICT (clave) DO UPDATE SET valor_hash = EXCLUDED.valor_hash
     """), {"capacidad": capacidad})
     for nombre, definition in PRIVILEGED_FUNCTIONS.items():
         args = definition["args"]
-        await session.execute(text(f"""  # @audit-ok: rol validado y migración fail-fast
+        await session.execute(text(  # @audit-ok: rol validado y migración fail-fast
+            f"""
             DO $drop$ DECLARE signature text;
             BEGIN
                 FOR signature IN
@@ -200,7 +203,8 @@ async def instalar_procedimientos_admin(
                 LOOP EXECUTE 'DROP FUNCTION ' || signature || ' CASCADE'; END LOOP;
             END $drop$;
         """))
-        await session.execute(text(f"""  # @audit-ok: firma controlada y fail-fast
+        await session.execute(text(  # @audit-ok: firma controlada y fail-fast
+            f"""
             CREATE FUNCTION public.{nombre}({args}) RETURNS {definition['return']}
             SECURITY DEFINER SET search_path = pg_catalog, public AS $$
             {definition['body']}

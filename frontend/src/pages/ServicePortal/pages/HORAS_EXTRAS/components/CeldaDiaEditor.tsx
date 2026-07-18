@@ -10,6 +10,7 @@ import { buscarOtManoObra } from '../../../../../services/horasExtrasService';
 import type { OtManoObraRead, PlanAsignacionOtIn, PlanDiaIn, PlanNovedadIn } from '../../../../../types/horasExtrasPlanificador';
 import TimeClockPicker from './TimeClockPicker';
 import Callout from '../../../../../components/molecules/Callout';
+import Modal from '../../../../../components/molecules/Modal';
 import { errorTurno } from '../utils/validarTurno';
 
 const CODIGOS_NOVEDAD = ['INC', 'VAC', 'AUS', 'LIC'];
@@ -58,6 +59,7 @@ const CeldaDiaEditor: React.FC<CeldaDiaEditorProps> = ({
   const [salida, setSalida] = useState<string | null>(dia.hora_salida);
   const [almuerzo, setAlmuerzo] = useState<number>(dia.minutos_almuerzo);
   const [cruzaMedianoche, setCruzaMedianoche] = useState(dia.cruza_medianoche);
+  const [actividad, setActividad] = useState(dia.actividad ?? '');
   const [errorHorario, setErrorHorario] = useState('');
   const [novedadCodigo, setNovedadCodigo] = useState<string>('');
   const [novedadObs, setNovedadObs] = useState<string>('');
@@ -65,6 +67,7 @@ const CeldaDiaEditor: React.FC<CeldaDiaEditorProps> = ({
   const [busquedaOt, setBusquedaOt] = useState('');
   const [opcionesOt, setOpcionesOt] = useState<OtManoObraRead[]>([]);
   const [cargandoOt, setCargandoOt] = useState(false);
+  const [errorBusquedaOt, setErrorBusquedaOt] = useState('');
   const token = localStorage.getItem('token') || '';
 
   useEffect(() => {
@@ -75,12 +78,16 @@ const CeldaDiaEditor: React.FC<CeldaDiaEditorProps> = ({
       return undefined;
     }
     setCargandoOt(true);
+    setErrorBusquedaOt('');
     const timer = window.setTimeout(async () => {
       try {
         const respuesta = await buscarOtManoObra(q, 8, 0, token);
         if (!cancelado) setOpcionesOt(respuesta.items);
       } catch {
-        if (!cancelado) setOpcionesOt([]);
+        if (!cancelado) {
+          setOpcionesOt([]);
+          setErrorBusquedaOt('No fue posible consultar las OT. Intenta de nuevo.');
+        }
       } finally {
         if (!cancelado) setCargandoOt(false);
       }
@@ -108,6 +115,7 @@ const CeldaDiaEditor: React.FC<CeldaDiaEditorProps> = ({
         sub_indice: ot.sub_indice,
         categoria_sub_indice: ot.categoria_sub_indice,
         descripcion: ot.descripcion,
+        cliente: ot.cliente,
         vr_contratado: ot.vr_contratado,
         horas: Number(restante.toFixed(2)),
       },
@@ -153,6 +161,7 @@ const CeldaDiaEditor: React.FC<CeldaDiaEditorProps> = ({
       hora_salida: salida,
       minutos_almuerzo: almuerzo,
       cruza_medianoche: cruzaMedianoche,
+      actividad: actividad.trim() || null,
       novedades: nuevasNovedades,
       asignaciones_ot: asignacionesOt.map((item) => ({
         ...item,
@@ -163,23 +172,14 @@ const CeldaDiaEditor: React.FC<CeldaDiaEditorProps> = ({
   };
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
-      role="dialog"
-      aria-modal="true"
+    <Modal
+      isOpen={abierto}
+      onClose={onCerrar}
+      size="lg"
+      className="[&>div]:max-h-[calc(100vh-2rem)]"
+      contentClassName="!p-4 sm:!p-5"
+      title={<div><Text className="font-semibold">{cedula} — {labelDia(diaSemana)}</Text><Text className="text-xs text-[var(--color-text-secondary)]">{fecha}</Text></div>}
     >
-      <MaterialCard className="w-full max-w-md p-5 shadow-xl">
-        <div className="flex items-center justify-between mb-3">
-          <div>
-            <Text className="font-semibold">
-              {cedula} — {labelDia(diaSemana)}
-            </Text>
-            <Text className="text-xs text-[var(--color-text-secondary)]">{fecha}</Text>
-          </div>
-          <Button variant="ghost" size="sm" onClick={onCerrar} aria-label="Cerrar">
-            <X className="w-4 h-4" />
-          </Button>
-        </div>
 
         <div className="grid grid-cols-2 gap-3 mb-3">
           <div className="col-span-2">
@@ -207,6 +207,18 @@ const CeldaDiaEditor: React.FC<CeldaDiaEditorProps> = ({
           </div>
         </div>
         {errorHorario && <Callout variant="error" role="alert">{errorHorario}</Callout>}
+
+        <div className="border-t border-[var(--color-border)] pt-3 mb-3">
+          <Text className="text-xs text-[var(--color-text-secondary)] mb-1">Actividad / observación del día</Text>
+          <Textarea
+            aria-label="Actividad del día"
+            value={actividad}
+            onChange={(event) => setActividad(event.target.value)}
+            placeholder="Describe la actividad realizada o programada"
+            maxLength={500}
+            rows={3}
+          />
+        </div>
 
         <div className="border-t border-[var(--color-border)] pt-3 mb-3">
           <Text className="text-xs text-[var(--color-text-secondary)] mb-1">Novedad (opcional)</Text>
@@ -283,6 +295,7 @@ const CeldaDiaEditor: React.FC<CeldaDiaEditorProps> = ({
                 placeholder="Buscar OT, descripción, CC o cliente"
                 className="text-xs"
               />
+              {errorBusquedaOt && <Text role="alert" className="mt-1 text-[11px] text-[var(--color-error)]">{errorBusquedaOt}</Text>}
               {(opcionesOt.length > 0 || cargandoOt) && (
                 <MaterialCard className="absolute left-0 right-0 top-full z-[60] mt-1 max-h-72 overflow-y-auto rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-1.5 shadow-2xl">
                   {cargandoOt && <Text className="px-2 py-2 text-xs text-[var(--color-text-secondary)]">Buscando...</Text>}
@@ -326,8 +339,7 @@ const CeldaDiaEditor: React.FC<CeldaDiaEditorProps> = ({
             Guardar
           </Button>
         </div>
-      </MaterialCard>
-    </div>
+    </Modal>
   );
 };
 

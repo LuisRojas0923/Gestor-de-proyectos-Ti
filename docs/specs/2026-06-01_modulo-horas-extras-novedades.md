@@ -93,29 +93,39 @@ El módulo entrega **minutos desglosados por concepto** y, para pre-liquidación
 
 ### 1.4 Reglas de la bolsa de horas
 
-- **Crédito:** al confirmar el cálculo semanal, si `estado='APROBADO'`, se acredita al empleado `minutos_bolsa_credito = (HED + HEN + HEFD + HEFN) × parametros.bolsa_ratio_credito` (default 1.5).
+- **Crédito:** al autorizar el cálculo semanal y quedar `CONFIRMADO`, se acredita la bolsa según los conceptos configurados cuando la política efectiva está habilitada.
 - **Vigencia:** cada crédito expira `bolsa_vigencia_semanas` (default 4) semanas después de la fecha de cierre del cálculo.
 - **Débito:** el responsable regional puede solicitar una compensación, que se registra como `nomina_bolsa_horas_saldo.minutos_debito`. Solo se permite compensar saldo vigente.
 - **Saldo inicial:** cada nuevo cálculo toma el `minutos_saldo_final` del cálculo anterior del mismo empleado.
 
 ### 1.5 Workflow de estados
 
-Máquina de estados aplicada a `nomina_novedad_registro.estado` y `nomina_calculo_semanal.estado`:
+#### Actualización implementada 2026-07-17
+
+- Un empleado sin autorización HE efectiva puede programarse, precalcularse y finalizarse.
+- Su cálculo se persiste como `PENDIENTE_AUTORIZACION`; conserva el costo OT proyectado y no acredita bolsa.
+- `POST /calculos/{calculo_id}/autorizar`, protegido por `nomina_horas_extras.autorizar` y por alcance de empleado, realiza `PENDIENTE_AUTORIZACION -> CONFIRMADO` y acredita la bolsa una sola vez.
+- La ruta genérica `/calculos/{calculo_id}/transicion` no permite confirmar un cálculo pendiente.
+- Si la bolsa está deshabilitada por la política efectiva, la autorización confirma el cálculo sin crear crédito.
+- Repetir la autorización de un cálculo ya confirmado es idempotente y no crea movimientos ni eventos adicionales.
+
+Máquina vigente para `nomina_calculo_semanal.estado`:
 
 ```
-BORRADOR ──firma──→ FIRMADO ──aprueba──→ APROBADO ──paga──→ PAGADO
-   ↑                  │                      │
-   └──── rechazo ─────┘                      │
-   └────────────── rechazo ──────────────────┘
+PENDIENTE_AUTORIZACION ──autorizar──→ CONFIRMADO ──pagar─────→ PAGADO
+                                               ├──compensar─→ COMPENSADO
+                                               └──anular────→ ANULADO
 ```
 
 Reglas:
-- `BORRADOR`: editable y eliminable.
-- `FIRMADO`: inmutable. Genera snapshot.
-- `APROBADO`: inmutable. Alimenta la bolsa de horas.
-- `PAGADO`: terminal. Inmutable.
+- `PENDIENTE_AUTORIZACION`: cálculo finalizado sin crédito de bolsa.
+- `CONFIRMADO`: cálculo autorizado; acredita bolsa si la política efectiva está habilitada.
+- `PAGADO` y `COMPENSADO`: terminales.
+- `ANULADO`: terminal y revierte los efectos del cálculo confirmado.
 
-Cada transición se registra en `nomina_auditoria_estado` con `tabla_origen`, `registro_id`, `estado_anterior`, `estado_nuevo`, `usuario_id`, `justificacion`.
+Cada transición se registra en `nomina_calculo_workflow_evento` con cálculo, estados, actor, justificación y fecha.
+
+> **Nota de vigencia:** las referencias posteriores de este documento a `FIRMADO`, `APROBADO`, `nomina_auditoria_estado` y sus ejemplos de código corresponden a la propuesta histórica del 2026-06-01. Se conservan como antecedente no normativo; el contrato vigente de cálculos HE es exclusivamente el definido en esta sección 1.5 y en el código implementado.
 
 ---
 

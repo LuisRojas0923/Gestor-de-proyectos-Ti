@@ -4,12 +4,12 @@
  * Mismas reglas que el backend `_aplicar_registro_diario`:
  *   - días libres: hora_entrada o hora_salida null → 0h
  *   - horas_trabajadas = (salida - entrada) - almuerzo, en horas
- *   - entrada/salida en HH:MM
+ *   - entrada/salida en HH:MM o HH:MM:SS
  *   - almuerzo en minutos (0-240)
  */
 import type { RegistroDiario, HorarioPactadoDia } from '../../../../types/horasExtras';
 
-const HHMM = /^([01]\d|2[0-3]):([0-5]\d)$/;
+const HHMM = /^([01]\d|2[0-3]):([0-5]\d)(?::([0-5]\d))?$/;
 
 const toMinutes = (hhmm: string): number => {
   const m = HHMM.exec(hhmm);
@@ -31,7 +31,15 @@ export const calcularHorasDia = (
   cruzaMedianoche = false,
 ): number => {
   if (!esHoraValida(horaEntrada) || !esHoraValida(horaSalida)) return 0;
-  const minutosBrutos = toMinutes(horaSalida) + (cruzaMedianoche ? 24 * 60 : 0) - toMinutes(horaEntrada);
+  const entrada = toMinutes(horaEntrada);
+  let salida = toMinutes(horaSalida);
+  if (cruzaMedianoche) {
+    if (salida >= entrada) return 0;
+    salida += 24 * 60;
+  } else if (salida <= entrada) {
+    return 0;
+  }
+  const minutosBrutos = salida - entrada;
   if (minutosBrutos <= 0) return 0;
   const minutosEfectivos = minutosBrutos - Math.max(0, minutosAlmuerzo);
   return Math.round(Math.max(0, minutosEfectivos / 60) * 100) / 100;

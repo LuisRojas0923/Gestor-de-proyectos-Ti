@@ -1,15 +1,24 @@
 import React from 'react';
 import { Text } from '../../../../../components/atoms';
-import type { EmpleadoERPRead, PlanDiaIn } from '../../../../../types/horasExtrasPlanificador';
+import type { CodigoConceptoPlan, EmpleadoERPRead, PlanDiaIn } from '../../../../../types/horasExtrasPlanificador';
 
 export const LIMITE_PAGINA = 25;
 export const COLUMNAS_FILTRABLES = ['nombre', 'cedula', 'cargo', 'area', 'ciudadcontratacion', 'quien_reporta', 'autoriza_he', 'estado_he'];
+export const empleadoPuedeProgramarse = (empleado: EmpleadoERPRead): boolean => (
+  empleado.disponible_semana || empleado.motivo_no_disponible === 'NO_AUTORIZA_HE'
+);
+
+export interface CalculoDiaVisual {
+  he: number;
+  codigos: CodigoConceptoPlan[];
+  festivo: boolean;
+}
 
 export interface EmpleadoTablaRow extends EmpleadoERPRead {
   seleccionadoEnPlan: boolean;
   puedeSeleccionarse: boolean;
   diasPlan: PlanDiaIn[];
-  hePorDia: Map<number, number> | undefined;
+  calculoPorDia: Map<number, CalculoDiaVisual> | undefined;
   totalPlan: { he: number; costo: number } | undefined;
   errorPlan: string | undefined;
   calculadoPlan: boolean;
@@ -20,7 +29,7 @@ export interface EmpleadoTablaRowCacheEntry {
   seleccionadoEnPlan: boolean;
   puedeSeleccionarse: boolean;
   diasPlan: PlanDiaIn[];
-  hePorDia: Map<number, number> | undefined;
+  calculoPorDia: Map<number, CalculoDiaVisual> | undefined;
   totalPlan: { he: number; costo: number } | undefined;
   errorPlan: string | undefined;
   calculadoPlan: boolean;
@@ -42,7 +51,7 @@ export const empleadoValorColumna = (empleado: EmpleadoERPRead, key: string): st
     if (empleado.autoriza_he === false) return 'NO';
     return 'Sin dato';
   }
-  if (key === 'estado_he') return empleado.autoriza_he === true ? 'Disponible' : 'No disponible para HE';
+  if (key === 'estado_he') return empleadoPuedeProgramarse(empleado) ? 'Programable' : 'No disponible';
   const valor = empleado[key as keyof EmpleadoERPRead];
   return valor === null || valor === undefined || valor === '' ? '—' : String(valor);
 };

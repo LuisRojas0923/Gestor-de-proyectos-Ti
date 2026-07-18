@@ -15,6 +15,7 @@ from typing import List, Optional
 from sqlmodel import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 from ...models.novedades_nomina.horas_extras import (
     NominaCatalogoNovedad,
@@ -38,6 +39,7 @@ async def confirmar_pre_liquidacion(
     session: AsyncSession,
     payload,
     confirmar_transaccion: bool = True,
+    autorizacion_he: bool = True,
 ) -> dict:
     """
     Persiste un cálculo de HE y sus efectos colaterales:
@@ -65,7 +67,11 @@ async def confirmar_pre_liquidacion(
             "el Historial y ajusta o anula el cálculo existente antes de confirmar de nuevo."
         )
 
-    total_extras = sum(d.horas for d in payload.detalles)
+    total_extras = sum(
+        d.horas
+        for d in payload.detalles
+        if d.codigo_novedad in {"HED", "HEN", "HEFD", "HEFN"}
+    )
     total_bruto = sum(d.valor_bruto for d in payload.detalles)
     total_carga = sum(d.carga_prestacional for d in payload.detalles)
     total_costo = sum(d.costo_total for d in payload.detalles)
@@ -84,12 +90,12 @@ async def confirmar_pre_liquidacion(
         total_valor_bruto=total_bruto,
         total_carga_prestacional=total_carga,
         total_costo_empresa=total_costo,
-        estado="CONFIRMADO",
+        estado="CONFIRMADO" if autorizacion_he else "PENDIENTE_AUTORIZACION",
         ot_id=payload.ot_id,
         ot_codigo=payload.ot_codigo,
         calculado_por=payload.usuario_confirma,
-        confirmado_por=payload.usuario_confirma,
-        confirmado_en=datetime.now(),
+        confirmado_por=payload.usuario_confirma if autorizacion_he else None,
+        confirmado_en=datetime.now() if autorizacion_he else None,
         observaciones=payload.observaciones,
     )
     session.add(calculo)
@@ -127,7 +133,7 @@ async def confirmar_pre_liquidacion(
     bolsa_id: Optional[int] = None
     horas_acreditadas = 0.0
     mov_ids: List[int] = []
-    if bolsa_habilitada:
+    if bolsa_habilitada and autorizacion_he:
         bolsa_id, horas_acreditadas, mov_ids = await _acreditar_bolsa(
             session,
             cedula=payload.cedula,
@@ -152,6 +158,7 @@ async def confirmar_pre_liquidacion(
         "costo_ot_id": costo_ot_id,
         "bolsa_habilitada_en_confirmacion": bolsa_habilitada,
         "bolsa_fuente": bolsa_fuente,
+        "estado": calculo.estado,
     }
 
 
@@ -168,15 +175,18 @@ async def _acreditar_bolsa(
     Solo se acreditan las horas de códigos donde `acredita_bolsa=True`
     (HED, HEN, HEFD, HEFN, HF). VAC, INC, LIC, etc. no.
     """
+    await session.execute(
+        pg_insert(NominaBolsaHoras)
+        .values(cedula=cedula)
+        .on_conflict_do_nothing(index_elements=[NominaBolsaHoras.cedula])
+    )
     bolsa = (
         await session.execute(
-            select(NominaBolsaHoras).where(NominaBolsaHoras.cedula == cedula)
+            select(NominaBolsaHoras)
+            .where(NominaBolsaHoras.cedula == cedula)
+            .with_for_update()
         )
-    ).scalar_one_or_none()
-    if bolsa is None:
-        bolsa = NominaBolsaHoras(cedula=cedula)
-        session.add(bolsa)
-        await session.flush()
+    ).scalar_one()
 
     codigos = [d.codigo_novedad for d in detalles]
     if not codigos:
@@ -228,16 +238,6 @@ async def _upsert_costo_ot(
     UPSERT en nomina_costo_ot: si ya existe (ot_id, anio, semana),
     suma las horas y costos; si no, crea el registro.
     """
-    existente = (
-        await session.execute(
-            select(NominaCostoOt).where(
-                NominaCostoOt.ot_id == payload.ot_id,
-                NominaCostoOt.anio == payload.anio,
-                NominaCostoOt.semana_iso == payload.semana_iso,
-            )
-        )
-    ).scalar_one_or_none()
-
     horas_por_codigo: dict = {d.codigo_novedad: 0.0 for d in payload.detalles}
     for d in payload.detalles:
         horas_por_codigo[d.codigo_novedad] = (
@@ -247,51 +247,63 @@ async def _upsert_costo_ot(
     horas_total = sum(d.horas for d in payload.detalles)
     bruto_total = sum(d.valor_bruto for d in payload.detalles)
     carga_total = sum(d.carga_prestacional for d in payload.detalles)
-    empleados_set = {payload.cedula}
-
-    if existente is None:
-        nuevo = NominaCostoOt(
+    costo_total = sum(d.costo_total for d in payload.detalles)
+    await session.execute(
+        pg_insert(NominaCostoOt).values(
             ot_id=payload.ot_id,
             ot_codigo=payload.ot_codigo,
             anio=payload.anio,
             semana_iso=payload.semana_iso,
             fecha_inicio=payload.fecha_inicio,
             fecha_fin=payload.fecha_fin,
-            total_empleados=1,
-            total_horas=horas_total,
-            total_horas_hed=horas_por_codigo.get("HED", 0.0),
-            total_horas_hen=horas_por_codigo.get("HEN", 0.0),
-            total_horas_hefd=horas_por_codigo.get("HEFD", 0.0),
-            total_horas_hefn=horas_por_codigo.get("HEFN", 0.0),
-            total_horas_hf=horas_por_codigo.get("HF", 0.0),
-            total_valor_bruto=bruto_total,
-            total_carga_prestacional=carga_total,
-            total_costo_empresa=bruto_total + carga_total,
-            calculo_ids=[calculo_id],
+            total_empleados=0,
+            total_horas=0.0,
+            total_horas_hed=0.0,
+            total_horas_hen=0.0,
+            total_horas_hefd=0.0,
+            total_horas_hefn=0.0,
+            total_horas_hf=0.0,
+            total_valor_bruto=0.0,
+            total_carga_prestacional=0.0,
+            total_costo_empresa=0.0,
+            calculo_ids=[],
             ultima_actualizacion=datetime.now(),
         )
-        session.add(nuevo)
-        await session.flush()
-        return nuevo.id
-
-    existente.total_horas += horas_total
-    existente.total_horas_hed += horas_por_codigo.get("HED", 0.0)
-    existente.total_horas_hen += horas_por_codigo.get("HEN", 0.0)
-    existente.total_horas_hefd += horas_por_codigo.get("HEFD", 0.0)
-    existente.total_horas_hefn += horas_por_codigo.get("HEFN", 0.0)
-    existente.total_horas_hf += horas_por_codigo.get("HF", 0.0)
-    existente.total_valor_bruto += bruto_total
-    existente.total_carga_prestacional += carga_total
-    existente.total_costo_empresa += bruto_total + carga_total
-    existente.ultima_actualizacion = datetime.now()
+        .on_conflict_do_nothing(
+            index_elements=[
+                NominaCostoOt.ot_id,
+                NominaCostoOt.anio,
+                NominaCostoOt.semana_iso,
+            ]
+        )
+    )
+    existente = (
+        await session.execute(
+            select(NominaCostoOt).where(
+                NominaCostoOt.ot_id == payload.ot_id,
+                NominaCostoOt.anio == payload.anio,
+                NominaCostoOt.semana_iso == payload.semana_iso,
+            ).with_for_update()
+        )
+    ).scalar_one()
+    if existente.ot_codigo.strip() != payload.ot_codigo.strip():
+        raise ValueError("Colisión de identificador entre órdenes OT")
 
     ids = list(existente.calculo_ids or [])
     if calculo_id not in ids:
+        existente.total_horas += horas_total
+        existente.total_horas_hed += horas_por_codigo.get("HED", 0.0)
+        existente.total_horas_hen += horas_por_codigo.get("HEN", 0.0)
+        existente.total_horas_hefd += horas_por_codigo.get("HEFD", 0.0)
+        existente.total_horas_hefn += horas_por_codigo.get("HEFN", 0.0)
+        existente.total_horas_hf += horas_por_codigo.get("HF", 0.0)
+        existente.total_valor_bruto += bruto_total
+        existente.total_carga_prestacional += carga_total
+        existente.total_costo_empresa += costo_total
         ids.append(calculo_id)
+        existente.total_empleados += 1
     existente.calculo_ids = ids
-
-    existente.total_empleados = max(existente.total_empleados, 1) + (1 if empleados_set else 0)
-
+    existente.ultima_actualizacion = datetime.now()
     session.add(existente)
     return existente.id
 

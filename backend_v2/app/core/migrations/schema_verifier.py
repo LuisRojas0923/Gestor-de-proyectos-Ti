@@ -91,22 +91,26 @@ async def verificar_esquema_runtime(async_engine):
     runtime_role = os.getenv("DATABASE_RUNTIME_ROLE", "gestor_runtime")
     owner_role = os.getenv("DATABASE_SCHEMA_OWNER_ROLE", "gestor_schema_owner")
     async with async_engine.connect() as conn:
-        tablas_rows = (await conn.execute(text("""  # @audit-ok: verificación read-only fail-fast
+        tablas_rows = (await conn.execute(text(  # @audit-ok: verificación read-only fail-fast
+            """
             SELECT tablename AS nombre, tableowner AS owner
             FROM pg_tables WHERE schemaname = 'public' AND tablename = ANY(:tablas)
         """), {"tablas": nombres_tablas})).mappings().all()
-        columnas_rows = (await conn.execute(text("""  # @audit-ok: verificación read-only fail-fast
+        columnas_rows = (await conn.execute(text(  # @audit-ok: verificación read-only fail-fast
+            """
             SELECT table_name, column_name FROM information_schema.columns
             WHERE table_schema = 'public' AND table_name = ANY(:tablas)
         """), {"tablas": nombres_tablas})).all()
-        constraints = (await conn.execute(text("""  # @audit-ok: verificación read-only fail-fast
+        constraints = (await conn.execute(text(  # @audit-ok: verificación read-only fail-fast
+            """
             SELECT c.conname AS nombre, t.relname AS tabla,
                    pg_get_constraintdef(c.oid) AS definicion, c.convalidated AS validado
             FROM pg_constraint c JOIN pg_class t ON t.oid = c.conrelid
             JOIN pg_namespace n ON n.oid = c.connamespace
             WHERE n.nspname = 'public' AND c.conname = ANY(:nombres)
         """), {"nombres": list(CONSTRAINTS_REQUERIDOS)})).mappings().all()
-        triggers = (await conn.execute(text("""  # @audit-ok: verificación read-only fail-fast
+        triggers = (await conn.execute(text(  # @audit-ok: verificación read-only fail-fast
+            """
             SELECT g.tgname AS nombre, t.relname AS tabla, p.proname AS funcion,
                    pn.nspname AS funcion_schema,
                    g.tgenabled AS habilitado, g.tgtype AS tipo
@@ -122,7 +126,8 @@ async def verificar_esquema_runtime(async_engine):
             "proteger_credenciales_admin_runtime",
             *PRIVILEGED_FUNCTIONS,
         ]
-        funciones = (await conn.execute(text("""  # @audit-ok: verificación read-only fail-fast
+        funciones = (await conn.execute(text(  # @audit-ok: verificación read-only fail-fast
+            """
             SELECT p.proname AS nombre, pg_get_function_identity_arguments(p.oid) AS argumentos,
                    pg_get_function_result(p.oid) AS retorno, p.prosrc AS cuerpo,
                    l.lanname AS lenguaje, r.rolname AS owner, p.prosecdef AS security_definer,
@@ -147,7 +152,8 @@ async def verificar_esquema_runtime(async_engine):
             WHERE p.pronamespace = 'public'::regnamespace
               AND p.proname = ANY(:nombres)
         """), {"nombres": nombres_funciones})).mappings().all()
-        indice = (await conn.execute(text("""  # @audit-ok: verificación read-only fail-fast
+        indice = (await conn.execute(text(  # @audit-ok: verificación read-only fail-fast
+            """
             SELECT t.relname AS tabla, i.indisunique AS unico, i.indisvalid AS valido,
                    i.indpred IS NULL AS sin_predicado, i.indexprs IS NULL AS sin_expresiones,
                    pg_get_indexdef(i.indexrelid) AS definicion
@@ -157,7 +163,8 @@ async def verificar_esquema_runtime(async_engine):
             WHERE n.nspname = 'public'
               AND x.relname = 'ux_permisos_rol_rol_modulo'
         """))).mappings().first()
-        indices_auditoria = (await conn.execute(text("""  # @audit-ok: verificación read-only fail-fast
+        indices_auditoria = (await conn.execute(text(  # @audit-ok: verificación read-only fail-fast
+            """
             SELECT x.relname AS nombre, i.indisvalid AS valido,
                    i.indisunique AS unico, i.indpred IS NULL AS sin_predicado,
                    i.indexprs IS NULL AS sin_expresiones,
@@ -173,7 +180,8 @@ async def verificar_esquema_runtime(async_engine):
         """), {"nombres": [
             "idx_auditoria_usuario_ts", "idx_auditoria_resultado",
         ]})).mappings().all()
-        secuencia = (await conn.execute(text("""  # @audit-ok: verificación read-only fail-fast
+        secuencia = (await conn.execute(text(  # @audit-ok: verificación read-only fail-fast
+            """
             SELECT c.relname AS nombre, pg_get_userbyid(c.relowner) AS owner
             FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
             WHERE n.nspname = 'public' AND c.relkind = 'S'
@@ -222,7 +230,8 @@ async def verificar_esquema_runtime(async_engine):
             }
             and secuencia is not None and secuencia["owner"] == owner_role
         )
-        capacidad = (await conn.execute(text("""  # @audit-ok: verificación read-only fail-fast
+        capacidad = (await conn.execute(text(  # @audit-ok: verificación read-only fail-fast
+            """
             SELECT t.tableowner AS owner,
                    has_table_privilege(:runtime,
                        'public.configuracion_seguridad_runtime',
@@ -255,7 +264,8 @@ async def verificar_esquema_runtime(async_engine):
         if not estructura_valida:
             raise RuntimeError("Esquema incompleto: faltan objetos estructurales requeridos")
 
-        privilegios = (await conn.execute(text("""  # @audit-ok: verificación read-only fail-fast
+        privilegios = (await conn.execute(text(  # @audit-ok: verificación read-only fail-fast
+            """
             SELECT current_user = :runtime AS identidad_runtime,
                    session_user = :runtime AS sesion_runtime,
                     has_schema_privilege(current_user, 'public', 'CREATE') AS puede_ddl,

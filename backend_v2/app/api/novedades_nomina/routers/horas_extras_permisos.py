@@ -12,6 +12,7 @@ from ....services.auth.servicio import ServicioAuth
 PERMISO_HE_LEER = "nomina_horas_extras.leer"
 PERMISO_HE_PLANIFICAR = "nomina_horas_extras.planificar"
 PERMISO_HE_CONFIRMAR = "nomina_horas_extras.confirmar"
+PERMISO_HE_AUTORIZAR = "nomina_horas_extras.autorizar"
 PERMISO_HE_COMPENSAR = "nomina_horas_extras.compensar"
 PERMISO_HE_ADMIN = "nomina_horas_extras.admin"
 PERMISO_PLANTILLAS_ADMIN = "nomina_horas_extras.plantillas_horario.administrar"
@@ -19,6 +20,7 @@ PERMISOS_HE_GRANULARES = (
     PERMISO_HE_LEER,
     PERMISO_HE_PLANIFICAR,
     PERMISO_HE_CONFIRMAR,
+    PERMISO_HE_AUTORIZAR,
     PERMISO_HE_COMPENSAR,
     PERMISO_HE_ADMIN,
 )
@@ -59,6 +61,13 @@ async def requiere_permiso_he_confirmar(
     usuario: Usuario = Depends(obtener_usuario_actual_db),
 ) -> Usuario:
     return await validar_permiso_he(db, usuario, PERMISO_HE_CONFIRMAR)
+
+
+async def requiere_permiso_he_autorizar(
+    db: AsyncSession = Depends(obtener_db),
+    usuario: Usuario = Depends(obtener_usuario_actual_db),
+) -> Usuario:
+    return await validar_permiso_he(db, usuario, PERMISO_HE_AUTORIZAR)
 
 
 async def requiere_permiso_he_compensar(

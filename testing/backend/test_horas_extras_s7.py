@@ -17,9 +17,12 @@ Cedulas numericas reservadas 9900000000000001-4. OTs 9301-9304.
 import pytest
 from datetime import time
 from types import SimpleNamespace
+from unittest.mock import AsyncMock
+from fastapi import Response
 from sqlmodel import select
 from sqlalchemy import func
 
+from app.api.novedades_nomina.routers import horas_extras_planificador
 from app.api.novedades_nomina.routers.horas_extras_planificador import confirmar_plan_endpoint
 from app.models.novedades_nomina.horas_extras import (
     NominaBolsaHoras,
@@ -93,6 +96,50 @@ def test_planificador_empleados_erp_exige_permiso_he():
     )
     dependencias = {getattr(dep.call, "__name__", "") for dep in route.dependant.dependencies}
     assert "requiere_permiso_he_planificar" in dependencias
+
+
+@pytest.mark.asyncio
+async def test_planificador_admin_con_relaciones_filtra_empleados_erp(monkeypatch):
+    cedulas_asignadas = {"1001", "1002", "1003"}
+    resultado_relaciones = SimpleNamespace(
+        scalars=lambda: SimpleNamespace(all=lambda: list(cedulas_asignadas))
+    )
+    db = SimpleNamespace(execute=AsyncMock(return_value=resultado_relaciones))
+    argumentos_worker = None
+
+    async def ejecutar_worker(_funcion, *argumentos):
+        nonlocal argumentos_worker
+        argumentos_worker = argumentos
+        return {"items": [], "total": 0}
+
+    monkeypatch.setattr(
+        horas_extras_planificador,
+        "run_in_threadpool",
+        ejecutar_worker,
+    )
+
+    await horas_extras_planificador.listar_empleados_erp(
+        response=Response(),
+        q=None,
+        limit=20,
+        offset=0,
+        solo_activos=True,
+        anio=2026,
+        semana_iso=29,
+        cargos=[],
+        areas=[],
+        ciudades=[],
+        jefes=[],
+        autoriza_he=None,
+        disponible_semana=None,
+        orden="cedula",
+        direccion="asc",
+        db=db,
+        usuario=SimpleNamespace(id="USR-1107068093", rol="admin"),
+    )
+
+    assert argumentos_worker is not None
+    assert argumentos_worker[4] == sorted(cedulas_asignadas)
 
 
 # ===========================================================================
@@ -262,6 +309,15 @@ class TestPreCalcularPlan:
 # confirmar_plan
 # ===========================================================================
 
+async def _set_autorizacion_he(db_session, cedula: str, autorizada: bool) -> None:
+    db_session.add(NominaHorarioPactado(
+        cedula=cedula,
+        minutos_jornada_ordinaria=480,
+        horas_semana_ordinaria=42,
+        autoriza_he_default=autorizada,
+    ))
+    await db_session.commit()
+
 class TestConfirmarPlan:
     @pytest.mark.asyncio
     async def test_genera_calculos_para_2_empleados(self, db_session):
@@ -303,6 +359,7 @@ class TestConfirmarPlan:
     async def test_endpoint_confirmar_ignora_usuario_confirma_del_cliente(self, db_session):
         await _cleanup_all(db_session)
         await _set_bolsa_global(db_session, False)
+        await _set_autorizacion_he(db_session, CEDULA_BASE, True)
 
         payload = PlanConfirmarRequest(
             semana=_make_semana(),
@@ -382,6 +439,36 @@ class TestConfirmarPlan:
         assert response.calculos[0].horas_acreditadas_bolsa == 0.0
 
     @pytest.mark.asyncio
+    async def test_empleado_no_autorizado_finaliza_pendiente_sin_bolsa(self, db_session):
+        await _cleanup_all(db_session)
+        await _set_bolsa_global(db_session, True)
+        await _set_autorizacion_he(db_session, CEDULA_BASE, False)
+        empleado_he = _make_empleado(
+            CEDULA_BASE,
+            entrada=time(7, 30),
+            salida=time(19, 0),
+            almuerzo=60,
+        )
+        payload = PlanConfirmarRequest(
+            semana=_make_semana(),
+            usuario_confirma="TEST-S7",
+            empleados=[PlanConfirmarEmpleadoIn(
+                cedula=CEDULA_BASE,
+                dias=empleado_he.dias,
+                parametros=_make_parametros(OT_DEFAULT),
+            )],
+        )
+
+        response = await confirmar_plan(db_session, payload)
+
+        assert response.resumen.ok_count == 1
+        assert response.calculos[0].estado == "PENDIENTE_AUTORIZACION"
+        assert response.calculos[0].horas_acreditadas_bolsa == 0
+        assert await db_session.scalar(
+            select(NominaBolsaHoras).where(NominaBolsaHoras.cedula == CEDULA_BASE)
+        ) is None
+
+    @pytest.mark.asyncio
     async def test_errores_parciales_continuan_lote(self, db_session):
         await _cleanup_all(db_session)
         await _set_bolsa_global(db_session, True)
@@ -425,6 +512,7 @@ class TestConfirmarPlan:
     async def test_acredita_bolsa_cuando_he_existe(self, db_session):
         await _cleanup_all(db_session)
         await _set_bolsa_global(db_session, True)
+        await _set_autorizacion_he(db_session, CEDULA_BASE, True)
 
         # Empleado con horario que genera HE para verificar acreditacion a bolsa
         # 7:30 a 19:00 = 11.5h brutas - 1h almuerzo = 10.5h netas

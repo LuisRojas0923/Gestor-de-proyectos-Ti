@@ -38,7 +38,7 @@ El resultado del PUT contiene `agregadas`, `reactivadas`, `desactivadas`, `sin_c
 
 ## Consulta ERP operativa
 
-`GET /novedades-nomina/horas-extras/planificador/empleados-erp` exige `nomina_horas_extras.planificar`. Para no admin consulta solo cedulas relacionadas; `admin` conserva el universo permitido por el ERP.
+`GET /novedades-nomina/horas-extras/planificador/empleados-erp` exige `nomina_horas_extras.planificar`. Para no admin consulta solo cedulas relacionadas. Un `admin` con relaciones activas ve exclusivamente ese subconjunto en el planificador; sin relaciones activas conserva el universo permitido por el ERP. Este filtro configura la visibilidad del listado y no elimina el bypass administrativo de los endpoints de escritura.
 
 Parametros compartidos con el catalogo administrativo:
 

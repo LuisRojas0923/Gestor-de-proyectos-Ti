@@ -13,7 +13,8 @@ END;
 
 
 async def migrar_horarios_relaciones(conn) -> None:
-    await conn.execute(text("""  # @audit-ok: el job propaga cualquier fallo
+    await conn.execute(text(  # @audit-ok: el job propaga cualquier fallo
+        """
         DO $drop$ DECLARE signature text;
         BEGIN
             FOR signature IN

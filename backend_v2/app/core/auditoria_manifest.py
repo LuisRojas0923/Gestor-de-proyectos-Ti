@@ -210,6 +210,14 @@ AUDITORIA_COBERTURA: dict[str, CoberturaAuditoriaModulo] = {
         "hereda_de": "nomina_horas_extras",
         "rutas_api": ["/api/v2/novedades-nomina/horas-extras"],
     },
+    "nomina_horas_extras.autorizar": {
+        "tipo": "explicito",
+        "notas": "Autorización posterior con evento de workflow y auditoría web.",
+        "archivos": [
+            "backend_v2/app/api/novedades_nomina/routers/horas_extras_workflow.py",
+        ],
+        "rutas_api": ["/api/v2/novedades-nomina/horas-extras/calculos/{calculo_id}/autorizar"],
+    },
     "nomina_horas_extras.admin": {
         "tipo": "parcial",
         "notas": "Permiso granular de administración HE; middleware cubre mutaciones.",

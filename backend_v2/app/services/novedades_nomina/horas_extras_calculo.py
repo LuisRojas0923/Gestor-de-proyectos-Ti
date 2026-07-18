@@ -167,7 +167,7 @@ def calcular_pre_liquidacion(
         factor_prestacional=factor_prestacional,
         salario_base_mensual=input_data.salario_base_mensual,
         valor_hora_ordinaria=valor_hora,
-        total_horas_extras=sum(d.horas for d in detalles_agg),
+        total_horas_extras=round(horas_extras_total, 2),
         total_valor_bruto=total_bruto,
         total_carga_prestacional=total_carga,
         total_costo_empresa=total_bruto + total_carga,

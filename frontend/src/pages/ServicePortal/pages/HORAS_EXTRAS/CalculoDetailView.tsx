@@ -3,11 +3,13 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Title, Text, MaterialCard, Badge, Button, Input, Textarea, Select } from '../../../../components/atoms';
 import { ArrowLeft, AlertCircle } from 'lucide-react';
 import {
+  autorizarCalculo,
   obtenerCalculo,
   obtenerHistorial,
   transicionarCalculo,
   obtenerEstadoGlobalBolsa,
 } from '../../../../services/horasExtrasService';
+import { useAppContext } from '../../../../context/AppContext';
 import type {
   CalculoSemanal,
   WorkflowEvento,
@@ -20,6 +22,7 @@ const fmtCurrency = (n: number) =>
 
 const ESTADO_COLOR: Record<string, string> = {
   BORRADOR: 'bg-slate-200 text-slate-700',
+  PENDIENTE_AUTORIZACION: 'bg-amber-100 text-amber-800',
   CONFIRMADO: 'bg-blue-100 text-blue-700',
   PAGADO: 'bg-emerald-100 text-emerald-700',
   COMPENSADO: 'bg-violet-100 text-violet-700',
@@ -27,6 +30,7 @@ const ESTADO_COLOR: Record<string, string> = {
 };
 
 const CalculoDetailView: React.FC = () => {
+  const { state } = useAppContext();
   const navigate = useNavigate();
   const { calculoId } = useParams<{ calculoId: string }>();
   const [calculo, setCalculo] = useState<CalculoSemanal | null>(null);
@@ -42,6 +46,7 @@ const CalculoDetailView: React.FC = () => {
   const [fechaCompensar, setFechaCompensar] = useState(new Date().toISOString().slice(0, 10));
   const [procesando, setProcesando] = useState(false);
   const [mensaje, setMensaje] = useState<string | null>(null);
+  const puedeAutorizar = state.user?.permissions?.includes('nomina_horas_extras.autorizar') ?? false;
 
   const cargar = async () => {
     if (!calculoId) return;
@@ -108,6 +113,24 @@ const CalculoDetailView: React.FC = () => {
     } catch (e: unknown) {
       setMensaje(null);
       setError(e instanceof Error ? e.message : 'Error al transicionar');
+    } finally {
+      setProcesando(false);
+    }
+  };
+
+  const handleAutorizar = async () => {
+    if (!calculo) return;
+    setProcesando(true);
+    setError(null);
+    try {
+      const resultado = await autorizarCalculo(
+        calculo.id,
+        localStorage.getItem('token') || '',
+      );
+      setMensaje(resultado.mensaje);
+      await cargar();
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'No se pudo autorizar el cálculo');
     } finally {
       setProcesando(false);
     }
@@ -263,6 +286,20 @@ const CalculoDetailView: React.FC = () => {
 
       <MaterialCard className="p-4 mb-6">
         <Text className="font-medium mb-3 block">Workflow</Text>
+        {calculo.estado === 'PENDIENTE_AUTORIZACION' && puedeAutorizar && (
+          <div className="mb-4">
+            <Text className="text-sm text-[var(--color-text-secondary)] mb-2">
+              La bolsa se acreditará al autorizar este cálculo.
+            </Text>
+            <Button
+              variant="primary"
+              onClick={handleAutorizar}
+              disabled={procesando}
+            >
+              {procesando ? 'Autorizando...' : 'Autorizar'}
+            </Button>
+          </div>
+        )}
         {permitidas.length === 0 ? (
           <Text className="text-slate-500 text-sm">
             El cálculo está en estado <strong>{calculo.estado}</strong>. No hay transiciones disponibles.

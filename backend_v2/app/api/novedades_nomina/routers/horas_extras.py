@@ -20,10 +20,6 @@ from ....models.novedades_nomina.schemas_horas_extras import (
     PreLiquidacionResultado,
     PreLiquidacionConfirmar,
     PreLiquidacionConfirmada,
-    WorkflowTransicionRequest,
-    WorkflowTransicionResult,
-    CompensarBolsaRequest,
-    CompensarBolsaResponse,
 )
 from ....services.novedades_nomina.horas_extras_service import (
     crear_novedad_catalogo,
@@ -46,12 +42,8 @@ from ....services.novedades_nomina.horas_extras_confirmacion import (
     confirmar_pre_liquidacion,
 )
 from ....services.novedades_nomina.horas_extras_trazabilidad import construir_detalle_diario_preliquidacion
-from ....services.novedades_nomina.horas_extras_workflow import (
-    transicionar_calculo,
-    compensar_bolsa,
-)
 from ....services.auth.alcance_empleados_service import (
-    autorizar_calculo_id, autorizar_cedula,
+    autorizar_cedula,
 )
 from .horas_extras_festivos import router as festivos_subrouter
 from .horas_extras_novedades import router as novedades_subrouter
@@ -60,6 +52,7 @@ from .horas_extras_bolsa import router as bolsa_subrouter
 from .horas_extras_planificador import router as planificador_subrouter
 from .horas_extras_parametros import router as parametros_subrouter
 from .horas_extras_plantillas import router as plantillas_subrouter
+from .horas_extras_workflow import router as workflow_subrouter
 from .horas_extras_consultas import (
     listar_calculos_endpoint,
     listar_costos_ot_endpoint,
@@ -68,13 +61,10 @@ from .horas_extras_consultas import (
     router as consultas_subrouter,
 )
 from .horas_extras_permisos import (
-    PERMISO_HE_COMPENSAR,
     requiere_permiso_he_admin,
-    requiere_permiso_he_compensar,
     requiere_permiso_he_confirmar,
     requiere_permiso_he_leer,
     requiere_permiso_he_planificar,
-    validar_permiso_he,
 )
 
 logger = logging.getLogger(__name__)
@@ -100,6 +90,8 @@ router.include_router(plantillas_subrouter)
 router.include_router(parametros_subrouter)
 # Consultas de calculos, costos e historial
 router.include_router(consultas_subrouter)
+# Workflow de autorización, estados y compensación
+router.include_router(workflow_subrouter)
 
 
 # Catálogo de novedades
@@ -294,8 +286,12 @@ async def ejecutar_pre_liquidacion_endpoint(
 async def obtener_bolsa(
     cedula: str = Path(..., min_length=1, max_length=50),
     db: AsyncSession = Depends(obtener_db),
-    _: Usuario = Depends(requiere_permiso_he_leer),
+    usuario: Usuario = Depends(requiere_permiso_he_leer),
 ):
+    try:
+        cedula = await autorizar_cedula(db, usuario, cedula)
+    except (PermissionError, ValueError) as exc:
+        raise HTTPException(404, "Empleado no encontrado") from exc
     bolsa = await obtener_bolsa_horas(db, cedula)
     if bolsa is None:
         return {
@@ -352,7 +348,10 @@ async def confirmar_pre_liquidacion_endpoint(
     payload.usuario_confirma = str(getattr(usuario, "cedula", None) or usuario.id)
 
     try:
-        resultado = await confirmar_pre_liquidacion(db, payload)
+        autoriza_he, _ = await resolver_autorizacion_he(db, payload.cedula)
+        resultado = await confirmar_pre_liquidacion(
+            db, payload, autorizacion_he=autoriza_he
+        )
     except ValueError as e:
         raise HTTPException(status_code=409, detail=str(e))
 
@@ -362,99 +361,15 @@ async def confirmar_pre_liquidacion_endpoint(
         horas_acreditadas_bolsa=resultado["horas_acreditadas_bolsa"],
         movimientos_bolsa=resultado["movimientos_bolsa"],
         costo_ot_id=resultado["costo_ot_id"],
+        estado=resultado["estado"],
+        mensaje=(
+            "Cálculo pendiente de autorización"
+            if resultado["estado"] == "PENDIENTE_AUTORIZACION"
+            else "Cálculo confirmado y persistido"
+        ),
     )
 
 
-# ---------------------------------------------------------------------------
-# S4 — Workflow de estados y compensación de bolsa
-# ---------------------------------------------------------------------------
-
-@router.post("/calculos/{calculo_id}/transicion", response_model=WorkflowTransicionResult)
-async def transicionar_calculo_endpoint(
-    calculo_id: int = Path(..., ge=1),
-    payload: WorkflowTransicionRequest = ...,
-    db: AsyncSession = Depends(obtener_db),
-    usuario: Usuario = Depends(requiere_permiso_he_confirmar),
-):
-    """
-    Aplica una transición de estado al cálculo.
-    - CONFIRMADO → PAGADO: solo cambia estado.
-    - CONFIRMADO → COMPENSADO: consume horas de la bolsa (parcial o total).
-    - CONFIRMADO → ANULADO: revierte la ACREDITACION y resta del costo_ot.
-    """
-    if payload.estado_destino == "COMPENSADO":
-        await validar_permiso_he(db, usuario, PERMISO_HE_COMPENSAR)
-    try:
-        await autorizar_calculo_id(db, usuario, calculo_id)
-    except LookupError as exc:
-        raise HTTPException(404, "Recurso no encontrado") from exc
-
-    usuario_id = getattr(usuario, "cedula", None) or usuario.id
-    try:
-        resultado = await transicionar_calculo(
-            db,
-            calculo_id=calculo_id,
-            estado_destino=payload.estado_destino,
-            justificacion=payload.justificacion,
-            usuario_id=usuario_id,
-            horas_compensar=payload.horas,
-            fecha_compensacion=payload.fecha,
-        )
-        await db.commit()
-    except ValueError as e:
-        msg = str(e)
-        if "no encontrado" in msg:
-            raise HTTPException(status_code=404, detail=msg)
-        if msg.startswith("BOLSA_DESACTIVADA"):
-            raise HTTPException(
-                status_code=409,
-                detail={"code": "BOLSA_DESACTIVADA", "message": msg},
-            )
-        raise HTTPException(status_code=409, detail=msg)
-
-    return WorkflowTransicionResult(
-        calculo_id=resultado["calculo_id"],
-        estado_anterior=resultado["estado_anterior"],
-        estado_nuevo=resultado["estado_nuevo"],
-        evento_id=resultado["evento_id"],
-        movimiento_bolsa_id=resultado["movimiento_bolsa_id"],
-        horas_afectadas=resultado["horas_afectadas"],
-        mensaje=f"Cálculo {calculo_id} pasó de {resultado['estado_anterior']} a {resultado['estado_nuevo']}.",
-    )
-
-
-@router.post("/bolsa/compensar", response_model=CompensarBolsaResponse)
-async def compensar_bolsa_endpoint(
-    payload: CompensarBolsaRequest,
-    db: AsyncSession = Depends(obtener_db),
-    usuario: Usuario = Depends(requiere_permiso_he_compensar),
-):
-    """
-    Consume horas de la bolsa del empleado. Crea movimiento CONSUMO_TIEMPO.
-    No requiere cálculo de origen (compensaciones administrativas).
-    """
-    usuario_id = getattr(usuario, "cedula", None) or usuario.id
-    try:
-        resultado = await compensar_bolsa(
-            db,
-            cedula=payload.cedula,
-            horas=payload.horas,
-            fecha=payload.fecha,
-            usuario_id=usuario_id,
-            calculo_id=payload.calculo_id,
-            observaciones=payload.observaciones,
-        )
-        await db.commit()
-    except ValueError as e:
-        raise HTTPException(status_code=409, detail=str(e))
-
-    return CompensarBolsaResponse(
-        cedula=payload.cedula,
-        movimiento_id=resultado["movimiento_id"],
-        horas_compensadas=resultado["horas_compensadas"],
-        horas_disponibles_despues=resultado["horas_disponibles_despues"],
-        mensaje=f"Se compensaron {resultado['horas_compensadas']}h de la bolsa de {payload.cedula}.",
-    )
 # Los endpoints de festivos (/festivos/{anio} y /festivos/{anio}/sincronizar)
 # viven en el sub-router horas_extras_festivos.py, incluido arriba.
 

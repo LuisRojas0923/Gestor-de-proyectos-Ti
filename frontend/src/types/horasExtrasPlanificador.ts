@@ -7,6 +7,8 @@ export interface EmpleadoERPRead {
   quien_reporta: string | null;
   nivel_riesgo_arl: string | null;
   autoriza_he: boolean | null;
+  disponible_semana: boolean;
+  motivo_no_disponible: string | null;
 }
 
 export interface EmpleadoERPListResponse {
@@ -56,6 +58,7 @@ export interface PlanAsignacionOtIn {
   sub_indice?: string | null;
   categoria_sub_indice: string;
   descripcion?: string | null;
+  cliente?: string | null;
   vr_contratado?: number | null;
   horas?: number | null;
   porcentaje?: number | null;
@@ -67,6 +70,7 @@ export interface PlanDiaIn {
   hora_salida: string | null;
   minutos_almuerzo: number;
   cruza_medianoche: boolean;
+  actividad?: string | null;
   novedades: PlanNovedadIn[];
   asignaciones_ot: PlanAsignacionOtIn[];
 }
@@ -99,22 +103,34 @@ export interface PlanPreCalculoDetalleDia {
   horas_trabajadas: number;
   horas_ordinarias: number;
   horas_extras: number;
-  codigo_he: string | null;
+  codigo_he: CodigoConceptoPlan | null;
   es_festivo: boolean;
   novedad_codigo: string | null;
+  costo_estimado: number;
+  conceptos: PlanPreCalculoConcepto[];
 }
+
+export interface PlanPreCalculoConcepto {
+  codigo: CodigoConceptoPlan;
+  horas: number;
+  costo_estimado: number;
+}
+
+export type CodigoConceptoPlan = 'HED' | 'HEN' | 'HEFD' | 'HEFN' | 'HF';
 
 export interface PlanPreCalculoEmpleado {
   cedula: string;
   total_horas_trabajadas: number;
   total_horas_ordinarias: number;
   total_horas_extras: number;
+  total_horas_festivas: number;
   total_costo_estimado: number;
   detalle_por_dia: PlanPreCalculoDetalleDia[];
 }
 
 export interface PlanPreCalculoResumen {
   total_horas_extras: number;
+  total_horas_festivas: number;
   total_costo_estimado: number;
   empleados_count: number;
 }
@@ -152,6 +168,7 @@ export interface PlanConfirmarCalculoItem {
   costo_ot_id: number | null;
   bolsa_habilitada_en_confirmacion: boolean;
   bolsa_fuente: string;
+  estado: 'PENDIENTE_AUTORIZACION' | 'CONFIRMADO';
   ok: boolean;
   mensaje: string;
 }
@@ -160,6 +177,7 @@ export interface PlanConfirmarResumen {
   ok_count: number;
   error_count: number;
   total_horas_extras: number;
+  total_horas_festivas: number;
   total_costo: number;
 }
 

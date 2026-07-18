@@ -309,6 +309,13 @@ SYSTEM_MODULES_REGISTRY: List[Dict[str, Any]] = [
         "descripcion": "Compensación manual y consumo administrativo de horas disponibles en bolsa.",
     },
     {
+        "id": "nomina_horas_extras.autorizar",
+        "nombre": "Horas Extras — Autorización",
+        "categoria": "portal",
+        "es_critico": True,
+        "descripcion": "Autorización posterior de cálculos de horas extras pendientes.",
+    },
+    {
         "id": "nomina_horas_extras.admin",
         "nombre": "Horas Extras — Administración",
         "categoria": "portal",

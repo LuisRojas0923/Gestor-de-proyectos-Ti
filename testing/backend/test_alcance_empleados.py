@@ -13,6 +13,7 @@ from app.api.auth import alcance_empleados_router
 from app.api.auth.alcance_empleados_router import requerir_admin_alcance
 from app.services.auth.alcance_empleados_service import (
     autorizar_cedula,
+    cedulas_visibles_planificador,
     normalizar_cedula,
     obtener_resultado_relaciones_idempotente,
     validar_cambio_relaciones,
@@ -96,6 +97,26 @@ def test_no_admin_no_puede_modificar_su_propio_alcance():
 def test_bypass_solo_para_rol_admin_canonico():
     assert usuario_tiene_bypass_alcance(SimpleNamespace(rol="admin")) is True
     assert usuario_tiene_bypass_alcance(SimpleNamespace(rol="administrador")) is False
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("rol", "esperado"),
+    [("admin", None), ("gestor", set())],
+)
+async def test_visibilidad_planificador_sin_relaciones_conserva_fallback_por_rol(
+    rol, esperado
+):
+    resultado = SimpleNamespace(
+        scalars=lambda: SimpleNamespace(all=lambda: [])
+    )
+    sesion = SimpleNamespace(execute=AsyncMock(return_value=resultado))
+
+    visibles = await cedulas_visibles_planificador(
+        sesion, SimpleNamespace(id="GESTOR-1", rol=rol)
+    )
+
+    assert visibles == esperado
 
 
 @pytest.mark.asyncio

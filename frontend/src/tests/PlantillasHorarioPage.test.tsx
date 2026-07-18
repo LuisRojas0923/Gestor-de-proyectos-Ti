@@ -58,6 +58,7 @@ describe('PlantillasHorarioPage', () => {
     renderPage();
     fireEvent.click(screen.getByRole('button', { name: 'Nueva plantilla' }));
     const editor = await screen.findByRole('dialog', { name: 'Nueva plantilla' });
+    expect(within(editor).getByText('45 h semanales')).toBeInTheDocument();
     fireEvent.change(within(editor).getAllByRole('textbox')[0], { target: { value: 'Nueva' } });
     fireEvent.click(screen.getByRole('button', { name: 'Guardar plantilla' }));
     await waitFor(() => expect(mocks.crear).toHaveBeenCalledOnce());

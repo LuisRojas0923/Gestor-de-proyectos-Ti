@@ -32,7 +32,7 @@ from ....models.novedades_nomina.schemas_horas_extras_planificador import (
     PlanPreCalculoResponse,
 )
 from ....services.auth.alcance_empleados_service import (
-    autorizar_lote, cedulas_permitidas, normalizar_cedula,
+    autorizar_lote, cedulas_visibles_planificador, normalizar_cedula,
 )
 from ....services.erp.empleados_horarios_service import (
     agregar_disponibilidad_semanal,
@@ -97,7 +97,7 @@ async def listar_empleados_erp(
     """Lista paginada de empleados del ERP con busqueda opcional."""
     try:
         validar_semana_iso(anio, semana_iso)
-        permitidas = await cedulas_permitidas(db, usuario)
+        permitidas = await cedulas_visibles_planificador(db, usuario)
         resultado = await run_in_threadpool(
             consultar_empleados_erp_worker, q, limit, offset, solo_activos,
             sorted(permitidas) if permitidas is not None else None, True,
@@ -124,8 +124,8 @@ async def listar_empleados_erp(
     except ValueError as e:
         raise HTTPException(status_code=422, detail="Semana ISO invalida") from e
     except Exception:
-        logger.error("Error listando empleados ERP")
-        raise HTTPException(status_code=503, detail="ERP no disponible")
+        logger.error("Error consultando empleados disponibles para el planificador")
+        raise HTTPException(status_code=503, detail="No fue posible consultar empleados")
 
 
 # ---------------------------------------------------------------------------

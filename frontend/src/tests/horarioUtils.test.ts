@@ -23,6 +23,8 @@ describe('horarioUtils', () => {
   describe('esHoraValida', () => {
     it('acepta HH:MM válidos', () => {
       expect(esHoraValida('07:30')).toBe(true);
+      expect(esHoraValida('07:30:00')).toBe(true);
+      expect(esHoraValida('07:30:59')).toBe(true);
       expect(esHoraValida('00:00')).toBe(true);
       expect(esHoraValida('23:59')).toBe(true);
     });
@@ -33,6 +35,7 @@ describe('horarioUtils', () => {
       expect(esHoraValida('')).toBe(false);
       expect(esHoraValida('25:00')).toBe(false);
       expect(esHoraValida('12:60')).toBe(false);
+      expect(esHoraValida('12:30:60')).toBe(false);
       expect(esHoraValida('1230')).toBe(false);
     });
   });
@@ -40,6 +43,9 @@ describe('horarioUtils', () => {
   describe('calcularHorasDia', () => {
     it('caso L-J del usuario: 07:30 → 17:00 con 30min almuerzo = 9h', () => {
       expect(calcularHorasDia('07:30', '17:00', 30)).toBe(9);
+      expect(calcularHorasDia('07:30:00', '17:00:00', 30)).toBe(9);
+      expect(calcularHorasDia('07:30:59', '17:00:59', 30)).toBe(9);
+      expect(calcularHorasDia('07:30:59', '17:00:00', 30)).toBe(9);
     });
 
     it('caso viernes: 07:30 → 17:30 con 30min almuerzo = 9.5h', () => {
@@ -63,6 +69,10 @@ describe('horarioUtils', () => {
     it('salida <= entrada → 0h (caso de datos corruptos)', () => {
       expect(calcularHorasDia('17:00', '08:00', 0)).toBe(0);
       expect(calcularHorasDia('10:00', '10:00', 0)).toBe(0);
+    });
+
+    it('cruce de medianoche incoherente no produce jornadas mayores a 24h', () => {
+      expect(calcularHorasDia('07:30', '17:00', 30, true)).toBe(0);
     });
 
     it('horas en punto y media con redondeo a 2 decimales', () => {

@@ -7,9 +7,11 @@ import { buscarEmpleadosERP } from '../../../../../services/horasExtrasService';
 import type { EmpleadoERPRead, PlanDiaIn, PlanPreCalculoResponse } from '../../../../../types/horasExtrasPlanificador';
 import { FILTROS_PANEL_KEY, leerFiltrosPanel, restaurarColumnFilters, serializarColumnFilters, type SortState } from '../utils/empleadosPanelFilters';
 import { labelDia } from '../utils/horarioUtils';
-import { COLUMNAS_FILTRABLES, FilaDatoCompacta, LIMITE_PAGINA, colorHE, deduplicarEmpleados, empleadoValorColumna, type EmpleadoTablaRow, type EmpleadoTablaRowCacheEntry } from './empleadosActivosTableUtils';
+import { indexarPreCalculo } from '../utils/preCalculoPlanificador';
+import { COLUMNAS_FILTRABLES, FilaDatoCompacta, LIMITE_PAGINA, colorHE, deduplicarEmpleados, empleadoPuedeProgramarse, empleadoValorColumna, type EmpleadoTablaRow, type EmpleadoTablaRowCacheEntry } from './empleadosActivosTableUtils';
 
 interface EmpleadosActivosPanelProps {
+  anio: number; semanaIso: number;
   seleccionados: Set<string>;
   empleadosInfo: Map<string, EmpleadoERPRead>;
   maxSeleccion: number;
@@ -21,8 +23,8 @@ interface EmpleadosActivosPanelProps {
   onSelectionChange: (seleccionados: Set<string>, empleadosInfo: Map<string, EmpleadoERPRead>) => void;
   onCeldaClick: (cedula: string, diaSemana: number) => void;
 }
-
 const EmpleadosActivosPanel: React.FC<EmpleadosActivosPanelProps> = ({
+  anio, semanaIso,
   seleccionados,
   empleadosInfo,
   maxSeleccion,
@@ -55,12 +57,12 @@ const EmpleadosActivosPanel: React.FC<EmpleadosActivosPanelProps> = ({
   const rowCacheRef = useRef(new Map<string, EmpleadoTablaRowCacheEntry>());
   const tablaBodyRef = useRef<HTMLDivElement>(null);
   const cargandoMasRef = useRef(false);
+  const versionCargaRef = useRef(0);
 
   useEffect(() => {
     seleccionadosRef.current = seleccionados;
     empleadosInfoRef.current = empleadosInfo;
   }, [empleadosInfo, seleccionados]);
-
   useEffect(() => {
     cargandoMasRef.current = cargandoMas;
   }, [cargandoMas]);
@@ -69,12 +71,10 @@ const EmpleadosActivosPanel: React.FC<EmpleadosActivosPanelProps> = ({
     empleados.forEach((empleado) => empleadosCacheRef.current.set(empleado.cedula, empleado));
     empleadosInfo.forEach((empleado) => empleadosCacheRef.current.set(empleado.cedula, empleado));
   }, [empleados, empleadosInfo]);
-
   useEffect(() => {
     const timer = window.setTimeout(() => setBusquedaRemota(busquedaFiltro.trim()), 300);
     return () => window.clearTimeout(timer);
   }, [busquedaFiltro]);
-
   useEffect(() => {
     window.sessionStorage.setItem(FILTROS_PANEL_KEY, JSON.stringify({
       columnFilters: serializarColumnFilters(columnFilters),
@@ -85,13 +85,17 @@ const EmpleadosActivosPanel: React.FC<EmpleadosActivosPanelProps> = ({
 
   useEffect(() => {
     let cancelado = false;
+    versionCargaRef.current += 1;
+    setEmpleados([]);
+    empleadosCacheRef.current.clear();
+    rowCacheRef.current.clear();
 
     const cargarEmpleadosIniciales = async () => {
       setCargando(true);
       setCargandoMas(false);
       setError(null);
       try {
-        const respuesta = await buscarEmpleadosERP(busquedaRemota || undefined, LIMITE_PAGINA, 0, token, true);
+        const respuesta = await buscarEmpleadosERP(busquedaRemota || undefined, LIMITE_PAGINA, 0, token, true, anio, semanaIso);
         if (!cancelado) {
           const nextOffset = respuesta.offset + respuesta.items.length;
           setEmpleados(deduplicarEmpleados(respuesta.items));
@@ -116,27 +120,31 @@ const EmpleadosActivosPanel: React.FC<EmpleadosActivosPanelProps> = ({
     return () => {
       cancelado = true;
     };
-  }, [busquedaRemota, token]);
+  }, [anio, busquedaRemota, semanaIso, token]);
 
   const cargarMasEmpleados = useCallback(async () => {
     if (cargando || cargandoMasRef.current || !hayMasEmpleados) return;
     cargandoMasRef.current = true;
     setCargandoMas(true);
     setError(null);
+    const versionCarga = versionCargaRef.current;
     try {
-      const respuesta = await buscarEmpleadosERP(busquedaRemota || undefined, LIMITE_PAGINA, offsetEmpleados, token, true);
+      const respuesta = await buscarEmpleadosERP(busquedaRemota || undefined, LIMITE_PAGINA, offsetEmpleados, token, true, anio, semanaIso);
+      if (versionCarga !== versionCargaRef.current) return;
       const nextOffset = respuesta.offset + respuesta.items.length;
       setEmpleados((prev) => deduplicarEmpleados([...prev, ...respuesta.items]));
       setTotalEmpleados(respuesta.total);
       setOffsetEmpleados(nextOffset);
       setHayMasEmpleados(nextOffset < respuesta.total && respuesta.items.length > 0);
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Error al consultar más empleados activos');
+      if (versionCarga === versionCargaRef.current) setError(e instanceof Error ? e.message : 'Error al consultar más empleados activos');
     } finally {
-      cargandoMasRef.current = false;
-      setCargandoMas(false);
+      if (versionCarga === versionCargaRef.current) {
+        cargandoMasRef.current = false;
+        setCargandoMas(false);
+      }
     }
-  }, [busquedaRemota, cargando, hayMasEmpleados, offsetEmpleados, token]);
+  }, [anio, busquedaRemota, cargando, hayMasEmpleados, offsetEmpleados, semanaIso, token]);
 
   const columnOptions = useMemo(() => {
     return COLUMNAS_FILTRABLES.reduce<Record<string, string[]>>((acc, key) => {
@@ -184,33 +192,19 @@ const EmpleadosActivosPanel: React.FC<EmpleadosActivosPanelProps> = ({
   }, [cargarMasEmpleados, empleadosRenderizados.length]);
 
   const empleadosVisiblesSeleccionables = useMemo(() => {
-    return empleadosRenderizados.filter((empleado) => empleado.autoriza_he === true && !seleccionados.has(empleado.cedula));
+    return empleadosRenderizados.filter((empleado) => empleadoPuedeProgramarse(empleado) && !seleccionados.has(empleado.cedula));
   }, [empleadosRenderizados, seleccionados]);
 
-  const idxPreCalculo = useMemo(() => {
-    const dias = new Map<string, Map<number, number>>();
-    const totales = new Map<string, { he: number; costo: number }>();
-    if (!preCalculo) return { dias, totales };
-    for (const empleado of preCalculo.empleados) {
-      const inner = new Map<number, number>();
-      for (const dia of empleado.detalle_por_dia) inner.set(dia.dia_semana, dia.horas_extras);
-      dias.set(empleado.cedula, inner);
-      totales.set(empleado.cedula, {
-        he: empleado.total_horas_extras,
-        costo: empleado.total_costo_estimado,
-      });
-    }
-    return { dias, totales };
-  }, [preCalculo]);
+  const idxPreCalculo = useMemo(() => indexarPreCalculo(preCalculo), [preCalculo]);
 
   const filasRenderizadas = useMemo(() => {
     const previous = rowCacheRef.current;
     const nextCache = new Map<string, EmpleadoTablaRowCacheEntry>();
     const rows = empleadosRenderizados.map((empleado) => {
       const seleccionadoEnPlan = seleccionados.has(empleado.cedula);
-      const puedeSeleccionarse = seleccionadoEnPlan || (empleado.autoriza_he === true && seleccionados.size < maxSeleccion);
+      const puedeSeleccionarse = seleccionadoEnPlan || (empleadoPuedeProgramarse(empleado) && seleccionados.size < maxSeleccion);
       const diasPlan = overrides.get(empleado.cedula) ?? defaultDias;
-      const hePorDia = idxPreCalculo.dias.get(empleado.cedula);
+      const calculoPorDia = idxPreCalculo.dias.get(empleado.cedula);
       const totalPlan = idxPreCalculo.totales.get(empleado.cedula);
       const errorPlan = errores?.get(empleado.cedula);
       const calculadoPlan = !!preCalculo;
@@ -222,7 +216,7 @@ const EmpleadosActivosPanel: React.FC<EmpleadosActivosPanelProps> = ({
         && cached.seleccionadoEnPlan === seleccionadoEnPlan
         && cached.puedeSeleccionarse === puedeSeleccionarse
         && cached.diasPlan === diasPlan
-        && cached.hePorDia === hePorDia
+        && cached.calculoPorDia === calculoPorDia
         && cached.totalPlan === totalPlan
         && cached.errorPlan === errorPlan
         && cached.calculadoPlan === calculadoPlan
@@ -236,7 +230,7 @@ const EmpleadosActivosPanel: React.FC<EmpleadosActivosPanelProps> = ({
         seleccionadoEnPlan,
         puedeSeleccionarse,
         diasPlan,
-        hePorDia,
+        calculoPorDia,
         totalPlan,
         errorPlan,
         calculadoPlan,
@@ -246,7 +240,7 @@ const EmpleadosActivosPanel: React.FC<EmpleadosActivosPanelProps> = ({
         seleccionadoEnPlan,
         puedeSeleccionarse,
         diasPlan,
-        hePorDia,
+        calculoPorDia,
         totalPlan,
         errorPlan,
         calculadoPlan,
@@ -278,7 +272,7 @@ const EmpleadosActivosPanel: React.FC<EmpleadosActivosPanelProps> = ({
     const nextSeleccionados = new Set(seleccionadosRef.current);
     const nextEmpleadosInfo = new Map(empleadosInfoRef.current);
     for (const empleado of empleadosRenderizados) {
-      if (empleado.autoriza_he !== true || nextSeleccionados.size >= maxSeleccion) continue;
+      if (!empleadoPuedeProgramarse(empleado) || nextSeleccionados.size >= maxSeleccion) continue;
       nextSeleccionados.add(empleado.cedula);
       nextEmpleadosInfo.set(empleado.cedula, empleado);
       empleadosCacheRef.current.set(empleado.cedula, empleado);
@@ -367,7 +361,7 @@ const EmpleadosActivosPanel: React.FC<EmpleadosActivosPanelProps> = ({
             <Badge size="xs" variant={empleado.autoriza_he === false ? 'warning' : 'default'}>
               {empleado.autoriza_he === false ? 'No autoriza' : 'Sin dato'}
             </Badge>
-            <Badge size="xs" variant="warning">No disponible</Badge>
+            <Badge size="xs" variant={empleadoPuedeProgramarse(empleado) ? 'info' : 'warning'}>{empleadoPuedeProgramarse(empleado) ? 'Programable' : 'No disponible'}</Badge>
           </div>
         );
       },
@@ -380,8 +374,9 @@ const EmpleadosActivosPanel: React.FC<EmpleadosActivosPanelProps> = ({
       render: (empleado) => {
         const estaSeleccionado = empleado.seleccionadoEnPlan;
         const dia = empleado.diasPlan.find((item) => item.dia_semana === diaSemana);
-        const he = empleado.hePorDia?.get(diaSemana) ?? 0;
-        const calculado = !!empleado.hePorDia;
+        const calculoDia = empleado.calculoPorDia?.get(diaSemana);
+        const he = calculoDia?.he ?? 0;
+        const calculado = !!empleado.calculoPorDia;
         const totalOt = dia?.asignaciones_ot?.length ?? 0;
         return (
           <Button
@@ -390,7 +385,9 @@ const EmpleadosActivosPanel: React.FC<EmpleadosActivosPanelProps> = ({
             size="xs"
             disabled={!estaSeleccionado}
             onClick={() => onCeldaClick(empleado.cedula, diaSemana)}
-            aria-label={estaSeleccionado ? `Editar ${labelDia(diaSemana)} de ${empleado.cedula}` : `Selecciona ${empleado.cedula} para editar ${labelDia(diaSemana)}`}
+            aria-label={estaSeleccionado
+              ? `Editar ${labelDia(diaSemana)} de ${empleado.cedula}${calculoDia?.codigos.length ? `, conceptos ${calculoDia.codigos.join(' y ')}` : ''}${he > 0 ? `, ${he.toFixed(1)} horas extra` : ''}`
+              : `Selecciona ${empleado.cedula} para editar ${labelDia(diaSemana)}`}
             className={`w-[65px] min-h-[52px] rounded-xl border border-[var(--color-border)] !px-2 !py-1 text-[var(--color-text-primary)] transition-all ${
               estaSeleccionado
                 ? `${calculado ? colorHE(he) : 'bg-[var(--color-surface)]'} hover:border-[var(--color-primary)] active:scale-[0.98]`
@@ -404,6 +401,11 @@ const EmpleadosActivosPanel: React.FC<EmpleadosActivosPanelProps> = ({
             {dia && dia.novedades.length > 0 && (
               <Badge className="!text-[9px] !px-1 !py-0 mt-0.5">
                 {dia.novedades[0].codigo_novedad}
+              </Badge>
+            )}
+            {!!calculoDia?.codigos.length && (
+              <Badge variant="warning" className="!text-[9px] !px-1 !py-0 mt-0.5">
+                {calculoDia.codigos.join(' + ') || 'HF'}
               </Badge>
             )}
             {totalOt > 0 && (
@@ -545,5 +547,4 @@ const EmpleadosActivosPanel: React.FC<EmpleadosActivosPanelProps> = ({
     </MaterialCard>
   );
 };
-
 export default EmpleadosActivosPanel;

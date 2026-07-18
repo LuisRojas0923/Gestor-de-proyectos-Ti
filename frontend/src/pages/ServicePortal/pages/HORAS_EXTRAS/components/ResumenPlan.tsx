@@ -10,7 +10,7 @@ import type { PlanPreCalculoResponse } from '../../../../../types/horasExtrasPla
 
 interface ResumenPlanProps {
   preCalculo: PlanPreCalculoResponse | null;
-  confirmado?: { ok: number; error: number; he: number; costo: number } | null;
+  confirmado?: { ok: number; error: number; he: number; hf: number; costo: number } | null;
 }
 
 const fmtCOP = (n: number): string =>
@@ -38,6 +38,10 @@ const ResumenPlan: React.FC<ResumenPlanProps> = ({ preCalculo, confirmado }) => 
               </Text>
             </div>
             <div>
+              <Text className="text-xs text-[var(--color-text-secondary)]">Horas festivas</Text>
+              <Text className="text-lg font-semibold">{preCalculo.resumen.total_horas_festivas.toFixed(1)}h</Text>
+            </div>
+            <div>
               <Text className="text-xs text-[var(--color-text-secondary)]">Costo estimado</Text>
               <Text className="text-lg font-semibold">
                 {fmtCOP(preCalculo.resumen.total_costo_estimado)}
@@ -50,7 +54,7 @@ const ResumenPlan: React.FC<ResumenPlanProps> = ({ preCalculo, confirmado }) => 
       {confirmado && (
         <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-primary-light)]/40 p-4">
           <Text className="text-xs text-[var(--color-primary)] mb-2">Confirmado y persistente</Text>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
             <div>
               <Text className="text-xs text-[var(--color-text-secondary)]">OK</Text>
               <Text className="text-lg font-semibold text-[var(--color-primary)]">
@@ -67,6 +71,12 @@ const ResumenPlan: React.FC<ResumenPlanProps> = ({ preCalculo, confirmado }) => 
               <Text className="text-xs text-[var(--color-text-secondary)]">Total HE</Text>
               <Text className="text-lg font-semibold text-[var(--color-primary)]">
                 {confirmado.he.toFixed(1)}h
+              </Text>
+            </div>
+            <div>
+              <Text className="text-xs text-[var(--color-text-secondary)]">Horas festivas</Text>
+              <Text className="text-lg font-semibold text-[var(--color-primary)]">
+                {confirmado.hf.toFixed(1)}h
               </Text>
             </div>
             <div>

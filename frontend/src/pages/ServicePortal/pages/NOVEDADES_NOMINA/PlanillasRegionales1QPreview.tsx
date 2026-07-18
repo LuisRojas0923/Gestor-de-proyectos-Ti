@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { Title, Text, Button, Select, Input, Badge } from '../../../../components/atoms';
 import { FilePicker } from '../../../../components/molecules';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, FileText, AlertTriangle, History, Database, ChevronRight } from 'lucide-react';
+import { ArrowLeft, FileText, AlertTriangle, History, Database, ChevronRight, Search } from 'lucide-react';
 
 import axios from 'axios';
 import { API_CONFIG } from '../../../../config/api';
@@ -43,12 +43,6 @@ const MESES = [
     "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
 ];
 
-const CURRENCY_FORMATTER = new Intl.NumberFormat('es-CO', {
-    style: 'currency',
-    currency: 'COP',
-    maximumFractionDigits: 0
-});
-
 const PlanillasRegionales1QPreview: React.FC = () => {
     const navigate = useNavigate();
     const { addNotification } = useNotifications();
@@ -61,7 +55,7 @@ const PlanillasRegionales1QPreview: React.FC = () => {
     const [data, setData] = useState<PlanillaResponse | null>(null);
 
     // Filtros
-    const [searchText] = useState('');
+    const [searchText, setSearchText] = useState('');
 
     // Filtros por columna (Excel style)
     const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>({});
@@ -121,9 +115,11 @@ const PlanillasRegionales1QPreview: React.FC = () => {
                 addNotification('success', `Procesados ${res.data.summary.total_asociados} asociados.`);
                 setFiles([]);
             }
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error(err);
-            const errorMessage = err.response?.data?.detail || 'Error al procesar los archivos.';
+            const errorMessage = axios.isAxiosError(err)
+                ? err.response?.data?.detail || 'Error al procesar los archivos.'
+                : 'Error al procesar los archivos.';
             addNotification('error', errorMessage);
         } finally {
             setIsProcessing(false);
@@ -146,7 +142,7 @@ const PlanillasRegionales1QPreview: React.FC = () => {
                     const key = entry[0];
                     const values = entry[1] as string[];
                     if (values.length === 0) continue;
-                    const rowValue = String((r as any)[key] || '').toUpperCase();
+                    const rowValue = String(r[key as keyof PlanillaRow] || '').toUpperCase();
                     if (!values.includes(rowValue)) return false;
                 }
 
@@ -350,7 +346,7 @@ const PlanillasRegionales1QPreview: React.FC = () => {
                                 </div>
                                 <ul className="space-y-0.5 ml-5 list-disc">
                                     {data.warnings.map((w: string, i: number) => (
-                                        <li key={`${w.id || w.cedula || 'w'}-${i}`}><Text size="xs" className="text-amber-700 dark:text-amber-400 text-[10px]">{w}</Text></li>
+                                        <li key={`${w}-${i}`}><Text size="xs" className="text-amber-700 dark:text-amber-400 text-[10px]">{w}</Text></li>
                                     ))}
                                 </ul>
                             </div>
@@ -397,16 +393,28 @@ const PlanillasRegionales1QPreview: React.FC = () => {
 
                         {/* Table - Self scrolling */}
                         <div className="flex-1 min-h-0 bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 flex flex-col overflow-hidden">
-                            <div className="flex-none p-2 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between bg-slate-50/50 dark:bg-slate-900/30">
+                            <div className="flex-none p-2 border-b border-[var(--color-border)] flex flex-col gap-2 bg-[var(--color-surface-variant)]/50 sm:flex-row sm:items-center sm:justify-between">
                                 <div className="flex items-center gap-2">
                                     <Database className="w-3.5 h-3.5 text-slate-400" />
                                     <Text variant="caption" weight="bold" className="uppercase tracking-wider text-slate-500">
                                         REGISTROS CARGADOS
                                     </Text>
                                 </div>
-                                <Text size="xs" color="text-secondary" className="text-[10px] font-bold">
-                                    {filteredRows.length} REGISTROS
-                                </Text>
+                                <div className="flex w-full items-center gap-3 sm:w-auto">
+                                    <Input
+                                        type="search"
+                                        value={searchText}
+                                        onChange={(event) => setSearchText(event.target.value)}
+                                        placeholder="Buscar cédula o nombre"
+                                        aria-label="Buscar registros de planilla 1Q"
+                                        icon={Search}
+                                        size="sm"
+                                        className="min-w-0 flex-1 sm:w-64"
+                                    />
+                                    <Text size="xs" color="text-secondary" className="whitespace-nowrap text-[10px] font-bold">
+                                        {filteredRows.length} REGISTROS
+                                    </Text>
+                                </div>
                             </div>
                             <div className="flex-1 overflow-auto">
                                 <table className="w-full text-[11px] border-collapse">
@@ -450,7 +458,7 @@ const PlanillasRegionales1QPreview: React.FC = () => {
                                                  <div className="flex items-center justify-center gap-1">
                                                      <Text as="span" size="xs" color="inherit">CIUDAD</Text>
                                                      <FilterDropdown 
-                                                         options={getColumnOptions('ciudad' as any)}
+                                                         options={getColumnOptions('ciudad')}
                                                          selectedOptions={activeFilters['ciudad'] || []}
                                                          onFilterChange={(vals: string[]) => setActiveFilters((prev: Record<string, string[]>) => ({ ...prev, ciudad: vals }))}
                                                          dark

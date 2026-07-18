@@ -208,12 +208,38 @@
         "BAJO": 0
       },
       "cwe_references": []
+    },
+    {
+      "date": "2026-07-17",
+      "scope": "Fase 1P final contractual security/RBAC delta",
+      "outcome": "blocked",
+      "finding_count_by_severity": {
+        "BLOQUEANTE": 1,
+        "ALTO": 2,
+        "MEDIO": 1,
+        "BAJO": 0
+      },
+      "cwe_references": ["CWE-284", "CWE-307", "CWE-754"],
+      "summary": "Delta blocked: production migrate imports runtime JWT config without receiving JWT_SECRET_KEY; an intentionally disabled noncritical RBAC module fails verify-only startup; admin_sistemas can satisfy bootstrap without any actor authorized for protected administration; and the admin unlock endpoint does not remove hashed account lockout keys. HBA, unauthenticated Redis, auth oracles and legitimate ERP JIT remain documented out-of-scope debt."
+    },
+    {
+      "date": "2026-07-17",
+      "scope": "Fase 1P rereview of four security/RBAC delta findings",
+      "outcome": "approved",
+      "finding_count_by_severity": {
+        "BLOQUEANTE": 0,
+        "ALTO": 0,
+        "MEDIO": 0,
+        "BAJO": 0
+      },
+      "cwe_references": [],
+      "summary": "Approved: migrate no longer imports JWT runtime configuration, inactive noncritical modules survive verification and sync, bootstrap requires the same admin role as protected procedures, and administrative unlock uses the hashed account identifier. Evidence: 47 focal tests passed and isolated acceptance passed in 215.25 seconds."
     }
   ],
   "stats": {
-    "total_operations": 15,
-    "total_reviews": 15,
-    "last_operation": "2026-07-09",
-    "last_review": "2026-07-09"
+    "total_operations": 17,
+    "total_reviews": 17,
+    "last_operation": "2026-07-17",
+    "last_review": "2026-07-17"
   }
 }

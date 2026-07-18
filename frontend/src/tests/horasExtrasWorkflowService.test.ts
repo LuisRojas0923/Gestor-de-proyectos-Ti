@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { compensarBolsa, listarFestivos, sincronizarFestivos, transicionarCalculo } from '../services/horasExtrasService';
+import { autorizarCalculo, compensarBolsa, listarFestivos, sincronizarFestivos, transicionarCalculo } from '../services/horasExtrasService';
 import { API_CONFIG } from '../config/api';
 
 const BASE = `${API_CONFIG.BASE_URL}/novedades-nomina/horas-extras`;
@@ -18,6 +18,21 @@ describe('horasExtrasService workflow y festivos', () => {
     expect(fetchMock.mock.calls[0][0]).toBe(`${BASE}/calculos/7/transicion`);
     expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual(payload);
     expect(result.evento_id).toBe(99);
+  });
+
+  it('autoriza un cálculo mediante el endpoint dedicado', async () => {
+    fetchMock.mockResolvedValueOnce(response({
+      calculo_id: 7,
+      estado_anterior: 'PENDIENTE_AUTORIZACION',
+      estado_nuevo: 'CONFIRMADO',
+      ya_autorizado: false,
+    }));
+
+    const result = await autorizarCalculo(7, TOKEN);
+
+    expect(fetchMock.mock.calls[0][0]).toBe(`${BASE}/calculos/7/autorizar`);
+    expect(fetchMock.mock.calls[0][1].method).toBe('POST');
+    expect(result.estado_nuevo).toBe('CONFIRMADO');
   });
 
   it('compensa bolsa y propaga conflictos', async () => {

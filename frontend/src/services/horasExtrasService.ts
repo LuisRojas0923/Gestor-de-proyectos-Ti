@@ -23,6 +23,7 @@ import type {
   NivelRiesgoARL,
   WorkflowTransicionRequest,
   WorkflowTransicionResult,
+  AutorizarCalculoResult,
   WorkflowEvento,
   CompensarBolsaRequest,
   CompensarBolsaResponse,
@@ -299,6 +300,16 @@ export async function transicionarCalculo(
   });
 }
 
+export async function autorizarCalculo(
+  calculoId: number,
+  token: string,
+): Promise<AutorizarCalculoResult> {
+  return request<AutorizarCalculoResult>(`/calculos/${calculoId}/autorizar`, {
+    method: 'POST',
+    token,
+  });
+}
+
 export async function obtenerHistorial(
   calculoId: number,
   token: string,
@@ -466,8 +477,17 @@ export async function buscarEmpleadosERP(
   offset: number,
   token: string,
   soloActivos: boolean = true,
+  anio?: number,
+  semanaIso?: number,
 ): Promise<EmpleadoERPListResponse> {
-  const qs = buildQuery({ q: query, limit, offset, solo_activos: soloActivos });
+  const qs = buildQuery({
+    q: query,
+    limit,
+    offset,
+    solo_activos: soloActivos,
+    anio,
+    semana_iso: semanaIso,
+  });
   return request<EmpleadoERPListResponse>(`/planificador/empleados-erp${qs}`, {
     method: 'GET',
     token,

@@ -44,6 +44,18 @@ def normalizar_lote(cedulas: Iterable[str]) -> list[str]:
     return resultado
 
 
+async def _cedulas_relacionadas_activas(
+    session: AsyncSession, gestor_id: str
+) -> set[str]:
+    rows = (await session.execute(
+        select(RelacionGestorEmpleado.empleado_cedula).where(
+            RelacionGestorEmpleado.gestor_usuario_id == gestor_id,
+            RelacionGestorEmpleado.esta_activa.is_(True),
+        )
+    )).scalars().all()
+    return set(rows)
+
+
 def validar_cambio_relaciones(
     gestor_id: str,
     actor_id: str,
@@ -71,13 +83,16 @@ async def cedulas_permitidas(
 ) -> set[str] | None:
     if usuario_tiene_bypass_alcance(usuario):
         return None
-    rows = (await session.execute(
-        select(RelacionGestorEmpleado.empleado_cedula).where(
-            RelacionGestorEmpleado.gestor_usuario_id == usuario.id,
-            RelacionGestorEmpleado.esta_activa.is_(True),
-        )
-    )).scalars().all()
-    return set(rows)
+    return await _cedulas_relacionadas_activas(session, usuario.id)
+
+
+async def cedulas_visibles_planificador(
+    session: AsyncSession, usuario: Usuario
+) -> set[str] | None:
+    relacionadas = await _cedulas_relacionadas_activas(session, usuario.id)
+    if relacionadas or not usuario_tiene_bypass_alcance(usuario):
+        return relacionadas
+    return None
 
 
 async def autorizar_cedula(
@@ -185,13 +200,7 @@ async def cedulas_relacionadas_gestor(
     gestor = await session.get(Usuario, gestor_id)
     if gestor is None or not gestor.esta_activo:
         raise LookupError("Gestor no encontrado")
-    filas = (await session.execute(
-        select(RelacionGestorEmpleado.empleado_cedula).where(
-            RelacionGestorEmpleado.gestor_usuario_id == gestor_id,
-            RelacionGestorEmpleado.esta_activa.is_(True),
-        )
-    )).scalars().all()
-    return set(filas)
+    return await _cedulas_relacionadas_activas(session, gestor_id)
 
 
 def _hash_payload(gestor_id: str, agregar: list[str], quitar: list[str]) -> str:

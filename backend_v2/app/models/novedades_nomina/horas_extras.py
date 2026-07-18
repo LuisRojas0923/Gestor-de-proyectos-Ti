@@ -293,7 +293,8 @@ class NominaCalculoSemanal(SQLModel, table=True):
     total_costo_empresa: float = Field(default=0.0)
 
     estado: str = Field(default="BORRADOR", max_length=30)
-    # 'BORRADOR' | 'CONFIRMADO' | 'PAGADO' | 'COMPENSADO' | 'ANULADO'
+    # 'BORRADOR' | 'PENDIENTE_AUTORIZACION' | 'CONFIRMADO' | 'PAGADO' |
+    # 'COMPENSADO' | 'ANULADO'
 
     # OT principal del cálculo. Si una semana cubre varias OTs, los detalles
     # pueden tener ot_id distintos; este campo guarda la OT primaria para que

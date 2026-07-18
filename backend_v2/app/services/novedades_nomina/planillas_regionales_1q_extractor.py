@@ -10,7 +10,7 @@ def extraer_planillas_regionales_1q(archivos_binarios: List[bytes]) -> Tuple[Lis
     Extrae datos de archivos Excel (.xlsm) de PLANILLAS REGIONALES 1Q.
     
     Reglas:
-    - Hoja: 'PLANTILLA'
+    - Hoja: 'PLANTILLA' o 'TABLA'
     - Tabla: 'Novedades' (Se busca por encabezados)
     - Columnas requeridas: CÉDULA, EMPLEADO, EMPRESA, SUCURSAL, CANTIDAD, CANT. HORAS, NOVEDAD
     - Filtrar NOVEDAD: Solo ["AUS", "CMP", "PNR", "RET"]
@@ -31,14 +31,14 @@ def extraer_planillas_regionales_1q(archivos_binarios: List[bytes]) -> Tuple[Lis
             sheet_names = excel_file.sheet_names
             target_sheet = None
             
-            # Buscar la hoja PLANTILLA
+            # Soporta la plantilla legacy y el formulario regional vigente.
             for s in sheet_names:
-                if s.strip().upper() == "PLANTILLA":
+                if s.strip().upper() in {"PLANTILLA", "TABLA"}:
                     target_sheet = s
                     break
             
             if not target_sheet:
-                warnings.append(f"Archivo {i+1}: No se encontró la hoja 'PLANTILLA'.")
+                warnings.append(f"Archivo {i+1}: No se encontró la hoja 'PLANTILLA' o 'TABLA'.")
                 continue
 
             # Leer la hoja completa con header=None para encontrar la fila real de encabezados
@@ -47,13 +47,16 @@ def extraer_planillas_regionales_1q(archivos_binarios: List[bytes]) -> Tuple[Lis
             # Buscar la fila de encabezados que contenga "CÉDULA" y "NOVEDAD"
             header_row_idx = -1
             for idx, row in df_full.iterrows():
-                row_values = [str(val).strip().upper() for val in row.values if pd.notna(val)]
-                if "CÉDULA" in row_values and "NOVEDAD" in row_values:
+                row_values = [
+                    str(val).strip().upper().replace("É", "E")
+                    for val in row.values if pd.notna(val)
+                ]
+                if "CEDULA" in row_values and "NOVEDAD" in row_values:
                     header_row_idx = idx
                     break
             
             if header_row_idx == -1:
-                warnings.append(f"Archivo {i+1}: No se encontró el encabezado 'CÉDULA' y 'NOVEDAD' en la hoja 'PLANTILLA'.")
+                warnings.append(f"Archivo {i+1}: No se encontró el encabezado 'CÉDULA' y 'NOVEDAD' en la hoja '{target_sheet}'.")
                 continue
             
             # Re-leer desde la fila de encabezados correcta

@@ -34,6 +34,7 @@ from ...models.novedades_nomina.horas_extras import (
     NominaCostoOt,
 )
 from .bolsa_horas_resolver import resolver_bolsa_habilitada
+from .planificador_costos_ot import revertir_costos_ot_plan
 
 logger = logging.getLogger(__name__)
 
@@ -43,6 +44,7 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 TRANSICIONES_VALIDAS = {
+    "PENDIENTE_AUTORIZACION": set(),
     "CONFIRMADO": {"PAGADO", "COMPENSADO", "ANULADO"},
     "PAGADO": set(),
     "COMPENSADO": set(),
@@ -76,7 +78,9 @@ async def transicionar_calculo(
 
     calc = (
         await session.execute(
-            select(NominaCalculoSemanal).where(NominaCalculoSemanal.id == calculo_id)
+            select(NominaCalculoSemanal)
+            .where(NominaCalculoSemanal.id == calculo_id)
+            .with_for_update()
         )
     ).scalar_one_or_none()
     if calc is None:
@@ -164,6 +168,7 @@ async def _compensar_desde_calculo(
     bolsa = (
         await session.execute(
             select(NominaBolsaHoras).where(NominaBolsaHoras.cedula == calc.cedula)
+            .with_for_update()
         )
     ).scalar_one_or_none()
     if bolsa is None:
@@ -210,6 +215,7 @@ async def _anular_calculo(
     bolsa = (
         await session.execute(
             select(NominaBolsaHoras).where(NominaBolsaHoras.cedula == calc.cedula)
+            .with_for_update()
         )
     ).scalar_one_or_none()
     movimiento_id: Optional[int] = None
@@ -265,11 +271,12 @@ async def _anular_calculo(
                     NominaCostoOt.ot_id == calc.ot_id,
                     NominaCostoOt.anio == calc.anio,
                     NominaCostoOt.semana_iso == calc.semana_iso,
-                )
+                ).with_for_update()
             )
         ).scalar_one_or_none()
         if costo is not None:
-            costo.total_horas = max(0.0, costo.total_horas - calc.total_horas_extras)
+            horas_totales = sum(horas_por_codigo.values())
+            costo.total_horas = max(0.0, costo.total_horas - horas_totales)
             costo.total_horas_hed = max(0.0, costo.total_horas_hed - horas_por_codigo.get("HED", 0.0))
             costo.total_horas_hen = max(0.0, costo.total_horas_hen - horas_por_codigo.get("HEN", 0.0))
             costo.total_horas_hefd = max(0.0, costo.total_horas_hefd - horas_por_codigo.get("HEFD", 0.0))
@@ -289,6 +296,8 @@ async def _anular_calculo(
             costo.total_empleados = max(0, costo.total_empleados - 1)
             costo.ultima_actualizacion = datetime.now()
             session.add(costo)
+    elif horas_por_codigo:
+        await revertir_costos_ot_plan(session, calc)
 
     return movimiento_id
 
@@ -332,6 +341,7 @@ async def compensar_bolsa(
     bolsa = (
         await session.execute(
             select(NominaBolsaHoras).where(NominaBolsaHoras.cedula == cedula)
+            .with_for_update()
         )
     ).scalar_one_or_none()
     if bolsa is None:

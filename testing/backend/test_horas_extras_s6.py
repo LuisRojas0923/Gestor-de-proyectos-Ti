@@ -46,23 +46,16 @@ from app.services.novedades_nomina.horas_extras_workflow import (
     transicionar_calculo,
     compensar_bolsa,
 )
-
-
 CODIGO_GLOBAL = "BOLSA_GLOBAL_HABILITADA"
-
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
-
 CEDULA_BASE = "TEST-S6-1107068093"
 ANIO = 2026
 SEMANA = 31
 OT_DEFAULT = 9201
 OT_OVERRIDE_OFF = 9202
 OT_OVERRIDE_ON = 9203
-
-
 def test_bolsa_estado_global_route_no_duplica_prefijo_y_exige_permiso_he():
     from app.main import app
 
@@ -77,8 +70,6 @@ def test_bolsa_estado_global_route_no_duplica_prefijo_y_exige_permiso_he():
     )
     dependencias = {getattr(dep.call, "__name__", "") for dep in route.dependant.dependencies}
     assert "requiere_permiso_he_leer" in dependencias
-
-
 def _detalle(codigo, horas, factor, valor_bruto):
     carga = valor_bruto * 0.52436
     return ConfirmarDetalleItem(
@@ -89,8 +80,6 @@ def _detalle(codigo, horas, factor, valor_bruto):
         carga_prestacional=carga,
         costo_total=valor_bruto + carga,
     )
-
-
 def _payload(cedula=CEDULA_BASE, ot_id=OT_DEFAULT, detalles=None):
     if detalles is None:
         detalles = [
@@ -112,8 +101,6 @@ def _payload(cedula=CEDULA_BASE, ot_id=OT_DEFAULT, detalles=None):
         ot_codigo=f"OT-S6-{ot_id}",
         usuario_confirma="TEST-USER-S6",
     )
-
-
 async def _cleanup_todo(db_session, cedula: str):
     """Limpia todas las filas relacionadas con un calculo de test S6."""
     await db_session.execute(
@@ -149,11 +136,6 @@ async def _cleanup_todo(db_session, cedula: str):
         )
     await db_session.execute(
         delete(NominaHorarioPactado).where(NominaHorarioPactado.cedula == cedula)
-    )
-    await db_session.execute(
-        delete(NominaCatalogoNovedad).where(
-            NominaCatalogoNovedad.codigo.in_(["HED", "HEN"])
-        )
     )
     await db_session.commit()
 

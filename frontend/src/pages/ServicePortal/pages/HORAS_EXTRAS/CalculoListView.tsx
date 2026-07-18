@@ -10,6 +10,7 @@ const fmtCurrency = (n: number) =>
 
 const ESTADO_VARIANTS: Record<string, React.ComponentProps<typeof Badge>['variant']> = {
   BORRADOR: 'default',
+  PENDIENTE_AUTORIZACION: 'warning',
   CONFIRMADO: 'info',
   PAGADO: 'success',
   COMPENSADO: 'warning',
@@ -89,6 +90,7 @@ const CalculoListView: React.FC = () => {
             options={[
               { value: '', label: 'Todos' },
               { value: 'BORRADOR', label: 'Borrador' },
+              { value: 'PENDIENTE_AUTORIZACION', label: 'Pendiente de autorización' },
               { value: 'CONFIRMADO', label: 'Confirmado' },
               { value: 'PAGADO', label: 'Pagado' },
               { value: 'COMPENSADO', label: 'Compensado' },

@@ -69,12 +69,20 @@
       "timestamp": "2026-07-14T00:00:00Z",
       "prioridad": "CRITICA",
       "estado": "NO_RESUELTO"
+    },
+    {
+      "operation": "record error",
+      "id": "ERR-007",
+      "titulo": "El frontend aparentaba estar caído por fallos encadenados del entorno local",
+      "timestamp": "2026-07-16T00:00:00Z",
+      "prioridad": "ALTA",
+      "estado": "RESUELTO"
     }
   ],
   "stats": {
-    "total_operations": 6,
-    "last_operation": "record error (ERR-006) — 2026-07-14T00:00:00Z",
-    "errors_recorded": 5,
+    "total_operations": 7,
+    "last_operation": "record error (ERR-007) — 2026-07-16T00:00:00Z",
+    "errors_recorded": 6,
     "decisions_recorded": 1,
     "memory_persistence_enabled": true,
     "permission_grant_date": "2026-06-03"

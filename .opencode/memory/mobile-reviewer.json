@@ -88,10 +88,21 @@
         "medium": 3,
         "low": 1
       }
+    },
+    {
+      "date": "2026-07-16",
+      "scope": "frontend-web-html-scope",
+      "outcome": "approved",
+      "finding_count_by_severity": {
+        "critical": 0,
+        "high": 0,
+        "medium": 0,
+        "low": 0
+      }
     }
   ],
   "stats": {
-    "total_reviews": 7,
-    "last_review": "2026-07-07"
+    "total_reviews": 8,
+    "last_review": "2026-07-16"
   }
 }

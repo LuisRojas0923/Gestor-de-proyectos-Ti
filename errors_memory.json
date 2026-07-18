@@ -214,6 +214,52 @@
         "auditoria",
         "seguridad"
       ]
+    },
+    {
+      "id": "ERR-007",
+      "titulo": "El frontend aparentaba estar caído por fallos encadenados del entorno local",
+      "archivos_afectados": [
+        "docker-compose.yml",
+        ".env.example",
+        "frontend/",
+        "backend_v2/",
+        "scripts/"
+      ],
+      "causa_raiz": "El incidente combinó fallos encadenados: Vite sufrió un EIO del FSWatcher sobre el bind mount /app; Compose local no podía recrear servicios porque LIBRANZA_OCCIDENTE_PASSWORD era obligatoria; el backend no importaba por usar sqlmodel.Field(pattern=...), incompatible con SQLModel 0.0.14 y Pydantic 2; faltaban roles PostgreSQL; el provisionador intentaba ALTER SEQUENCE sobre una secuencia OWNED BY; el secreto RBAC se había montado como directorio; y schema_verifier consultaba una tabla cuyo acceso estaba deliberadamente revocado al usuario runtime.",
+      "solucion_propuesta": [
+        "Sustituir la validación incompatible por StringConstraints con guard de tipo.",
+        "Hacer LIBRANZA_OCCIDENTE_PASSWORD opcional únicamente en el entorno local y reiniciar el frontend para recuperar Vite tras el EIO del watcher.",
+        "Alinear el secreto RBAC con .env.example, montarlo como archivo .key e ignorar dicho archivo sin registrar su contenido.",
+        "Excluir mediante pg_depend dependencias de tipo a/i antes de ALTER SEQUENCE.",
+        "Limitar schema_verifier a catálogo y ACL, sin leer tablas deliberadamente revocadas al usuario runtime.",
+        "Crear los roles PostgreSQL faltantes y completar correctamente provision y migrate."
+      ],
+      "impacto": "La interfaz parecía fuera de servicio y el stack local no podía recuperarse mediante recreación normal; además, el backend quedaba bloqueado durante importación, provisión, migración o verificación del esquema.",
+      "estado": "RESUELTO",
+      "prioridad": "ALTA",
+      "componente": "multi",
+      "fecha_deteccion": "2026-07-16",
+      "fecha_resolucion": "2026-07-16",
+      "evidencia_validacion": [
+        "npm build OK",
+        "24 tests de startup aprobados",
+        "4 regresiones aprobadas y 4 omitidas",
+        "Health checks de frontend, backend y proxy respondieron 200"
+      ],
+      "tags": [
+        "frontend",
+        "vite",
+        "fswatcher",
+        "docker-compose",
+        "sqlmodel",
+        "pydantic",
+        "postgresql",
+        "provision",
+        "migrate",
+        "rbac",
+        "schema-verifier",
+        "entorno-local"
+      ]
     }
   ],
   "decisions": [

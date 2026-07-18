@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Calendar, Clock, Copy, Eraser, History, Settings, Wallet } from 'lucide-react';
+import { ArrowLeft, Copy, Eraser } from 'lucide-react';
 import { Badge, Button, Input, MaterialCard, Text, Title } from '../../../../../components/atoms';
 import type { PlanPreCalculoResponse } from '../../../../../types/horasExtrasPlanificador';
 
@@ -48,35 +48,13 @@ const PlanificadorHeader: React.FC<PlanificadorHeaderProps> = ({
   const campoSemanaClass = 'flex h-8 w-[152px] items-center gap-1.5 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-2 shadow-none';
   const labelSemanaClass = 'shrink-0 !text-[10px] font-semibold uppercase tracking-wide text-[var(--color-text-secondary)]';
   const inputSemanaClass = 'w-[96px] [&_input]:!h-6 [&_input]:!rounded-lg [&_input]:!px-1.5 [&_input]:!text-[10px]';
-  const accionClass = 'h-9 w-full !justify-start rounded-2xl !px-2 !text-[11px] text-left shadow-sm [&>span]:flex [&>span]:w-full [&>span]:items-center [&>span]:justify-start [&>span]:text-left';
   const accionHorarioClass = 'h-8 rounded-xl !px-2.5 !text-[11px] shadow-none [&>span]:inline-flex [&>span]:items-center [&>span]:!text-[11px] [&_svg]:mr-1 [&_svg]:h-3 [&_svg]:w-3';
   const chipSemanaClass = 'h-8 rounded-xl !px-2.5 !py-0 !text-[11px] shadow-none';
-
-  const acciones = [
-    { label: 'Configuración', icon: Settings, onClick: () => navigate('/service-portal/horas-extras/configuracion') },
-    { label: 'Historial', icon: History, onClick: () => navigate('/service-portal/horas-extras/calculos') },
-    { label: 'Bolsa', icon: Wallet, onClick: () => navigate('/service-portal/horas-extras/bolsa') },
-    { label: 'Festivos', icon: Calendar, onClick: () => navigate('/service-portal/horas-extras/festivos') },
-    { label: 'Costos OT', icon: Clock, onClick: () => navigate('/service-portal/horas-extras/costos-ot') },
-  ];
 
   return (
     <MaterialCard className="overflow-visible border-[var(--color-primary)]/20 p-0 shadow-md shadow-[var(--color-primary)]/5">
       <div className="rounded-t-[1.5rem] border-b border-[var(--color-border)] bg-gradient-to-br from-[var(--color-primary)]/10 via-[var(--color-surface)] to-[var(--color-surface-variant)] p-2.5 md:p-3">
         <div className="grid gap-2.5">
-          <MaterialCard elevation={0} className="rounded-2xl border-[var(--color-primary)]/15 bg-[var(--color-surface)]/80 p-0 shadow-none">
-            <div className="flex flex-col gap-2 p-2.5 lg:flex-row lg:items-center">
-              <Text className="shrink-0 !text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--color-text-secondary)]">Accesos rápidos</Text>
-              <div className="grid min-w-0 flex-1 grid-cols-2 gap-1.5 md:grid-cols-5">
-                {acciones.map(({ label, icon: Icono, onClick }) => (
-                  <Button key={label} variant="outline" size="sm" onClick={onClick} className={accionClass}>
-                    <Icono className="w-4 h-4 mr-1" />{label}
-                  </Button>
-                ))}
-              </div>
-            </div>
-          </MaterialCard>
-
           <MaterialCard elevation={0} className="rounded-2xl border-[var(--color-primary)]/15 bg-[var(--color-surface)]/80 p-0 shadow-none">
             <div className="p-2.5">
               <div className="grid gap-2 xl:grid-cols-[minmax(220px,0.7fr)_auto_minmax(0,1.3fr)] xl:items-center">

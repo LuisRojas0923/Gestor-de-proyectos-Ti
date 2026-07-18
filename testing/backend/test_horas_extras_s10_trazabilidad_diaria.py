@@ -4,7 +4,6 @@ import pytest
 from sqlalchemy import delete
 from sqlmodel import select
 
-from app.core.migrations.horas_extras_migration_s10 import crear_tabla_calculo_diario_detalle
 from app.models.novedades_nomina.horas_extras import (
     NominaBolsaHoras,
     NominaBolsaHorasMovimiento,
@@ -28,8 +27,6 @@ CEDULA = "TEST-S10-TRAZA-001"
 
 
 async def _preparar_tabla_y_limpiar(db_session):
-    conn = await db_session.connection()
-    await crear_tabla_calculo_diario_detalle(conn)
     await db_session.execute(delete(NominaCalculoDiarioDetalle).where(NominaCalculoDiarioDetalle.cedula == CEDULA))
     await db_session.execute(
         delete(NominaCalculoSemanalDetalle).where(

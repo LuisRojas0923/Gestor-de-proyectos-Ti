@@ -50,3 +50,6 @@ def validar_asignaciones_ot_dia(dia: PlanDiaIn) -> None:
             raise ValueError("Las horas asignadas a OT deben ser mayores a 0")
         if total_horas - horas_trab > 0.01:
             raise ValueError("La suma de horas OT supera las horas trabajadas del dia")
+        return
+
+    raise ValueError("Cada asignacion OT debe indicar horas o porcentaje")

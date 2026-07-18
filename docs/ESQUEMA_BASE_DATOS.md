@@ -206,7 +206,7 @@ Aplicar una plantilla copia los valores a `nomina_horario_pactado` y `nomina_hor
 | `total_valor_bruto` | float | Total bruto calculado. |
 | `total_carga_prestacional` | float | Total carga prestacional. |
 | `total_costo_empresa` | float | Costo total empresa. |
-| `estado` | varchar(30) | `BORRADOR`, `CONFIRMADO`, `PAGADO`, `COMPENSADO` o `ANULADO`. |
+| `estado` | varchar(30) | `BORRADOR`, `PENDIENTE_AUTORIZACION`, `CONFIRMADO`, `PAGADO`, `COMPENSADO` o `ANULADO`. `PENDIENTE_AUTORIZACION` no acredita bolsa hasta la autorización RBAC. |
 | `ot_id` | integer, nullable, index | OT primaria si aplica. |
 | `ot_codigo` | varchar(50), nullable | Codigo OT primaria. |
 | `calculado_por` | varchar(50), nullable | Usuario que calculo/confirmo. |
@@ -269,7 +269,7 @@ Snapshot diario inmutable del horario, concepto e importes usados para un calcul
 | `creado_por` | varchar(50), nullable | Usuario que confirma/persiste el snapshot. |
 | `ot_id` | integer, nullable, index | OT asociada si aplica. |
 | `ot_codigo` | varchar(50), nullable | Codigo OT asociado si aplica. |
-| `observaciones` | text, nullable | Notas de trazabilidad. |
+| `observaciones` | text, nullable | Actividad u observación diaria confirmada para trazabilidad; forma parte del hash del snapshot. |
 | `creado_en` | timestamp | Fecha de creacion del snapshot. |
 
 ### `nomina_costo_ot`
@@ -735,6 +735,8 @@ CREATE INDEX idx_milestones_dev_status ON milestones(development_id, status);
 
 
 
+
+
 ## 🔄 Detalles Técnicos (Auto-generado)
 > [!NOTE]
 > Esta sección es generada automáticamente por `scripts/sync_docs.py`. No editar manualmente.
@@ -769,7 +771,7 @@ erDiagram
         date compromiso_fecha
         boolean compromiso_cumplido
         boolean anulada
-        timestamp without time zone anulada_en
+        timestamp with time zone anulada_en
         character varying anulada_por_id
     }
     ACTIVIDADES_PROXIMAS {
@@ -875,6 +877,10 @@ erDiagram
         timestamp without time zone creado_en
         boolean leido
         timestamp with time zone leido_en
+    }
+    CONFIGURACION_SEGURIDAD_RUNTIME {
+        character varying clave
+        character valor_hash
     }
     CONFIGURACIONINVENTARIO {
         integer id
@@ -2064,6 +2070,28 @@ erDiagram
         timestamp without time zone ultimo_uso_en
         timestamp without time zone creado_en
     }
+    TRANSITO_VIATICOS {
+        integer id
+        uuid reporte_id
+        character varying estado
+        timestamp without time zone fecha_registro
+        character varying empleado_cedula
+        character varying empleado_nombre
+        character varying area
+        character varying cargo
+        character varying ciudad
+        character varying categoria
+        date fecha_gasto
+        character varying ot
+        character varying cc
+        character varying scc
+        double precision valor_con_factura
+        double precision valor_sin_factura
+        character varying observaciones_linea
+        character varying observaciones_gral
+        character varying usuario_id
+        jsonb adjuntos
+    }
     TRANSITOINVENTARIO {
         integer id
         character varying sku
@@ -2146,8 +2174,8 @@ erDiagram
 | validacion_id | integer | YES | - |
 | compromiso_fecha | date | YES | - |
 | compromiso_cumplido | boolean | YES | false |
-| anulada | boolean | NO | false |
-| anulada_en | timestamp without time zone | YES | - |
+| anulada | boolean | YES | false |
+| anulada_en | timestamp with time zone | YES | - |
 | anulada_por_id | character varying | YES | - |
 
 #### Tabla: `actividades_proximas`
@@ -2269,6 +2297,12 @@ erDiagram
 | creado_en | timestamp without time zone | YES | now() |
 | leido | boolean | YES | false |
 | leido_en | timestamp with time zone | YES | - |
+
+#### Tabla: `configuracion_seguridad_runtime`
+| Columna | Tipo | Nulable | Defecto |
+|---------|------|---------|---------|
+| clave | character varying | NO | - |
+| valor_hash | character | NO | - |
 
 #### Tabla: `configuracioninventario`
 | Columna | Tipo | Nulable | Defecto |
@@ -3623,6 +3657,30 @@ erDiagram
 | expira_en | timestamp without time zone | NO | - |
 | ultimo_uso_en | timestamp without time zone | YES | - |
 | creado_en | timestamp without time zone | YES | now() |
+
+#### Tabla: `transito_viaticos`
+| Columna | Tipo | Nulable | Defecto |
+|---------|------|---------|---------|
+| id | integer | NO | nextval('transito_viaticos_id_seq'::regclass) |
+| reporte_id | uuid | NO | - |
+| estado | character varying | NO | - |
+| fecha_registro | timestamp without time zone | NO | - |
+| empleado_cedula | character varying | NO | - |
+| empleado_nombre | character varying | YES | - |
+| area | character varying | YES | - |
+| cargo | character varying | YES | - |
+| ciudad | character varying | YES | - |
+| categoria | character varying | YES | - |
+| fecha_gasto | date | YES | - |
+| ot | character varying | YES | - |
+| cc | character varying | YES | - |
+| scc | character varying | YES | - |
+| valor_con_factura | double precision | NO | - |
+| valor_sin_factura | double precision | NO | - |
+| observaciones_linea | character varying | YES | - |
+| observaciones_gral | character varying | YES | - |
+| usuario_id | character varying | YES | - |
+| adjuntos | jsonb | YES | - |
 
 #### Tabla: `transitoinventario`
 | Columna | Tipo | Nulable | Defecto |

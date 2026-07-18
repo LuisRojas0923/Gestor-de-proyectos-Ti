@@ -32,15 +32,20 @@ const AsignacionOtMasivaCard: React.FC<AsignacionOtMasivaCardProps> = ({
   const [opciones, setOpciones] = useState<OtManoObraRead[]>([]);
   const [asignaciones, setAsignaciones] = useState<PlanAsignacionOtIn[]>([]);
   const [cargando, setCargando] = useState(false);
+  const [errorBusqueda, setErrorBusqueda] = useState('');
   const token = localStorage.getItem('token') || '';
 
   const buscar = async () => {
     const q = busqueda.trim();
     if (q.length < 2 || asignaciones.length >= 3) return;
     setCargando(true);
+    setErrorBusqueda('');
     try {
       const respuesta = await buscarOtManoObra(q, 8, 0, token);
       setOpciones(respuesta.items);
+    } catch {
+      setOpciones([]);
+      setErrorBusqueda('No fue posible consultar las OT. Intenta de nuevo.');
     } finally {
       setCargando(false);
     }
@@ -58,6 +63,7 @@ const AsignacionOtMasivaCard: React.FC<AsignacionOtMasivaCardProps> = ({
         sub_indice: ot.sub_indice,
         categoria_sub_indice: ot.categoria_sub_indice,
         descripcion: ot.descripcion,
+        cliente: ot.cliente,
         vr_contratado: ot.vr_contratado,
         horas: 0,
       },
@@ -119,6 +125,7 @@ const AsignacionOtMasivaCard: React.FC<AsignacionOtMasivaCardProps> = ({
                   <Search className="h-4 w-4" />
                 </Button>
               </div>
+              {errorBusqueda && <Text role="alert" className="mt-1 text-[11px] text-[var(--color-error)]">{errorBusqueda}</Text>}
               {opciones.length > 0 && (
                 <MaterialCard className="absolute left-0 right-0 top-full z-[70] mt-1 max-h-72 overflow-y-auto rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-1.5 shadow-2xl">
                   {opciones.map((ot) => (

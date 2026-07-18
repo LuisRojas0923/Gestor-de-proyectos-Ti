@@ -42,14 +42,22 @@ from ...models.novedades_nomina.schemas_horas_extras_planificador import (
     PlanSemanaIn,
 )
 from ._planificador_common import (
-    CODIGOS_NOVEDAD_SUPRESION_PLAN,
-    _horas_trabajadas_dia,
     _resolver_catalogo_y_factor,
 )
-from .horas_extras_calculo import _calcular_horas_extras_semanales, _parametros_jornada_semana
+from .horas_extras_calculo import CODIGOS_HORAS_EXTRAS, _parametros_jornada_semana
 from .horas_extras_confirmacion import confirmar_pre_liquidacion
+from .horas_extras_parametros import obtener_reglas_calculo
+from .horas_extras_service import resolver_autorizacion_he
 from .horas_extras_trazabilidad import construir_detalle_diario_planificador
-from .planificador_costos_ot import distribuir_costos_ot_plan
+from .planificador_clasificacion import (
+    cargar_festivos_semana,
+    cargar_novedades_confirmadas_semana,
+    clasificar_dias_plan,
+)
+from .planificador_costos_ot import (
+    _calcular_importes_concepto,
+    distribuir_costos_ot_plan,
+)
 from .planificador_ot import validar_asignaciones_ot_dia
 from .horario_lock_service import bloquear_horario_empleado
 
@@ -228,7 +236,15 @@ async def confirmar_plan(
     calculos: List[PlanConfirmarCalculoItem] = []
     errores: List[PlanBulkEmpleadoError] = []
     total_he = 0.0
+    total_hf = 0.0
     total_costo = 0.0
+    festivos = await cargar_festivos_semana(session, payload.semana)
+    reglas_calculo = await obtener_reglas_calculo(session)
+    horas_semana_ordinaria, _ = _parametros_jornada_semana(
+        payload.semana.anio,
+        payload.semana.semana_iso,
+        reglas_calculo,
+    )
 
     for emp_in in payload.empleados:
         try:
@@ -240,11 +256,26 @@ async def confirmar_plan(
                     validar_asignaciones_ot_dia(dia)
                     await _guardar_asignaciones_ot_dia(session, emp_in.cedula.strip(), payload.semana, dia)
                 await session.flush()
+                novedades_confirmadas = await cargar_novedades_confirmadas_semana(
+                    session, emp_in.cedula.strip(), payload.semana
+                )
+                clasificacion = clasificar_dias_plan(
+                    emp_in,
+                    payload.semana,
+                    festivos=festivos,
+                    horas_semana_ordinaria=horas_semana_ordinaria,
+                    horas_ordinarias_diarias=reglas_calculo.horas_ordinarias_diarias,
+                    jornada_nocturna=parametros.jornada_nocturna,
+                    novedades_confirmadas=novedades_confirmadas,
+                )
                 detalles = await _construir_detalles_confirmacion(
-                    session, emp_in, payload.semana, parametros
+                    session, parametros, clasificacion
                 )
                 detalle_diario = await construir_detalle_diario_planificador(
-                    session, emp_in, payload.semana, parametros, detalles
+                    emp_in, parametros, detalles, clasificacion
+                )
+                autorizacion_he, _ = await resolver_autorizacion_he(
+                    session, emp_in.cedula.strip()
                 )
                 tiene_asignaciones_ot = any(d.asignaciones_ot for d in emp_in.dias)
                 confirm_payload = PreLiquidacionConfirmar(
@@ -264,10 +295,18 @@ async def confirmar_plan(
                     usuario_confirma=payload.usuario_confirma,
                 )
                 resultado = await confirmar_pre_liquidacion(
-                    session, confirm_payload, confirmar_transaccion=False
+                    session,
+                    confirm_payload,
+                    confirmar_transaccion=False,
+                    autorizacion_he=autorizacion_he,
                 )
                 costo_ot_ids = await distribuir_costos_ot_plan(
-                    session, emp_in, payload.semana, parametros, resultado.get("calculo_id")
+                    session,
+                    emp_in,
+                    payload.semana,
+                    parametros,
+                    resultado.get("calculo_id"),
+                    clasificacion,
                 )
             calculos.append(PlanConfirmarCalculoItem(
                 cedula=emp_in.cedula,
@@ -279,10 +318,14 @@ async def confirmar_plan(
                     "bolsa_habilitada_en_confirmacion", True
                 ),
                 bolsa_fuente=resultado.get("bolsa_fuente", "DEFAULT"),
+                estado=resultado.get("estado", "CONFIRMADO"),
                 ok=True,
                 mensaje="OK",
             ))
-            total_he += sum(d.horas for d in detalles)
+            total_he += sum(
+                d.horas for d in detalles if d.codigo_novedad in CODIGOS_HORAS_EXTRAS
+            )
+            total_hf += sum(d.horas for d in detalles if d.codigo_novedad == "HF")
             total_costo += sum(d.costo_total for d in detalles)
         except ValueError:
             logger.warning("Error de negocio confirmando empleado del lote")
@@ -295,7 +338,11 @@ async def confirmar_plan(
                 cedula=emp_in.cedula, motivo="Error interno al confirmar el empleado"
             ))
 
-    await session.commit()
+    try:
+        await session.commit()
+    except Exception:
+        await session.rollback()
+        raise
 
     return PlanConfirmarResponse(
         calculos=calculos,
@@ -304,6 +351,7 @@ async def confirmar_plan(
             ok_count=len(calculos),
             error_count=len(errores),
             total_horas_extras=round(total_he, 2),
+            total_horas_festivas=round(total_hf, 2),
             total_costo=round(total_costo, 0),
         ),
     )
@@ -331,8 +379,6 @@ async def _resolver_parametros_confirmacion(
             if horario.autoriza_he_override is not None
             else horario.autoriza_he_default
         )
-        if not autoriza:
-            raise ValueError("Empleado no autorizado para horas extras")
         jornada_nocturna = bool(horario.es_jornada_nocturna)
     else:
         jornada_nocturna = False
@@ -353,68 +399,39 @@ async def _resolver_parametros_confirmacion(
 
 async def _construir_detalles_confirmacion(
     session: AsyncSession,
-    emp_in: PlanConfirmarEmpleadoIn,
-    semana: PlanSemanaIn,
     parametros: PlanConfirmarParametros,
+    clasificacion,
 ) -> List[ConfirmarDetalleItem]:
     """Convierte los dias del plan en ConfirmarDetalleItem para el motor.
 
     Usa el calculo en vivo (cache de catalogo + factor prestacional) para
     emitir los items HED/HEN/HEFD/HEFN correctos.
     """
-    fecha_ref = semana.fecha_inicio
-    catalogo, factores = await _resolver_catalogo_y_factor(
+    fecha_ref = clasificacion[0].fecha
+    catalogo, _ = await _resolver_catalogo_y_factor(
         session, fecha_ref, [parametros.nivel_riesgo_arl]
     )
     cat_idx = {c["codigo"]: c for c in catalogo}
-    factor_prestacional = factores[parametros.nivel_riesgo_arl]
+    factor_prestacional = parametros.factor_prestacional
     valor_hora = parametros.valor_hora_ordinaria
-    horas_semana_ordinaria, _divisor = _parametros_jornada_semana(
-        semana.anio,
-        semana.semana_iso,
-    )
-
     detalles: List[ConfirmarDetalleItem] = []
-    dias_idx = {d.dia_semana: d for d in emp_in.dias}
-    datos_dias = []
-
-    for dia_semana in range(1, 8):
-        d = dias_idx.get(dia_semana)
-        if d is None:
-            datos_dias.append((dia_semana, 0.0, []))
-            continue
-        validar_asignaciones_ot_dia(d)
-        codigos_nov = [n.codigo_novedad for n in d.novedades]
-        horas_trab = _horas_trabajadas_dia(
-            d.hora_entrada, d.hora_salida, d.minutos_almuerzo, d.cruza_medianoche
-        )
-        if any(c in CODIGOS_NOVEDAD_SUPRESION_PLAN for c in codigos_nov):
-            horas_trab = 0.0
-        datos_dias.append((dia_semana, horas_trab, codigos_nov))
-
-    extras_por_dia = _calcular_horas_extras_semanales(
-        [d[1] for d in datos_dias],
-        horas_semana_ordinaria,
-    )
-
-    for idx, (_dia_semana, _horas_trab, codigos_nov) in enumerate(datos_dias):
-        horas_ext = extras_por_dia[idx]
-        codigo_he = None
-        if horas_ext > 0 and not codigos_nov:
-            codigo_he = "HEN" if parametros.jornada_nocturna else "HED"
-        if horas_ext <= 0 or codigo_he is None:
-            continue
-        cat = cat_idx[codigo_he]
-        factor = cat["factor_hora_ordinaria"]
-        valor_bruto = horas_ext * valor_hora * factor
-        carga = valor_bruto * factor_prestacional
-        detalles.append(ConfirmarDetalleItem(
-            codigo_novedad=codigo_he,
-            horas=round(horas_ext, 2),
-            factor_hora_ordinaria=factor,
-            valor_bruto=round(valor_bruto, 0),
-            carga_prestacional=round(carga, 0),
-            costo_total=round(valor_bruto + carga, 0),
-        ))
+    for dia in clasificacion:
+        for concepto in dia.conceptos:
+            cat = cat_idx[concepto.codigo]
+            factor = cat["factor_hora_ordinaria"]
+            valor_bruto, carga, costo_total = _calcular_importes_concepto(
+                concepto.horas,
+                valor_hora,
+                factor,
+                factor_prestacional,
+            )
+            detalles.append(ConfirmarDetalleItem(
+                codigo_novedad=concepto.codigo,
+                horas=round(concepto.horas, 2),
+                factor_hora_ordinaria=factor,
+                valor_bruto=valor_bruto,
+                carga_prestacional=carga,
+                costo_total=costo_total,
+            ))
 
     return detalles

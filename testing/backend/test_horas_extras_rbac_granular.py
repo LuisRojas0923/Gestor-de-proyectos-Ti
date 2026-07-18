@@ -1,18 +1,34 @@
 """Cobertura de RBAC granular para Horas Extras."""
+from datetime import date
+from types import SimpleNamespace
+from unittest.mock import AsyncMock
+
 import pytest
 from fastapi import HTTPException
 from fastapi.routing import APIRoute
+from sqlalchemy.exc import SQLAlchemyError
 
 from app.core.rbac_manifest import SYSTEM_MODULES_REGISTRY
 from app.models.auth.usuario import Usuario
-from app.models.novedades_nomina.schemas_horas_extras import WorkflowTransicionRequest
+from app.models.novedades_nomina.schemas_horas_extras import (
+    CompensarBolsaRequest,
+    WorkflowTransicionRequest,
+)
 from app.main import app
-from app.api.novedades_nomina.routers.horas_extras import transicionar_calculo_endpoint
+from app.api.novedades_nomina.routers.horas_extras import (
+    obtener_bolsa,
+)
+from app.api.novedades_nomina.routers.horas_extras_workflow import (
+    autorizar_calculo_endpoint,
+    compensar_bolsa_endpoint,
+    transicionar_calculo_endpoint,
+)
 from app.api.novedades_nomina.routers.horas_extras_plantillas import (
     listar as listar_plantillas_endpoint,
 )
 from app.api.novedades_nomina.routers.horas_extras_permisos import (
     PERMISO_HE_ADMIN,
+    PERMISO_HE_AUTORIZAR,
     PERMISO_HE_COMPENSAR,
     PERMISO_HE_CONFIRMAR,
     PERMISO_HE_LEER,
@@ -52,6 +68,7 @@ def test_manifest_incluye_permisos_granulares_he():
     assert PERMISO_HE_LEER in ids
     assert PERMISO_HE_PLANIFICAR in ids
     assert PERMISO_HE_CONFIRMAR in ids
+    assert PERMISO_HE_AUTORIZAR in ids
     assert PERMISO_HE_COMPENSAR in ids
     assert PERMISO_HE_ADMIN in ids
 
@@ -72,6 +89,9 @@ def test_rutas_criticas_exigen_permiso_granular_correcto():
     )
     assert "requiere_permiso_he_confirmar" in _dependency_names(
         f"{base}/planificador/confirmar", "POST"
+    )
+    assert "requiere_permiso_he_autorizar" in _dependency_names(
+        f"{base}/calculos/{{calculo_id}}/autorizar", "POST"
     )
     assert "requiere_permiso_he_compensar" in _dependency_names(
         f"{base}/bolsa/compensar", "POST"
@@ -94,6 +114,62 @@ def test_rutas_criticas_exigen_permiso_granular_correcto():
     assert "requiere_permiso_plantillas_administrar" in _dependency_names(
         f"{base}/plantillas-horario/{{plantilla_id}}/duplicar", "POST"
     )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("endpoint", ["consultar", "compensar"])
+async def test_bolsa_oculta_empleado_fuera_del_alcance(monkeypatch, endpoint):
+    async def denegar(*_args):
+        raise PermissionError("Empleado no encontrado")
+
+    monkeypatch.setattr(
+        "app.api.novedades_nomina.routers.horas_extras.autorizar_cedula",
+        denegar,
+    )
+    monkeypatch.setattr(
+        "app.api.novedades_nomina.routers.horas_extras_workflow.autorizar_cedula",
+        denegar,
+    )
+    with pytest.raises(HTTPException) as exc:
+        if endpoint == "consultar":
+            await obtener_bolsa(cedula="1107068093", db=None, usuario=_usuario())
+        else:
+            await compensar_bolsa_endpoint(
+                payload=CompensarBolsaRequest(
+                    cedula="1107068093", horas=1, fecha=date(2026, 7, 17)
+                ),
+                db=None,
+                usuario=_usuario(),
+            )
+    assert exc.value.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_compensacion_rechaza_calculo_de_otro_empleado(monkeypatch):
+    async def autorizar_cedula_fake(*_args):
+        return "1107068093"
+
+    async def autorizar_calculo_fake(*_args):
+        return "9999999999"
+
+    monkeypatch.setattr(
+        "app.api.novedades_nomina.routers.horas_extras_workflow.autorizar_cedula",
+        autorizar_cedula_fake,
+    )
+    monkeypatch.setattr(
+        "app.api.novedades_nomina.routers.horas_extras_workflow.autorizar_calculo_id",
+        autorizar_calculo_fake,
+    )
+    with pytest.raises(HTTPException) as exc:
+        await compensar_bolsa_endpoint(
+            payload=CompensarBolsaRequest(
+                cedula="1107068093", horas=1, fecha=date(2026, 7, 17),
+                calculo_id=99,
+            ),
+            db=None,
+            usuario=_usuario(),
+        )
+    assert exc.value.status_code == 404
 
 
 @pytest.mark.asyncio
@@ -196,7 +272,7 @@ async def test_transicion_compensado_exige_permiso_compensar(monkeypatch):
         raise HTTPException(status_code=403, detail="Sin permiso para compensar")
 
     monkeypatch.setattr(
-        "app.api.novedades_nomina.routers.horas_extras.validar_permiso_he",
+        "app.api.novedades_nomina.routers.horas_extras_workflow.validar_permiso_he",
         fake_validar,
     )
 
@@ -210,3 +286,76 @@ async def test_transicion_compensado_exige_permiso_compensar(monkeypatch):
 
     assert exc.value.status_code == 403
     assert permisos_validados == [PERMISO_HE_COMPENSAR]
+
+
+@pytest.mark.asyncio
+async def test_autorizar_calculo_atribuye_auditoria_y_confirma(monkeypatch):
+    async def autorizar_alcance(*_args):
+        return "1107068093"
+
+    async def autorizar_pendiente(*_args):
+        return {
+            "calculo_id": 7,
+            "estado_anterior": "PENDIENTE_AUTORIZACION",
+            "estado_nuevo": "CONFIRMADO",
+            "evento_id": 9,
+            "movimiento_bolsa_id": None,
+            "horas_afectadas": 0.0,
+            "ya_autorizado": False,
+        }
+
+    monkeypatch.setattr(
+        "app.api.novedades_nomina.routers.horas_extras_workflow.autorizar_calculo_id",
+        autorizar_alcance,
+    )
+    monkeypatch.setattr(
+        "app.api.novedades_nomina.routers.horas_extras_workflow.autorizar_calculo_pendiente",
+        autorizar_pendiente,
+    )
+    db = SimpleNamespace(commit=AsyncMock(), rollback=AsyncMock())
+    request = SimpleNamespace(state=SimpleNamespace())
+
+    resultado = await autorizar_calculo_endpoint(
+        request=request,
+        calculo_id=7,
+        db=db,
+        usuario=_usuario(),
+    )
+
+    assert resultado.estado_nuevo == "CONFIRMADO"
+    assert request.state.auditoria_modulo == PERMISO_HE_AUTORIZAR
+    assert request.state.auditoria_entidad_tipo == "calculo_horas_extras"
+    assert request.state.auditoria_entidad_id == "7"
+    db.commit.assert_awaited_once()
+    db.rollback.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_autorizar_calculo_error_db_hace_rollback(monkeypatch):
+    async def autorizar_alcance(*_args):
+        return "1107068093"
+
+    async def fallar_persistencia(*_args):
+        raise SQLAlchemyError("db no disponible")
+
+    monkeypatch.setattr(
+        "app.api.novedades_nomina.routers.horas_extras_workflow.autorizar_calculo_id",
+        autorizar_alcance,
+    )
+    monkeypatch.setattr(
+        "app.api.novedades_nomina.routers.horas_extras_workflow.autorizar_calculo_pendiente",
+        fallar_persistencia,
+    )
+    db = SimpleNamespace(commit=AsyncMock(), rollback=AsyncMock())
+
+    with pytest.raises(HTTPException) as exc:
+        await autorizar_calculo_endpoint(
+            request=SimpleNamespace(state=SimpleNamespace()),
+            calculo_id=7,
+            db=db,
+            usuario=_usuario(),
+        )
+
+    assert exc.value.status_code == 503
+    db.rollback.assert_awaited_once()
+    db.commit.assert_not_awaited()

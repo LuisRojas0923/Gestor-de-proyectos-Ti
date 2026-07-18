@@ -173,6 +173,24 @@ class TestListarFestivos:
         resultado = await listar_festivos(db_session, anio, fuente="calendarific")
         assert resultado == []
 
+    @pytest.mark.asyncio
+    async def test_auto_descarta_calendario_parcial(self, db_session):
+        anio = 2095
+        await _cleanup_anio(db_session, anio)
+        db_session.add(NominaFestivoCalendario(
+            anio=anio,
+            fecha=date(anio, 1, 1),
+            nombre="Año Nuevo",
+            fuente="CALENDARIFIC",
+        ))
+        await db_session.commit()
+
+        resultado = await listar_festivos(db_session, anio, fuente="auto")
+
+        assert len(resultado) == 19
+        assert all(item["fuente"] == "LEY_EMILIANI" for item in resultado)
+        await _cleanup_anio(db_session, anio)
+
 
 class TestSincronizarFestivos:
     @pytest.mark.asyncio

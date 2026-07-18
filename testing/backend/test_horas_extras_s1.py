@@ -154,7 +154,7 @@ class TestCalculoBasico:
         )
 
         valor_hora = 3_000_000 / 210
-        assert r.total_horas_extras == pytest.approx(8.0)
+        assert r.total_horas_extras == 0.0
         assert len(r.detalles) == 1
         assert r.detalles[0].codigo_novedad == "HF"
         assert r.detalles[0].horas == pytest.approx(8.0)
@@ -171,7 +171,7 @@ class TestCalculoBasico:
             _input(horas, codigos_por_dia=codigos), CATALOGO_TEST, FACTOR_OP
         )
 
-        assert r.total_horas_extras == pytest.approx(16.0)
+        assert r.total_horas_extras == 0.0
         assert not any("Total semanal" in a for a in r.advertencias)
 
     def test_festivo_con_extra_separa_hf_ordinaria_y_hefd_extra(self):
@@ -185,7 +185,7 @@ class TestCalculoBasico:
 
         valor_hora = 3_000_000 / 210
         detalles = {d.codigo_novedad: d for d in r.detalles}
-        assert r.total_horas_extras == pytest.approx(9.0)
+        assert r.total_horas_extras == pytest.approx(1.0)
         assert detalles["HF"].horas == pytest.approx(8.0)
         assert detalles["HEFD"].horas == pytest.approx(1.0)
         assert detalles["HF"].valor_bruto == pytest.approx(

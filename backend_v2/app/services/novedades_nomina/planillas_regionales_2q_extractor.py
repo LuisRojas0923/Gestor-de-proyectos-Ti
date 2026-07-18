@@ -25,12 +25,12 @@ def extraer_planillas_regionales_2q(archivos_binarios: List[bytes]) -> Tuple[Lis
             target_sheet = None
             
             for s in sheet_names:
-                if s.strip().upper() == "PLANTILLA":
+                if s.strip().upper() in {"PLANTILLA", "TABLA"}:
                     target_sheet = s
                     break
             
             if not target_sheet:
-                warnings.append(f"Archivo {i+1}: No se encontró la hoja 'PLANTILLA'.")
+                warnings.append(f"Archivo {i+1}: No se encontró la hoja 'PLANTILLA' o 'TABLA'.")
                 continue
 
             # Leer la hoja completa con header=None para encontrar la fila real de encabezados
@@ -39,13 +39,16 @@ def extraer_planillas_regionales_2q(archivos_binarios: List[bytes]) -> Tuple[Lis
             # Buscar la fila de encabezados que contenga "CÉDULA" y "NOVEDAD"
             header_row_idx = -1
             for idx, row in df_full.iterrows():
-                row_values = [str(val).strip().upper() for val in row.values if pd.notna(val)]
-                if "CÉDULA" in row_values and "NOVEDAD" in row_values:
+                row_values = [
+                    str(val).strip().upper().replace("É", "E")
+                    for val in row.values if pd.notna(val)
+                ]
+                if "CEDULA" in row_values and "NOVEDAD" in row_values:
                     header_row_idx = idx
                     break
             
             if header_row_idx == -1:
-                warnings.append(f"Archivo {i+1}: No se encontró el encabezado 'CÉDULA' y 'NOVEDAD' en la hoja 'PLANTILLA'.")
+                warnings.append(f"Archivo {i+1}: No se encontró el encabezado 'CÉDULA' y 'NOVEDAD' en la hoja '{target_sheet}'.")
                 continue
             
             # Re-leer desde la fila de encabezados correcta

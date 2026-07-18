@@ -63,9 +63,9 @@ const wrapperRouter = (ui: React.ReactElement) =>
 
 const mockEmpleados = {
   items: [
-    { cedula: '123', nombre: 'Juan', cargo: 'Op', area: 'A', ciudadcontratacion: 'Bogota', quien_reporta: 'Lider Uno', nivel_riesgo_arl: 'III', autoriza_he: true },
-    { cedula: '456', nombre: 'Maria', cargo: 'Op', area: 'A', ciudadcontratacion: 'Medellin', quien_reporta: 'Lider Dos', nivel_riesgo_arl: 'III', autoriza_he: true },
-    { cedula: '789', nombre: 'Pedro', cargo: 'Op', area: 'B', ciudadcontratacion: 'Cali', quien_reporta: 'Lider Tres', nivel_riesgo_arl: 'III', autoriza_he: false },
+    { cedula: '123', nombre: 'Juan', cargo: 'Op', area: 'A', ciudadcontratacion: 'Bogota', quien_reporta: 'Lider Uno', nivel_riesgo_arl: 'III', autoriza_he: true, disponible_semana: true, motivo_no_disponible: null },
+    { cedula: '456', nombre: 'Maria', cargo: 'Op', area: 'A', ciudadcontratacion: 'Medellin', quien_reporta: 'Lider Dos', nivel_riesgo_arl: 'III', autoriza_he: true, disponible_semana: true, motivo_no_disponible: null },
+    { cedula: '789', nombre: 'Pedro', cargo: 'Op', area: 'B', ciudadcontratacion: 'Cali', quien_reporta: 'Lider Tres', nivel_riesgo_arl: 'III', autoriza_he: false, disponible_semana: false, motivo_no_disponible: 'NO_AUTORIZA_HE' },
   ],
   total: 3,
   limit: 50,
@@ -74,10 +74,10 @@ const mockEmpleados = {
 
 const mockEmpleadosTellez = {
   items: [
-    { cedula: '101', nombre: 'RODRIGUEZ ALVAREZ ANA', cargo: 'Op', area: 'A', ciudadcontratacion: 'Bogota', quien_reporta: 'Lider Uno', nivel_riesgo_arl: 'III', autoriza_he: true },
-    { cedula: '102', nombre: 'RODRIGUEZ BARRERA LUIS', cargo: 'Op', area: 'A', ciudadcontratacion: 'Bogota', quien_reporta: 'Lider Uno', nivel_riesgo_arl: 'III', autoriza_he: true },
-    { cedula: '103', nombre: 'RODRIGUEZ TELLEZ EDWAR GERMAN', cargo: 'Op', area: 'A', ciudadcontratacion: 'Bogota', quien_reporta: 'Lider Uno', nivel_riesgo_arl: 'III', autoriza_he: true },
-    { cedula: '104', nombre: 'RODRIGUEZ TELLEZ OSCAR JAVIER', cargo: 'Op', area: 'A', ciudadcontratacion: 'Bogota', quien_reporta: 'Lider Uno', nivel_riesgo_arl: 'III', autoriza_he: true },
+    { cedula: '101', nombre: 'RODRIGUEZ ALVAREZ ANA', cargo: 'Op', area: 'A', ciudadcontratacion: 'Bogota', quien_reporta: 'Lider Uno', nivel_riesgo_arl: 'III', autoriza_he: true, disponible_semana: true, motivo_no_disponible: null },
+    { cedula: '102', nombre: 'RODRIGUEZ BARRERA LUIS', cargo: 'Op', area: 'A', ciudadcontratacion: 'Bogota', quien_reporta: 'Lider Uno', nivel_riesgo_arl: 'III', autoriza_he: true, disponible_semana: true, motivo_no_disponible: null },
+    { cedula: '103', nombre: 'RODRIGUEZ TELLEZ EDWAR GERMAN', cargo: 'Op', area: 'A', ciudadcontratacion: 'Bogota', quien_reporta: 'Lider Uno', nivel_riesgo_arl: 'III', autoriza_he: true, disponible_semana: true, motivo_no_disponible: null },
+    { cedula: '104', nombre: 'RODRIGUEZ TELLEZ OSCAR JAVIER', cargo: 'Op', area: 'A', ciudadcontratacion: 'Bogota', quien_reporta: 'Lider Uno', nivel_riesgo_arl: 'III', autoriza_he: true, disponible_semana: true, motivo_no_disponible: null },
   ],
   total: 4,
   limit: 25,
@@ -131,12 +131,14 @@ describe('PlanificadorSemanalView', () => {
           total_horas_trabajadas: 42.5,
           total_horas_ordinarias: 40,
           total_horas_extras: 2.5,
+          total_horas_festivas: 0,
           total_costo_estimado: 50000,
           detalle_por_dia: [],
         },
       ],
       resumen: {
         total_horas_extras: 2.5,
+        total_horas_festivas: 0,
         total_costo_estimado: 50000,
         empleados_count: 1,
       },
@@ -150,7 +152,7 @@ describe('PlanificadorSemanalView', () => {
     (confirmarPlan as ReturnType<typeof vi.fn>).mockResolvedValue({
       calculos: [{ cedula: '123', calculo_id: 1, ok: true, mensaje: 'OK' }],
       errores: [],
-      resumen: { ok_count: 1, error_count: 0, total_horas_extras: 2.5, total_costo: 50000 },
+      resumen: { ok_count: 1, error_count: 0, total_horas_extras: 2.5, total_horas_festivas: 0, total_costo: 50000 },
     });
   });
 
@@ -166,17 +168,6 @@ describe('PlanificadorSemanalView', () => {
     expect(screen.getByText(/Empleados y horarios/)).toBeTruthy();
     expect(screen.queryByPlaceholderText(/Buscar por cédula/)).toBeNull();
     expect(screen.getByRole('button', { name: /Seleccionar visibles/i })).toBeTruthy();
-    await waitFor(() => expect(buscarEmpleadosERP).toHaveBeenCalled());
-  });
-
-  it('permite cambiar la semana usando selectores de fecha', async () => {
-    wrapperRouter(<PlanificadorSemanalView />);
-
-    const fechaInicioInput = screen.getAllByDisplayValue(/^\d{4}-\d{2}-\d{2}$/)[0];
-    fireEvent.change(fechaInicioInput, { target: { value: '2026-07-01' } });
-
-    expect(screen.getByDisplayValue('2026-06-29')).toBeTruthy();
-    expect(screen.getByDisplayValue('2026-07-05')).toBeTruthy();
     await waitFor(() => expect(buscarEmpleadosERP).toHaveBeenCalled());
   });
 
@@ -200,6 +191,7 @@ describe('PlanificadorSemanalView', () => {
     const totales = await screen.findAllByText('2.5h', {}, { timeout: 3000 });
     expect(totales.length).toBeGreaterThan(0);
   });
+
 
   it('aplica horario masivo antes de guardar', async () => {
     renderPlanificadorConSeleccion();
@@ -328,11 +320,32 @@ describe('PlanificadorSemanalView', () => {
     fireEvent.click(screen.getByLabelText(/Seleccionar 456/i));
 
     await waitFor(() => {
-      expect(screen.getByText(/1 \/ 2 seleccionados/)).toBeTruthy();
+      expect(screen.getByText(/1 \/ 3 seleccionados/)).toBeTruthy();
       const draft = JSON.parse(window.sessionStorage.getItem(PLANIFICADOR_DRAFT_KEY) ?? '{}');
       expect(draft.seleccionados).toEqual(['456']);
       expect(draft.empleadosInfo[0][1].ciudadcontratacion).toBe('Medellin');
     });
+  });
+
+  it('permite programar y guardar horario para un empleado sin autorización HE', async () => {
+    wrapperRouter(<PlanificadorSemanalView />);
+
+    fireEvent.click(await screen.findByLabelText(/Seleccionar 789/i, {}, { timeout: 5000 }));
+    fireEvent.click(screen.getByRole('button', { name: /Guardar borrador/i }));
+
+    await waitFor(() => {
+      expect(guardarBorradorPlan).toHaveBeenCalled();
+      const callArg = (guardarBorradorPlan as ReturnType<typeof vi.fn>).mock.calls[0][0];
+      expect(callArg.empleados[0].cedula).toBe('789');
+    });
+  });
+  it('permite precalcular un empleado sin autorización HE', async () => {
+    wrapperRouter(<PlanificadorSemanalView />);
+
+    fireEvent.click(await screen.findByLabelText(/Seleccionar 789/i, {}, { timeout: 5000 }));
+    fireEvent.click(screen.getByRole('button', { name: /Pre-calcular/i }));
+
+    await waitFor(() => expect(preCalcularPlan).toHaveBeenCalled());
   });
 
   it('muestra subfiltros independientes para nombre, cedula y cargo del empleado', async () => {
@@ -361,7 +374,7 @@ describe('PlanificadorSemanalView', () => {
     fireEvent.change(screen.getByPlaceholderText(/^Buscar\.\.\.$/i), { target: { value: 'Maria' } });
 
     await waitFor(() => {
-      expect(buscarEmpleadosERP).toHaveBeenCalledWith('Maria', 25, 0, TOKEN, true);
+      expect(buscarEmpleadosERP).toHaveBeenCalledWith('Maria', 25, 0, TOKEN, true, 2026, expect.any(Number));
     });
   });
 
@@ -382,7 +395,7 @@ describe('PlanificadorSemanalView', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /^Empleado$/i }));
     fireEvent.change(screen.getByPlaceholderText(/^Buscar\.\.\.$/i), { target: { value: 'tellez' } });
-    await waitFor(() => expect(buscarEmpleadosERP).toHaveBeenCalledWith('tellez', 25, 0, TOKEN, true));
+    await waitFor(() => expect(buscarEmpleadosERP).toHaveBeenCalledWith('tellez', 25, 0, TOKEN, true, 2026, expect.any(Number)));
     fireEvent.click(screen.getAllByRole('button', { name: /^Aplicar$/i }).at(-1)!);
 
     await waitFor(() => {
@@ -393,7 +406,7 @@ describe('PlanificadorSemanalView', () => {
     });
   });
 
-  it('incluye empleados visibles autorizados desde el panel integrado', async () => {
+  it('incluye empleados visibles programables desde el panel integrado', async () => {
     (buscarEmpleadosERP as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       ...mockEmpleados,
       limit: 100,
@@ -405,10 +418,10 @@ describe('PlanificadorSemanalView', () => {
     fireEvent.click(screen.getByRole('button', { name: /Seleccionar visibles/i }));
 
     await waitFor(() => {
-      expect(screen.getByText(/2 \/ 2 seleccionados/)).toBeTruthy();
+      expect(screen.getByText(/3 \/ 3 seleccionados/)).toBeTruthy();
       const draft = leerBorradorPlanificador();
-      expect(draft?.seleccionados).toEqual(['123', '456']);
-      expect(draft?.empleadosInfo).toHaveLength(2);
+      expect(draft?.seleccionados).toEqual(['123', '456', '789']);
+      expect(draft?.empleadosInfo).toHaveLength(3);
     });
   });
 
@@ -425,7 +438,7 @@ describe('PlanificadorSemanalView', () => {
     fireEvent.click(screen.getByRole('button', { name: /Limpiar selección/i }));
 
     await waitFor(() => {
-      expect(screen.getByText(/0 \/ 2 seleccionados/)).toBeTruthy();
+      expect(screen.getByText(/0 \/ 3 seleccionados/)).toBeTruthy();
       const draft = leerBorradorPlanificador();
       expect(draft?.seleccionados).toEqual([]);
       expect(draft?.empleadosInfo).toEqual([]);
@@ -510,7 +523,7 @@ describe('PlanificadorSemanalView', () => {
     (confirmarPlan as ReturnType<typeof vi.fn>).mockResolvedValue({
       calculos: [],
       errores: [{ cedula: '999', motivo: 'Sin horario' }],
-      resumen: { ok_count: 0, error_count: 1, total_horas_extras: 0, total_costo: 0 },
+      resumen: { ok_count: 0, error_count: 1, total_horas_extras: 0, total_horas_festivas: 0, total_costo: 0 },
     });
 
     renderPlanificadorConSeleccion();

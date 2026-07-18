@@ -50,11 +50,13 @@ Ubicación: `testing/backend/`
 | **Horas Extras S5''' Integracion** | `test_horas_extras_s5ppp_integracion.py` | Integracion horario diario + festivos + novedades en pre-liquidacion; festivos diurnos/nocturnos separan recargo ordinario HF y extra HEFD/HEFN. | ✅ PASSED |
 | **Horas Extras S6 Bolsa** | `test_horas_extras_s6.py` | Bolsa desactivable, override por OT, ruta sin prefijo duplicado y RBAC en estado global. | ✅ PASSED |
 | **Horas Extras S7 Planificador** | `test_horas_extras_s7.py` | Planificador semanal masivo, selector ERP protegido por RBAC, borrador, pre-calculo y confirmacion. | ✅ PASSED |
-| **Horas Extras S8 OT/CC** | `test_horas_extras_s8_ot_mano_obra.py` | Consulta ERP `basegeneralcostos`, maximo 3 OT por empleado/dia, validacion de reparto numerico, CRC32 para orden no numerica y distribucion de costo por OT. | ✅ PASSED |
+| **Horas Extras Planificador Festivos** | `test_horas_extras_planificador_festivos.py` | HF del 13-jul-2026, HF+HEFD/HEFN, novedades oficiales, actividad en snapshot, días únicos, semana entre años, contrato ISO y paridad confirmación/trazabilidad. | ⚠️ 13 casos; 2 focales nuevos PASS, suite DB pendiente por reset de PostgreSQL |
+| **Horas Extras S8 OT/CC** | `test_horas_extras_s8_ot_mano_obra.py` | Reparto por horas/porcentaje con conciliación monetaria y residuo, concurrencia sobre la misma OT, validación del hash del snapshot y reversión exacta tras eliminar asignaciones mutables. | ✅ 10 PASSED |
 | **Horas Extras S9 Reglas GH** | `test_horas_extras_s9_reglas_gh.py` | Reglas confirmadas por Gestion Humana: jornada semanal 42h/210h desde 2026-07-16, compensacion semanal, nocturna 19:00-06:00 y turnos cruzados en dos dias. | ✅ PASSED |
-| **Horas Extras S10 Trazabilidad Diaria** | `test_horas_extras_s10_trazabilidad_diaria.py` | Persistencia del snapshot diario de 7 dias asociado al calculo confirmado; lectura de estados `DISPONIBLE`, `HISTORICO_SIN_SNAPSHOT` e `INCOMPLETO`. | ✅ PASSED |
+| **Horas Extras S10 Trazabilidad Diaria** | `test_horas_extras_s10_trazabilidad_diaria.py` | Persistencia del snapshot diario de 7 dias asociado al calculo confirmado; lectura de estados `DISPONIBLE`, `HISTORICO_SIN_SNAPSHOT` e `INCOMPLETO`, sin ejecutar DDL con el rol runtime. | ✅ 3 PASSED |
 | **Horas Extras Parametros Calculo** | `test_horas_extras_parametros_calculo.py` | Consulta y edicion de reglas vigentes en `nomina_parametros_legales`; valida ruta sin prefijo duplicado, RBAC y uso de parametros editados. | ✅ PASSED |
 | **Horas Extras RBAC Granular** | `test_horas_extras_rbac_granular.py` | Manifiesto RBAC granular, dependencias por ruta critica, lectura de plantillas para planificar/administrar, rechazo 403 y separacion confirmar/compensar. | ✅ PASSED |
+| **Horas Extras Autorización Posterior** | `test_horas_extras_autorizacion.py` | Estado pendiente sin crédito, autorización idempotente, concurrencia de una misma autorización y sobre la bolsa compartida, y bloqueo del endpoint genérico. | ✅ 5 PASSED |
 | **Biometría Engine Client** | `test_biometria_engine_client.py` | Mapeo saneado de errores del motor, contrato de embedding y rechazo de respuestas invalidas. | ✅ PASSED |
 | **Biometría Service** | `test_biometria_service.py` | Flujo de negocio sin embedding, estado biométrico backend-source, geocerca backend, comparación vectorial y protección contra traversal en archivos. | ✅ PASSED |
 | **Biometría RBAC/Router** | `test_biometria_router_engine.py` | Dependencia RBAC del módulo `biometria` y delegación del endpoint de estado biométrico. | ✅ PASSED |
@@ -69,6 +71,7 @@ Ubicación: `testing/backend/`
 | **Actualización de Tickets** | `test_ticket_update_errors.py` | Preserva errores HTTP de negocio, sanea fallos inesperados, garantiza rollback y mantiene el evento WebSocket si falla una notificación nativa. | ✅ PASSED |
 | **Horarios Migración/Integridad** | `test_horarios_migracion_seguridad.py` | Reparación de constraints PostgreSQL, rechazo de datos inválidos, triggers append-only y propagación de fallo crítico. | ✅ PASSED (reporte final) |
 | **Startup/Migrador Fase 1P** | `test_startup_migration_roles.py` | Startup verify-only, job exclusivo, capacidad por archivo, sesiones hasheadas, schemas estrictos, namespace/ACL, ausencia de DDL runtime y allowlist. | ✅ 30 PASSED |
+| **Anotaciones de Auditoría SQL** | `test_sql_audit_annotations.py` | Impide que comentarios `@audit-ok` formen parte de literales enviados mediante `sqlalchemy.text(...)`. | ✅ 1 PASSED (reporte focal) |
 | **Sesión/Identidad Fase 1P** | `test_phase1p_auth_security.py` | Revocación fail-closed, refresh, reset CAS, guard JWT, onboarding de analistas, carrera de creación y payload MCP estricto. | ✅ 9 PASSED |
 | **Autorización HTTP Fase 1P** | `test_phase1p_endpoint_security.py` | Scope MCP persistido, bloqueo de mutaciones REST, Panel Control autenticado, PII de lockout hasheada, recuperación uniforme, migrador sin JWT y módulos RBAC protegidos. | ✅ 8 PASSED |
 | **Roles PostgreSQL Fase 1P** | `test_startup_migration_roles_postgres.py` | Dos migradores reales, FastAPI/Redis, reset concurrente, MCP, identidad protegida, namespace/ACL/trigger exactos y reparación de auditoría. | ✅ 1 PASSED en PostgreSQL 15 aislado |
@@ -101,16 +104,19 @@ Ubicación: `frontend/src/tests/`
 
 | Suite | Cobertura |
 | :--- | :--- |
-| `WeeklyScheduleEditor.test.tsx` | Siete días, franco, cruce de medianoche y diálogo accesible. |
+| `WeeklyScheduleEditor.test.tsx` | Siete días, acción Limpiar, horas netas diarias, total semanal, cruces válidos/incoherentes y diálogo accesible. |
+| `horarioUtils.test.ts` | Cálculo diario/semanal, almuerzo, cruce de medianoche y formatos `HH:MM`/`HH:MM:SS`. |
 | `AplicarPlantillaModal.test.tsx` | Selección por cédula entre páginas y confirmación bulk. |
 | `horariosRelacionesService.test.ts` | Serialización de filtros, rutas, inactivas y UUID de solicitud. |
 | `PlanificadorHorarioDraft.test.tsx` | Aplicación masiva y persistencia local normalizada del borrador. |
 | `servicePortalFeatureRoutes.test.tsx` | Guardas independientes de Plantillas, Alcance y Biometría. |
 | `horasExtrasWorkflowService.test.ts` | Servicios de transición, bolsa y festivos separados del servicio principal. |
+| `CalculoDetailAutorizacion.test.tsx` | Visibilidad RBAC y ejecución del botón Autorizar para cálculos pendientes. |
 | `AlcanceEmpleados.test.tsx` | Estado inicial, filtros de tabla remotos, UUID estable en reintento, doble submit, descarte y límite 200. |
 | `useAlcanceEmpleados.test.tsx` | Filtros multivalor, reinicio de paginación y descarte de resultados obsoletos ante error. |
 | `PlantillasHorarioPage.test.tsx` | Crear/duplicar/desactivar, UUID estable y doble submit de aplicación. |
 | `PlanificadorPlantillas.test.tsx` | Carga del selector, aplicación semanal, francos y conservación de novedades/OT. |
+| `PlanificadorSemanalFestivos.test.tsx` | Badge combinado HF+HEFD, horas festivas separadas, vista tabular, cliente/OT/CC, actividad masiva, persistencia local y limpieza al cambiar semana. |
 | `ModalStack.test.tsx` | Escape solo sobre modal superior, scroll lock contado y restauración de foco. |
 | `BiometriaModule.test.tsx` | Error/reintento de capacidades y tabs enlazadas con teclado. |
 | `BiometriaAdminView.test.tsx` | Tabs ARIA y confirmación antes de eliminar zona. |
@@ -124,7 +130,7 @@ Ubicación: `frontend/src/tests/`
 | `ConfiguracionHorasExtrasView.test.tsx` | Cambios pendientes, justificación obligatoria, descarte protegido, reintento y payload mínimo de reglas. |
 | `components/molecules/__tests__/ServiceCard.test.tsx` | Semántica nativa, foco e interacción de la tarjeta accesible. |
 
-La evidencia de Gestion de Tiempo y Asistencia es 58/58 focales; `tsc`, build y lint focal estan OK. La suite global ejecutada el 2026-07-12 reporta 245 passed/2 skipped/3 failed: la suite completa del Planificador pasa 20/20 al reejecutarse y los fallos deterministas de MyDevelopments/Register corresponden a expectativas desactualizadas fuera del alcance. El lint global mantiene 517 errores/60 warnings preexistentes. Estos conteos no constituyen medicion de cobertura.
+La evidencia del planificador tabular ejecutada el 2026-07-17 es 33/33 focales; build y lint focal están OK. La última suite global previa al ajuste de aislamiento del borrador reportó 298 passed/2 skipped/2 failed: `MyDevelopmentsRequirements.test.tsx` y `RegisterSidebar.test.tsx` conservan expectativas desactualizadas fuera del alcance. El lint global mantiene errores preexistentes fuera del módulo. Estos conteos no constituyen medición de cobertura.
 
 Backend consolidado final reportado: 154 passed; focal overrides: 19 passed; health: 4 passed/4 skipped; carreras PostgreSQL reales: 2 passed. La suite ERP no recolecta localmente sin `pdfplumber`; el import Docker reporta 318 rutas.
 
