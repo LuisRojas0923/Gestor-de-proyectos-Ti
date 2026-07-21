@@ -140,7 +140,7 @@ async def websocket_auditoria_dashboard(
 
     # 1. Extraer Token de subprotocols (evitando reflejar el JWT persistente)
     subprotocols = websocket.scope.get("subprotocols", [])
-    token = next((p for p in subprotocols if p != "auth"), None)
+    token = next((p.strip() for p in subprotocols if p.strip() != "auth"), None)
 
     # 2. Validar Token de Autenticación de forma canónica
     if not token:
