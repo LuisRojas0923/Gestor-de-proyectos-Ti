@@ -2,6 +2,8 @@ import pytest
 import os
 from app.config import config
 
+pytestmark = pytest.mark.live_infrastructure
+
 @pytest.mark.asyncio
 async def test_infra_disk_write_access():
     """

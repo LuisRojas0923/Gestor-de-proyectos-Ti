@@ -18,8 +18,8 @@ Ubicación: `testing/backend/`
 
 | Módulo | Archivo | Descripción | Estado |
 | :--- | :--- | :--- | :--- |
-| **Infra Health** | `test_infrastructure.py` | **Crítico**: Escritura en disco (Adjuntos) y Puente ERP. | ⚠️ 1 PASSED / 1 SKIPPED sin ERP objetivo |
-| **Regresiones** | `test_regresiones.py` | **Master Health Check**: Ciclo de vida, Adjuntos y RBAC. | ⚠️ 3 PASSED / 3 SKIPPED ERP tras cutover; aceptación FastAPI aislada OK |
+| **Infra Health** | `test_infrastructure.py` | **Crítico**: Escritura en disco (Adjuntos) y Puente ERP. | ✅ 2 PASSED en pila aislada |
+| **Regresiones** | `test_regresiones.py` | **Master Health Check**: Ciclo de vida, Adjuntos y RBAC. | ✅ 6 PASSED en pila aislada |
 | **Autenticación** | `test_auth_verification.py` | Verificación de correo y flujo de seguridad. | ✅ PASSED |
 | **Autogestión ERP Auth** | `test_autogestion_usuarios_erp.py` | JIT, registro público y validación fail-closed contra empleados activos del ERP. | ✅ PASSED |
 | **Setup Password** | `test_setup_password.py` | Configuración de contraseña primera vez (setup-password), estado (password-status) y login con password no configurado. | ⚠️ BLOQUEADO LOCAL: credenciales PostgreSQL |
@@ -31,6 +31,7 @@ Ubicación: `testing/backend/`
 | **ERP Sync** | `test_requisiciones.py` | Sincronización de catálogos con el ERP. | ✅ PASSED |
 | **ERP Empleados** | `test_erp_empleados_service.py` | Contrato ERP de empleado para HE: autorización, `beneficio.salario`, resolución de salario/ARL, firma de pre-liquidación y rechazo de importes manipulados. | ✅ PASSED |
 | **ERP Empleados Offload** | `test_erp_empleados_offload.py` | Lecturas, consultas masivas y actualización de correo ERP delegadas fuera del event loop. | ✅ 4 PASSED |
+| **Sincronización Perfiles ERP** | `test_barreras_pruebas_aisladas.py`, `test_sincronizacion_perfiles_erp.py`, `test_sincronizacion_perfiles_erp_http.py`, `test_perfiles_laborales_erp.py` | Refresco de cargo en login/perfil, idempotencia, rollback degradado, ERP read-only, fuente por entorno, apply/locks, RBAC, rate limits, auditoría sin PII y barreras fail-closed. | ✅ 22 focales + 1 ERP + 8 HTTP |
 | **Viáticos** | `test_viaticos.py` | Flujo de legalización y solicitudes. | ✅ PASSED |
 | **Desarrollos** | `test_desarrollos_update.py` | Actualización de proyectos/desarrollos existentes y manejo 404. | ✅ PASSED |
 | **Desarrollos Autoridad** | `test_desarrollos_autoridad.py` | Persistencia y respuesta del campo autoridad en proyectos/desarrollos. | ✅ PASSED |

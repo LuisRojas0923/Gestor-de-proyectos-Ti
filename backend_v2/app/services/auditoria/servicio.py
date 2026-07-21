@@ -29,6 +29,7 @@ _CLAVES_SENSIBLES = frozenset({
     "cedulas_agregar",
     "cedulas_quitar",
     "empleado_cedula",
+    "usuario_id",
     "imei",
     "serial",
 })

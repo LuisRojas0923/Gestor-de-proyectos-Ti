@@ -21,6 +21,8 @@ from app.models.auditoria.accion_usuario import AccionAuditoria
 from app.core.middleware.auditoria_rutas import (
     es_ruta_consulta_comisiones_auditable,
     es_ruta_descarga_auditable,
+    es_preview_perfiles_erp_auditable,
+    es_ruta_sincronizacion_perfiles,
 )
 
 from app.services.auditoria.servicio import (
@@ -108,6 +110,9 @@ def _debe_auditar(request: Request) -> bool:
 
         return True
 
+    if request.method == "GET" and es_preview_perfiles_erp_auditable(path):
+        return True
+
     return False
 
 
@@ -164,6 +169,9 @@ async def auditoria_http_middleware(request: Request, call_next) -> Response:
 
     response = await call_next(request)
 
+    if es_ruta_sincronizacion_perfiles(request.url.path):
+        response.headers["Cache-Control"] = "no-store, private"
+
 
 
     if not _debe_auditar(request):
@@ -174,7 +182,9 @@ async def auditoria_http_middleware(request: Request, call_next) -> Response:
 
     usuario_id, usuario_nombre, rol = await resolver_actor_desde_request(request)
 
-    if not usuario_id:
+    if not usuario_id and es_ruta_sincronizacion_perfiles(request.url.path):
+        usuario_id, usuario_nombre, rol = "anonimo", None, None
+    elif not usuario_id:
 
         logger.debug(
 
@@ -213,7 +223,11 @@ async def auditoria_http_middleware(request: Request, call_next) -> Response:
         else:
             accion = inferir_accion_desde_metodo(request.method)
 
-    modulo = contexto.get("modulo") or inferir_modulo_desde_ruta(path)
+    modulo = contexto.get("modulo") or (
+        "admin_usuarios"
+        if es_ruta_sincronizacion_perfiles(path)
+        else inferir_modulo_desde_ruta(path)
+    )
 
     try:
 

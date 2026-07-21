@@ -200,13 +200,20 @@ async def login(
                 headers={"WWW-Authenticate": "Bearer"},
             )
 
-        if db_erp and (not usuario.area or not usuario.sede):
+        try:
+            await ServicioAuth.sincronizar_perfil_desde_erp(db, usuario)
+            usuario = await ServicioAuth.obtener_usuario_por_cedula(
+                db, cedula_normalizada
+            ) or usuario
+        except Exception:
             try:
-                usuario = await ServicioAuth.sincronizar_perfil_desde_erp(
-                    db, db_erp, usuario
-                )
-            except Exception as e:
-                logger.warning("Error no crítico sincronizando perfil en login: %s", enmascarar_pii(str(e)))
+                await db.rollback()
+                usuario = await ServicioAuth.obtener_usuario_por_cedula(
+                    db, cedula_normalizada
+                ) or usuario
+            except Exception:
+                pass
+            logger.warning("ERP_PERFIL_SYNC_DEGRADADO_EN_LOGIN")
 
         permisos = await ServicioAuth.obtener_permisos_por_rol(db, usuario.rol)
         # Stamp last_ip en el JWT: la IP real de la conexión (no el XFF claim).

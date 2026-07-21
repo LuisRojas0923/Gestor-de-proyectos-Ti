@@ -177,3 +177,40 @@ LIMIT 10;
 
 > [!IMPORTANT]
 > Nunca modifiques el archivo `.env` directamente en producción sin antes tener una copia de respaldo. Es la "llave" de acceso a todas las bases de datos.
+
+---
+
+## 7. Sincronizacion de Perfiles desde Solid ERP
+
+La sincronizacion de nombre, cargo, area, sede, centro de costo, viaticante,
+base de viaticos y correo usa una conexion distinta de la conexion ERP que
+permite actualizar correo:
+
+```env
+ERP_READ_DATABASE_URL=postgresql://<usuario_select>:<secreto>@<host>:5432/solid
+ERP_READ_EXPECTED_DATABASE=solid
+```
+
+El usuario PostgreSQL debe tener exclusivamente `CONNECT`, `USAGE` y `SELECT`
+sobre `establecimiento`, `contrato` y las tablas allowlisted. Antes del
+despliegue comprueba, sin imprimir la URL, que `current_database()` sea `solid`,
+`transaction_read_only` quede `on` dentro del worker y el rol no tenga `UPDATE`.
+
+Operaciones administrativas bajo el permiso `admin_usuarios`:
+
+- `GET /api/v2/auth/usuarios/sincronizacion-erp/previsualizacion`: calcula diferencias agregadas sin modificar perfiles.
+- `POST /api/v2/auth/usuarios/sincronizacion-erp/individual`: recibe `usuario_id` y actualiza una cuenta sin cambiar su estado.
+- `POST /api/v2/auth/usuarios/sincronizacion-erp/aplicar`: actualiza usuarios locales activos por lotes.
+
+Procedimiento recomendado:
+
+1. Verifica en logs `ERP_PERFILES_LECTURA_SALUDABLE`.
+2. Ejecuta previsualizacion y revisa conteos/campos agregados.
+3. Ejecuta apply una sola vez; una segunda ejecucion concurrente devuelve `409`.
+4. Si el resultado es `parcial` o `parcial_timeout`, corrige la causa y repite.
+   El proceso es idempotente y los perfiles ya iguales quedan `sin_cambios`.
+5. Nunca cambies `ERP_READ_DATABASE_URL` mediante requests ni uses esta funcion
+   para activar, desactivar o cambiar roles.
+
+Un fallo ERP durante login no bloquea al usuario: el backend hace rollback,
+relee el perfil local y registra `ERP_PERFIL_SYNC_DEGRADADO_EN_LOGIN` sin PII.

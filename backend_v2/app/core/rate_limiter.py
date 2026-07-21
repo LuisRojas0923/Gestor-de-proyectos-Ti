@@ -181,6 +181,14 @@ def _verify_admin_key_func(request: Request) -> str:
     return f"verify_admin:{usuario_id}:{ip}"
 
 
+def _erp_profile_sync_key_func(request: Request) -> str:
+    """Agrupa por actor e IP sin persistir el identificador del usuario."""
+    usuario_id = getattr(request.state, "usuario_id", "anonimo") or "anonimo"
+    actor_hash = hashlib.sha256(usuario_id.encode("utf-8")).hexdigest()[:16]
+    ip = _safe_resolve_effective_ip(request)
+    return f"erp_profile_sync:{actor_hash}:{ip}"
+
+
 def _login_key_func(request: Request) -> str:
     """Key para /auth/login: cedula del form (cacheado), sin IP compartida de proxy."""
     identity = _resolve_body_identity(request)

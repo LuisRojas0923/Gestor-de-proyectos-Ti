@@ -113,12 +113,16 @@ async def obtener_usuario_actual_db(
             raise HTTPException(401, "Usuario inactivo")
 
         # Si el usuario es local y no tiene area/sede pero hay ERP disponible, sincronizar:
-        if db_erp and (not usuario.area or not usuario.sede):
+        if not usuario.area or not usuario.sede:
             try:
-                usuario = await ServicioAuth.sincronizar_perfil_desde_erp(
-                    db, db_erp, usuario
-                )
+                await ServicioAuth.sincronizar_perfil_desde_erp(db, usuario)
+                usuario = await ServicioAuth.obtener_usuario_por_cedula(db, cedula)
             except Exception:
+                await db.rollback()
+                usuario = (
+                    await ServicioAuth.obtener_usuario_por_cedula(db, cedula)
+                    or usuario
+                )
                 logger.warning("ERP no disponible durante sincronización de perfil")
 
         request.state.usuario_id = usuario.id

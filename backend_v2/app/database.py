@@ -5,6 +5,8 @@ Configuracion de Base de Datos - Backend V2 (Async + SQLModel)
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
+from sqlalchemy.engine import make_url
+from threading import Lock
 from .config import config
 
 # URL de conexion ASINCRONA (asyncpg)
@@ -67,6 +69,67 @@ erp_engine = create_engine(
     connect_args={"options": "-c client_encoding=utf8 -c statement_timeout=30000"},
 )
 SessionErp = sessionmaker(autocommit=False, autoflush=False, bind=erp_engine)
+
+_erp_read_lock = Lock()
+_erp_read_engine = None
+_erp_read_sessionmaker = None
+
+
+def _resolver_url_erp_lectura() -> str:
+    """Valida la fuente antes de crear cualquier conexion ERP de lectura."""
+    url = (config.erp_read_database_url or "").strip()
+    esperada = (config.erp_read_expected_database or "").strip()
+    entorno = (config.environment or "").strip().lower()
+    pruebas = {"development", "desarrollo", "pruebas3", "test", "tests"}
+    produccion = {"production", "produccion"}
+    if not url:
+        raise RuntimeError("ERP_READ_DATABASE_URL es obligatoria")
+    if entorno in pruebas:
+        permitida = "solidpruebas3"
+        esperada = esperada or permitida
+    elif entorno in produccion:
+        permitida = "solid"
+    else:
+        raise RuntimeError("La fuente ERP de lectura no esta autorizada")
+    try:
+        nombre_url = make_url(url).database
+    except Exception as exc:
+        raise RuntimeError("La fuente ERP de lectura no esta autorizada") from exc
+    if not url or esperada != permitida or nombre_url != permitida:
+        raise RuntimeError("La fuente ERP de lectura no esta autorizada")
+    return url
+
+
+def obtener_sessionmaker_erp_lectura():
+    """Crea lazy el engine para que una mala fuente no impida iniciar el portal."""
+    global _erp_read_engine, _erp_read_sessionmaker
+    if _erp_read_sessionmaker is not None:
+        return _erp_read_sessionmaker
+    with _erp_read_lock:
+        if _erp_read_sessionmaker is None:
+            url = _resolver_url_erp_lectura()
+            _erp_read_engine = create_engine(
+                url,
+                pool_pre_ping=True,
+                pool_size=5,
+                max_overflow=5,
+                pool_timeout=2,
+                connect_args={
+                    "connect_timeout": 3,
+                    "options": "-c client_encoding=utf8",
+                },
+            )
+            _erp_read_sessionmaker = sessionmaker(
+                autocommit=False,
+                autoflush=False,
+                bind=_erp_read_engine,
+            )
+    return _erp_read_sessionmaker
+
+
+def SessionErpLectura():
+    """Devuelve una sesion nueva; el caller conserva ownership y cierre."""
+    return obtener_sessionmaker_erp_lectura()()
 
 
 async def obtener_db():

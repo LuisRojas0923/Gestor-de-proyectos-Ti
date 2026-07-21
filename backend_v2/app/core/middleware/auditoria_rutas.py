@@ -47,6 +47,10 @@ _PATRONES_CONSULTA_COMISIONES = (
     re.compile(r"^/api/v2/novedades-nomina/comisiones/datos$"),
 )
 
+_RUTA_PREVIEW_PERFILES_ERP = (
+    "/api/v2/auth/usuarios/sincronizacion-erp/previsualizacion"
+)
+
 
 def normalizar_ruta(path: str) -> str:
     return path.rstrip("/") or "/"
@@ -60,6 +64,15 @@ def es_ruta_descarga_auditable(path: str) -> bool:
 def es_ruta_consulta_comisiones_auditable(path: str) -> bool:
     ruta = normalizar_ruta(path)
     return any(p.match(ruta) for p in _PATRONES_CONSULTA_COMISIONES)
+
+
+def es_ruta_sincronizacion_perfiles(path: str) -> bool:
+    ruta = normalizar_ruta(path)
+    return ruta.startswith("/api/v2/auth/usuarios/sincronizacion-erp/")
+
+
+def es_preview_perfiles_erp_auditable(path: str) -> bool:
+    return normalizar_ruta(path) == _RUTA_PREVIEW_PERFILES_ERP
 
 
 def inferir_entidad_descarga(path: str) -> tuple[Optional[str], Optional[str]]:

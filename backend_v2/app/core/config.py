@@ -5,6 +5,7 @@ Usa pydantic-settings para validar y tipar las variables.
 Si una variable requerida no está definida, se usa el valor por defecto
 o se lanza un error en producción.
 """
+import os
 from functools import lru_cache
 from typing import Literal
 
@@ -16,7 +17,7 @@ class Settings(BaseSettings):
     """Configuración global del backend."""
 
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=None if os.getenv("TEST_ISOLATED") == "1" else ".env",
         env_file_encoding="utf-8",
         case_sensitive=False,
         extra="ignore",
@@ -71,6 +72,9 @@ class Settings(BaseSettings):
     # para evitar que un atacante con un token robado haga refresh infinito.
     rate_limit_refresh: str = "20/hour"
     rate_limit_actividad_archivo: str = "20/hour"
+    rate_limit_sync_usuario_erp: str = "10/minute"
+    rate_limit_preview_usuarios_erp: str = "2/hour"
+    rate_limit_apply_usuarios_erp: str = "1/hour"
 
     # Lockout por cuenta: tras N fallos de login consecutivos en una ventana
     # corta, se bloquea el acceso a esa cuenta (no por IP) durante

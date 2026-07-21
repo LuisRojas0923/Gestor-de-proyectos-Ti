@@ -12,7 +12,6 @@ from sqlmodel import select
 from app.config import config
 from app.core.config import obtener_configuracion
 from app.services.auth.protected_identity_service import (
-    actualizar_correo_protegido,
     actualizar_hash_protegido,
     actualizar_hash_si_vigente,
 )
@@ -21,8 +20,9 @@ from app.services.auth.recovery_token_service import (
     validar_token_recuperacion,
 )
 from app.models.auth.usuario import Usuario, PermisoRol
-from app.services.erp import EmpleadosService
-from app.services.erp.empleados_service import normalizar_bool_erp
+from app.services.auth.sincronizacion_perfiles_service import (
+    sincronizar_usuario_desde_erp,
+)
 from .sesion_service import (
     registrar_sesion,
     marcar_fin_sesion,
@@ -336,55 +336,6 @@ class ServicioAuth:
             raise
 
     @staticmethod
-    async def sincronizar_perfil_desde_erp(
-        db: AsyncSession, db_erp, usuario: Usuario
-    ) -> Usuario:
-        """Sincroniza los datos de perfil de un usuario existente con Solid ERP."""
-        datos_erp = await EmpleadosService.obtener_empleado_por_cedula(
-            db_erp, usuario.cedula
-        )
-
-        if datos_erp:
-            usuario.area = (
-                datos_erp.get("area").strip() if datos_erp.get("area") else None
-            )
-            usuario.cargo = (
-                datos_erp.get("cargo").strip() if datos_erp.get("cargo") else None
-            )
-            usuario.sede = (
-                datos_erp.get("ciudadcontratacion").strip()
-                if datos_erp.get("ciudadcontratacion")
-                else None
-            )
-            usuario.centrocosto = (
-                datos_erp.get("centrocosto").strip()
-                if datos_erp.get("centrocosto")
-                else None
-            )
-            usuario.nombre = (
-                datos_erp.get("nombre").strip()
-                if datos_erp.get("nombre")
-                else usuario.nombre
-            )
-            val_viaticante = datos_erp.get("viaticante")
-            usuario.viaticante = normalizar_bool_erp(val_viaticante)
-            usuario.baseviaticos = datos_erp.get("baseviaticos")
-            
-            # Sincronización de correo corporativo
-            if datos_erp.get("correocorporativo"):
-                await actualizar_correo_protegido(
-                    db,
-                    usuario.id,
-                    datos_erp.get("correocorporativo").strip(),
-                    True,
-                    False,
-                )
-            
-            await db.commit()
-            await db.refresh(usuario)
-        return usuario
-
-    @staticmethod
     async def obtener_permisos_por_rol(db: AsyncSession, rol: str) -> list[str]:
         """Obtiene la lista de módulos permitidos para un rol que estén activos globalmente."""
         from app.models.auth.usuario import ModuloSistema
@@ -490,6 +441,7 @@ class ServicioAuth:
     crear_analista_desde_erp = staticmethod(crear_analista_desde_erp)
     crear_usuario_portal_desde_erp = staticmethod(crear_usuario_portal_desde_erp)
     registrar_usuario_portal = staticmethod(registrar_usuario_portal)
+    sincronizar_perfil_desde_erp = staticmethod(sincronizar_usuario_desde_erp)
     registrar_sesion = staticmethod(registrar_sesion)
     marcar_fin_sesion = staticmethod(marcar_fin_sesion)
     invalidar_sesiones_usuario = staticmethod(invalidar_sesiones_usuario)

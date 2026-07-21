@@ -288,3 +288,35 @@ docker compose exec biometria-engine python -c "import cv2; from deepface import
 ```
 
 Desde la app móvil se usa siempre el backend principal por IP LAN del host, por ejemplo `http://192.168.40.163:8000/api/v2` en la red local actual. Configura esa IP en `movil/.env` con `EXPO_PUBLIC_API_HOST=192.168.40.163`. El móvil nunca debe llamar directo a `biometria-engine`.
+
+---
+
+## 8. Pruebas Aisladas de Perfiles ERP
+
+`docker-compose.tests.yml` crea servicios efimeros independientes:
+
+- `db-test`: `project_manager_test`.
+- `erp-test`: `solidpruebas3` con datos sinteticos.
+- `redis-test`, `migrate-test`, `backend-test` y `tests`.
+
+El servicio `tests` espera automaticamente a `backend-test` saludable, y este
+encadena migracion y seed. `ERP_READ_DATABASE_URL` es obligatoria en todos los
+entornos y nunca reutiliza la credencial general `ERP_DATABASE_URL`.
+
+Comandos focales:
+
+```powershell
+docker compose -f docker-compose.tests.yml run --rm --no-deps tests pytest testing/backend/test_barreras_pruebas_aisladas.py testing/backend/test_sincronizacion_perfiles_erp.py testing/backend/test_perfiles_laborales_erp.py -m "not erp_postgres_integration and not mutating_integration and not live_infrastructure" -v
+docker compose -f docker-compose.tests.yml run --rm -e ALLOW_ERP_TEST_DB=1 tests pytest testing/backend/test_perfiles_laborales_erp.py -m erp_postgres_integration -v
+docker compose -f docker-compose.tests.yml run --rm -e ALLOW_MUTATING_TESTS=1 -e ALLOW_LIVE_INFRA_TESTS=1 tests pytest testing/backend/test_sincronizacion_perfiles_erp_http.py -v
+docker compose -f docker-compose.tests.yml down -v --remove-orphans
+```
+
+Las guardas de `testing/backend/conftest.py` exigen el opt-in de cada marcador y
+rechazan hosts distintos de `db-test`/`erp-test`, bases distintas de
+`project_manager_test`/`solidpruebas3` y backends HTTP distintos de
+`backend-test`. Sin el opt-in la coleccion falla antes de ejecutar el caso. No
+uses `.env` normal para esas suites.
+
+La pila declara `name: gestor-proyectos-ti-tests`; no lo elimines. Evita que
+`down --remove-orphans` trate los contenedores de desarrollo como huerfanos.

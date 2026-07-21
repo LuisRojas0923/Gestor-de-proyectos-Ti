@@ -1,0 +1,143 @@
+name: gestor-proyectos-ti-tests
+
+services:
+  db-test:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres_test_only
+      POSTGRES_DB: project_manager_test
+    volumes:
+      - ./testing/postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d project_manager_test"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+    networks: [test-network]
+
+  erp-test:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres_erp_test_only
+      POSTGRES_DB: solidpruebas3
+    volumes:
+      - ./testing/backend/fixtures/erp:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d solidpruebas3"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+    networks: [test-network]
+
+  redis-test:
+    image: redis:alpine
+    command: redis-server --save "" --appendonly no
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+    networks: [test-network]
+
+  migrate-test:
+    build:
+      context: ./backend_v2
+      dockerfile: Dockerfile
+    command: python -m app.manage migrate
+    environment: &backend-test-env
+      DATABASE_URL: postgresql://gestor_test_runtime:runtime_test_only@db-test:5432/project_manager_test
+      BASE_DATOS_URL_ASYNC: postgresql+asyncpg://gestor_test_runtime:runtime_test_only@db-test:5432/project_manager_test
+      MIGRATION_DATABASE_URL: postgresql://gestor_test_migrator:migrator_test_only@db-test:5432/project_manager_test
+      MIGRATION_DATABASE_ROLE: gestor_test_migrator
+      MIGRATION_SCHEMA_OWNER_ROLE: gestor_test_owner
+      DATABASE_RUNTIME_ROLE: gestor_test_runtime
+      DATABASE_MIGRATION_ROLE: gestor_test_migrator
+      DATABASE_SCHEMA_OWNER_ROLE: gestor_test_owner
+      ERP_DATABASE_URL: postgresql://erp_read_test:erp_read_test_only@erp-test:5432/solidpruebas3
+      ERP_READ_DATABASE_URL: postgresql://erp_read_test:erp_read_test_only@erp-test:5432/solidpruebas3
+      ERP_READ_EXPECTED_DATABASE: solidpruebas3
+      ENVIRONMENT: tests
+      ENTORNO: tests
+      JWT_SECRET_KEY: test-jwt-secret-key-with-more-than-32-characters
+      JWT_SECRETO: test-jwt-secret-key-with-more-than-32-characters
+      PORTAL_PENDING_PWD: test-pending-password-with-more-than-32-chars
+      REDIS_URL: redis://redis-test:6379/0
+      TEST_BASE_URL: http://backend-test:8000/api/v2
+      TEST_USER_CEDULA: admin_test
+      TEST_USER_PASS: test-admin-bootstrap-password-0123456789abcdef
+      TEST_ISOLATED: "1"
+      RBAC_ADMIN_CAPABILITY_FILE: /run/secrets/rbac_test_capability
+      ADMIN_BOOTSTRAP_PASSWORD_FILE: /run/secrets/admin_bootstrap_test_password
+      ADMIN_BOOTSTRAP_CEDULA: admin_test
+      ADMIN_BOOTSTRAP_NOMBRE: Administrador Test
+    volumes:
+      - ./testing/backend/fixtures/rbac_test_capability:/run/secrets/rbac_test_capability:ro
+      - ./testing/backend/fixtures/admin_bootstrap_test_password:/run/secrets/admin_bootstrap_test_password:ro
+    depends_on:
+      db-test:
+        condition: service_healthy
+    networks: [test-network]
+
+  seed-test:
+    image: postgres:15-alpine
+    command:
+      - sh
+      - -c
+      - PGPASSWORD=postgres_test_only psql -h db-test -U postgres -d project_manager_test -v ON_ERROR_STOP=1 -f /seed/01_runtime_seed.sql
+    volumes:
+      - ./testing/postgres/seed:/seed:ro
+    depends_on:
+      migrate-test:
+        condition: service_completed_successfully
+    networks: [test-network]
+
+  backend-test:
+    build:
+      context: ./backend_v2
+      dockerfile: Dockerfile
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+    environment: *backend-test-env
+    volumes:
+      - ./testing/backend/fixtures/rbac_test_capability:/run/secrets/rbac_test_capability:ro
+      - ./testing/backend/fixtures/admin_bootstrap_test_password:/run/secrets/admin_bootstrap_test_password:ro
+    depends_on:
+      seed-test:
+        condition: service_completed_successfully
+      erp-test:
+        condition: service_healthy
+      redis-test:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=2)
+      interval: 2s
+      timeout: 3s
+      retries: 30
+    networks: [test-network]
+
+  tests:
+    build:
+      context: ./backend_v2
+      dockerfile: Dockerfile
+    working_dir: /workspace
+    command: pytest
+    environment:
+      <<: *backend-test-env
+      PYTHONPATH: /workspace/backend_v2
+    volumes:
+      - .:/workspace
+      - ./testing/backend/fixtures/rbac_test_capability:/run/secrets/rbac_test_capability:ro
+      - ./testing/backend/fixtures/admin_bootstrap_test_password:/run/secrets/admin_bootstrap_test_password:ro
+    depends_on:
+      backend-test:
+        condition: service_healthy
+    networks: [test-network]
+
+networks:
+  test-network:
+    driver: bridge

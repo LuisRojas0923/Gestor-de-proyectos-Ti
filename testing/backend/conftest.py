@@ -10,7 +10,7 @@ import warnings
 import builtins
 from datetime import datetime
 from pathlib import Path
-from dotenv import load_dotenv
+from urllib.parse import urlparse
 
 # Forzar UTF-8 en stdout/stderr ANTES de que pytest intente imprimir nada.
 # Windows usa cp1252 por defecto y falla con caracteres españoles (ñ, tildes, etc.)
@@ -41,12 +41,50 @@ def _open_utf8(file, mode="r", buffering=-1, encoding=None, errors=None, newline
 
 builtins.open = _open_utf8
 
-# Cargar .env.test primero (tiene DB_HOST=localhost para tests locales),
-# luego el .env del backend como fallback.
-_env_test = Path(__file__).parent / ".env.test"
-_env_backend = Path(__file__).parent.parent.parent / "backend_v2" / ".env"
-load_dotenv(_env_test)
-load_dotenv(_env_backend)  # fallback para vars no definidas en .env.test
+# Evita que los Settings de la aplicacion lean cualquier .env del workspace.
+os.environ["TEST_ISOLATED"] = "1"
+
+def _validar_marcadores_aislados(
+    marcadores: set[str],
+    entorno=None,
+) -> None:
+    env = os.environ if entorno is None else entorno
+    erp_url = env.get("ERP_READ_DATABASE_URL", "")
+    erp = urlparse(erp_url)
+    if "erp_postgres_integration" in marcadores:
+        if env.get("ALLOW_ERP_TEST_DB") != "1":
+            raise RuntimeError("erp_postgres_integration requiere ALLOW_ERP_TEST_DB=1")
+        if erp.hostname != "erp-test" or erp.path.rstrip("/") != "/solidpruebas3":
+            raise RuntimeError("ERP de integracion debe ser erp-test/solidpruebas3")
+
+    if "mutating_integration" in marcadores:
+        if env.get("ALLOW_MUTATING_TESTS") != "1":
+            raise RuntimeError("mutating_integration requiere ALLOW_MUTATING_TESTS=1")
+
+    if "live_infrastructure" in marcadores:
+        if env.get("ALLOW_LIVE_INFRA_TESTS") != "1":
+            raise RuntimeError("live_infrastructure requiere ALLOW_LIVE_INFRA_TESTS=1")
+
+    if marcadores & {"mutating_integration", "live_infrastructure"}:
+        db = urlparse(env.get("DATABASE_URL", ""))
+        base_url = env.get("TEST_BASE_URL", "")
+        if db.hostname != "db-test" or db.path.rstrip("/") != "/project_manager_test":
+            raise RuntimeError("Tests mutantes requieren db-test/project_manager_test")
+        if base_url != "http://backend-test:8000/api/v2":
+            raise RuntimeError("Tests HTTP requieren exclusivamente backend-test")
+
+
+@pytest.hookimpl(trylast=True)
+def pytest_collection_modifyitems(items):
+    marcadores = {
+        marcador.name
+        for item in items
+        for marcador in item.iter_markers()
+    }
+    try:
+        _validar_marcadores_aislados(marcadores)
+    except RuntimeError as exc:
+        raise pytest.UsageError(str(exc)) from exc
 
 # Suprimir DeprecationWarning del legacy app.config en el contexto de tests.
 # La migración completa a app.core.config está pendiente (Fase 4); mientras

@@ -1,3 +1,4 @@
+import os
 import socket
 import warnings
 from typing import Optional
@@ -44,6 +45,8 @@ class Configuracion(BaseSettings):
     erp_database_url: str = (
         "postgresql://user:pass@localhost:5432/erp_db"  # [CONTROLADO]
     )
+    erp_read_database_url: Optional[str] = None
+    erp_read_expected_database: Optional[str] = None
     sync_external_url: str = "http://localhost:8099/sync"
 
     # Seguridad JWT y Portal
@@ -108,7 +111,11 @@ class Configuracion(BaseSettings):
     class Config:
         # Buscamos el .env en la raíz del proyecto (un nivel arriba de backend_v2)
         # o en la carpeta actual de ejecución.
-        env_file = (".env", "../.env", "../../.env")
+        env_file = (
+            None
+            if os.getenv("TEST_ISOLATED") == "1"
+            else (".env", "../.env", "../../.env")
+        )
         env_file_encoding = "utf-8"
         case_sensitive = False
         extra = "ignore"

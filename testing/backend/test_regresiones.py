@@ -1,10 +1,11 @@
 import pytest
 import os
 from datetime import datetime
-from dotenv import load_dotenv
 
-# Cargar variables de entorno
-load_dotenv()
+pytestmark = [
+    pytest.mark.mutating_integration,
+    pytest.mark.live_infrastructure,
+]
 
 # Usamos cédula de prueba estándar del proyecto
 TEST_USER_CEDULA = os.getenv("TEST_USER_CEDULA", "1107068093")

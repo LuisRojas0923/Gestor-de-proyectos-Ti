@@ -242,6 +242,10 @@ async def startup_event():
         iniciar_loop_refrescamiento_diario(hora_objetivo=2)
     )
 
+    # 7. Validar en segundo plano la fuente ERP de perfiles sin bloquear portal.
+    from app.services.erp.perfiles_laborales_service import verificar_fuente_perfiles_erp
+    asyncio.create_task(verificar_fuente_perfiles_erp())
+
 @app.get("/")
 async def raiz():
     """Endpoint raiz"""
