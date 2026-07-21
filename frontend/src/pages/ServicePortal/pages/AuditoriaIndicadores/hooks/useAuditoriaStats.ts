@@ -106,15 +106,21 @@ export function useAuditoriaStats() {
             const token = localStorage.getItem('token');
             if (!token) return;
 
-            // Utilizar el proxy de Vite en desarrollo o la URL base configurada en producción
-            // Esto evita problemas de puertos expuestos y CORS
             const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
             const apiBase = import.meta.env.VITE_API_BASE_URL || '/api/v2';
-            const baseUrl = apiBase.startsWith('http') 
-                ? apiBase.replace(/^http/, 'ws') 
-                : `${wsProtocol}//${window.location.host}${apiBase}`;
-                
-            const wsUrl = `${baseUrl}/auditoria/ws/dashboard`;
+            let baseUrl = '';
+
+            if (apiBase.startsWith('http')) {
+                baseUrl = apiBase.replace(/^http/, 'ws');
+            } else {
+                let host = window.location.host;
+                if (host.includes(':5173')) {
+                    host = host.replace(':5173', ':8000');
+                }
+                baseUrl = `${wsProtocol}//${host}${apiBase}`;
+            }
+
+            const wsUrl = `${baseUrl}/auditoria/ws/dashboard?token=${encodeURIComponent(token)}`;
 
             try {
                 socket = new WebSocket(wsUrl, ["auth", token]);

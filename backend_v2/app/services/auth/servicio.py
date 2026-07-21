@@ -485,17 +485,17 @@ class ServicioAuth:
         from app.models.auth.usuario import Sesion
         from app.utils_date import get_bogota_now
 
-        # Validar en la BD si la sesión existe y no está revocada/expirada
+        # Validar en la BD si la sesión fue revocada (o si es MCP y requiere persistencia)
         sesion = (
             await db.execute(select(Sesion).where(Sesion.jti == jti))
         ).scalars().first()
 
-        if not sesion:
-            return None, "Sesión revocada o inexistente"
-
-        expira_naive = sesion.expira_en.replace(tzinfo=None) if sesion.expira_en else None
-        if sesion.fin_sesion is not None or (expira_naive and expira_naive < get_bogota_now()):
-            return None, "Sesión revocada o expirada"
+        if sesion:
+            expira_naive = sesion.expira_en.replace(tzinfo=None) if sesion.expira_en else None
+            if sesion.fin_sesion is not None or (expira_naive and expira_naive < get_bogota_now()):
+                return None, "Sesión revocada o expirada"
+        elif token_type == "mcp":
+            return None, "Sesión MCP revocada o inexistente"
 
         usuario = await ServicioAuth.obtener_usuario_por_cedula(db, cedula)
         if not usuario:
