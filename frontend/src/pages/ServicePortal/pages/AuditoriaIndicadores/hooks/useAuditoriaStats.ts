@@ -94,7 +94,7 @@ export function useAuditoriaStats() {
         let socket: WebSocket | null = null;
         let timeoutId: ReturnType<typeof setTimeout> | null = null;
         let retryCount = 0;
-        const maxRetries = 10;
+        const maxRetries = 3;
         const baseDelay = 1000;
         const maxDelay = 30000;
         let isUnmounted = false;
