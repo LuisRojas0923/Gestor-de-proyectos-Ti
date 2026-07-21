@@ -10,14 +10,23 @@ async def desplegar_garantia_concurrente_reservas(conn: AsyncConnection):
     y aplica el constraint de exclusión para evitar concurrencias.
     """
     logger.info("Verificando/Instalando btree_gist para reserva de salas...")
-    await conn.execute(text("CREATE EXTENSION IF NOT EXISTS btree_gist;"))
+    try:
+        async with conn.begin_nested():
+            await conn.execute(text("CREATE EXTENSION IF NOT EXISTS btree_gist;"))
+    except Exception as e:
+        logger.warning(f"No se pudo instalar btree_gist (puede requerir superusuario). Detalles: {e}")
 
     # Verificar si el constraint ya existe
-    res = await conn.execute(text(
-        "SELECT 1 FROM pg_constraint WHERE conname = 'exclude_overlapping_reservations';"
-    ))
-    if res.scalar() is not None:
-        logger.info("La restricción 'exclude_overlapping_reservations' ya está instalada.")
+    try:
+        async with conn.begin_nested():
+            res = await conn.execute(text(
+                "SELECT 1 FROM pg_constraint WHERE conname = 'exclude_overlapping_reservations';"
+            ))
+            if res.scalar() is not None:
+                logger.info("La restricción 'exclude_overlapping_reservations' ya está instalada.")
+                return
+    except Exception as e:
+        logger.warning(f"Error al verificar la restricción: {e}")
         return
 
     logger.info("Autosanando posibles reservas solapadas antes de aplicar la restricción...")
@@ -41,7 +50,12 @@ async def desplegar_garantia_concurrente_reservas(conn: AsyncConnection):
         updated_at = NOW()
     WHERE id IN (SELECT id FROM overlapping);
     """
-    await conn.execute(text(fix_sql))
+    try:
+        async with conn.begin_nested():
+            await conn.execute(text(fix_sql))
+    except Exception as e:
+        logger.error(f"Error al sanar reservas solapadas: {e}")
+        return
 
     logger.info("Aplicando ExcludeConstraint estructural a reservations...")
     alter_sql = """
@@ -53,5 +67,10 @@ async def desplegar_garantia_concurrente_reservas(conn: AsyncConnection):
     )
     WHERE (status = 'ACTIVE');
     """
-    await conn.execute(text(alter_sql))
-    logger.info("Restricción 'exclude_overlapping_reservations' aplicada con éxito.")
+    try:
+        async with conn.begin_nested():
+            await conn.execute(text(alter_sql))
+        logger.info("Restricción 'exclude_overlapping_reservations' aplicada con éxito.")
+    except Exception as e:
+        logger.error(f"No se pudo aplicar ExcludeConstraint (¿Falta btree_gist?). Detalles: {e}")
+

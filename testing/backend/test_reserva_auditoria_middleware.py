@@ -83,12 +83,15 @@ async def test_middleware_auditoria_creacion_reserva(override_get_db, db_session
 
     result = await db_session.execute(
         select(AuditoriaAccionUsuario)
-        .where(AuditoriaAccionUsuario.ruta == "/api/v2/reserva-salas/reservations")
+        .where(
+            AuditoriaAccionUsuario.ruta == "/api/v2/reserva-salas/reservations",
+            AuditoriaAccionUsuario.usuario_nombre == "Usuario Auditoria"
+        )
     )
     auditorias = result.scalars().all()
 
     # Debe existir al menos un evento de auditoría por la creación
-    assert len(auditorias) > 0
+    assert len(auditorias) > 0, "No se encontró el evento de auditoría para este usuario"
     auditoria = auditorias[-1]
 
     # Comprobar que los datos nuevos tienen UUID convertido a string y room_name insertado

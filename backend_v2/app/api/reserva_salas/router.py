@@ -13,7 +13,7 @@ import logging
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import IntegrityError, DBAPIError
 
 from app.database import obtener_db
 from app.api.auth.router import obtener_usuario_actual_db
@@ -291,10 +291,15 @@ async def crear_reserva(
         return ReservationRead.model_validate(reservation)
     except HTTPException:
         raise
-    except IntegrityError as e:
+    except (IntegrityError, DBAPIError) as e:
         await db.rollback()
-        logging.error(f"IntegrityError en POST /reservations: {e}")
-        raise HTTPException(status_code=409, detail="La sala ya tiene una reserva en ese horario (Conflicto de integridad)")
+        # Si es un error de BD, tratamos las violaciones de constraints o deadlocks como 409
+        if isinstance(e, IntegrityError) or "deadlock" in str(e).lower() or "exclude" in str(e).lower():
+            logging.error(f"Error de concurrencia en POST /reservations: {e}")
+            raise HTTPException(status_code=409, detail="La sala ya tiene una reserva en ese horario (Conflicto de concurrencia)")
+        # Si es otro tipo de DBAPIError, lo relanzamos para que lo atrape Exception
+        logging.error(f"Error de base de datos en POST /reservations: {e}")
+        raise HTTPException(status_code=500, detail="Error de base de datos al crear reserva")
     except Exception as e:
         await db.rollback()
         logging.error(f"Error en POST /reservations: {e}")

@@ -8,7 +8,8 @@ from datetime import datetime, date, time
 from sqlmodel import SQLModel, Field, Relationship
 from sqlalchemy import Column, Text, DateTime, Index
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID, ARRAY, JSONB
-from sqlalchemy import text, ExcludeConstraint
+from sqlalchemy import text
+from sqlalchemy.dialects.postgresql import ExcludeConstraint
 from sqlalchemy.sql import func
 
 
