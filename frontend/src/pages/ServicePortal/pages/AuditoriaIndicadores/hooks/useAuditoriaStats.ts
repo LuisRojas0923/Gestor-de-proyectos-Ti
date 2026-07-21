@@ -110,9 +110,17 @@ export function useAuditoriaStats() {
                 ? `${wsProtocol}//localhost:8000/api/v2/auditoria/ws/dashboard`
                 : `${wsProtocol}//${wsHost}/api/v2/auditoria/ws/dashboard`;
 
-            socket = new WebSocket(wsUrl, token ? ["auth", token] : []);
+            try {
+                socket = new WebSocket(wsUrl, token ? ["auth", token] : []);
+            } catch (_) {
+                return;
+            }
 
             socket.onopen = () => {
+                if (isUnmounted) {
+                    try { socket?.close(1000, "Unmounted"); } catch (_) {}
+                    return;
+                }
                 if (stabilityTimeoutId) clearTimeout(stabilityTimeoutId);
                 stabilityTimeoutId = setTimeout(() => {
                     retryCount = 0;
@@ -122,6 +130,7 @@ export function useAuditoriaStats() {
             let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 
             socket.onmessage = (event) => {
+                if (isUnmounted) return;
                 try {
                     const data = JSON.parse(event.data);
                     if (data.type === 'UPDATE_INDICADORES') {
@@ -131,9 +140,7 @@ export function useAuditoriaStats() {
                             cargarRef.current(desde, hasta, true);
                         }, 1500); // 1.5s debounce
                     }
-                } catch (e) {
-                    console.error("Error parsing WS message:", e);
-                }
+                } catch (_) {}
             };
 
             socket.onclose = (event) => {
@@ -143,22 +150,23 @@ export function useAuditoriaStats() {
                 // Códigos de cierre permanentes que no deben reintentarse
                 const cierresPermanentes = [1000, 1002, 1003, 1007, 1008, 1009, 1010, 1011];
                 if (cierresPermanentes.includes(event.code)) {
-                    console.warn(`WebSocket cerrado permanentemente (código ${event.code}). No se intentará reconectar.`);
                     return;
                 }
 
                 if (retryCount < maxRetries) {
-                    // Exponential backoff
                     const delay = Math.min(baseDelay * Math.pow(2, retryCount), maxDelay);
                     retryCount++;
                     timeoutId = setTimeout(conectar, delay);
-                } else {
-                    console.error("Máximo número de reconexiones WS alcanzado.");
                 }
             };
 
             socket.onerror = () => {
-                socket?.close();
+                if (isUnmounted) return;
+                try {
+                    if (socket && socket.readyState !== WebSocket.CLOSED && socket.readyState !== WebSocket.CLOSING) {
+                        socket.close();
+                    }
+                } catch (_) {}
             };
         };
 
@@ -167,11 +175,14 @@ export function useAuditoriaStats() {
         return () => {
             isUnmounted = true;
             if (socket) {
-                socket.onclose = null; // Prevenir reconexión tras desmontar
-                if (socket.readyState === 1) {
-                    socket.close();
-                } else if (socket.readyState === 0) {
-                    socket.onopen = () => socket?.close();
+                socket.onclose = null;
+                socket.onerror = null;
+                if (socket.readyState === WebSocket.OPEN) {
+                    try { socket.close(1000, "Unmounted"); } catch (_) {}
+                } else if (socket.readyState === WebSocket.CONNECTING) {
+                    socket.onopen = () => {
+                        try { socket?.close(1000, "Unmounted"); } catch (_) {}
+                    };
                 }
             }
             if (timeoutId) clearTimeout(timeoutId);
