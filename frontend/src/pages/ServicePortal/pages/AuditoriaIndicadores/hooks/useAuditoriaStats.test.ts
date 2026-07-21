@@ -182,4 +182,30 @@ describe('useAuditoriaStats WebSocket Reconexión', () => {
     act(() => { vi.advanceTimersByTime(1000); });
     expect(global.WebSocket).toHaveBeenCalledTimes(4);
   });
+
+  it('ejecuta coalescing de ráfagas WS durante una carga activa y limpia el timer al desmontar', async () => {
+    let resolvePromise: (val: any) => void = () => {};
+    const pendingPromise = new Promise(resolve => { resolvePromise = resolve; });
+    mockGet.mockReturnValue(pendingPromise);
+
+    const { unmount } = renderHook(() => useAuditoriaStats());
+
+    // Disparar mensaje WS mientras la carga inicial está pendiente
+    act(() => {
+      wsInstanceMock.onmessage?.({ data: JSON.stringify({ type: 'UPDATE_INDICADORES' }) } as MessageEvent);
+      vi.advanceTimersByTime(1500);
+    });
+
+    const callsBeforeResolve = mockGet.mock.calls.length;
+
+    // Resolver la solicitud en curso
+    await act(async () => {
+      resolvePromise({ total_eventos: 100 });
+    });
+
+    expect(mockGet.mock.calls.length).toBeGreaterThan(callsBeforeResolve);
+
+    // Desmontar el hook debe limpiar el timer y cerrar el socket sin lanzar excepciones
+    unmount();
+  });
 });

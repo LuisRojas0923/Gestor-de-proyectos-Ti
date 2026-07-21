@@ -19,7 +19,29 @@ export function useAuditoriaStats() {
 
     const activeDatesRef = useRef<{ desde?: string; hasta?: string }>({ desde: '', hasta: '' });
 
+    // Trazabilidad de solicitudes, prevención de condiciones de carrera y Coalescing
+    const requestIdRef = useRef<number>(0);
+    const isFetchingRef = useRef<boolean>(false);
+    const pendingRefreshRef = useRef<boolean>(false);
+    const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    const clearDebounceTimer = useCallback(() => {
+        if (debounceTimerRef.current) {
+            clearTimeout(debounceTimerRef.current);
+            debounceTimerRef.current = null;
+        }
+    }, []);
+
     const cargar = useCallback(async (desde?: string, hasta?: string, silencioso = false) => {
+        // Coalescing: si ya hay una solicitud en curso, encolar una actualización sin lanzar request simultáneo
+        if (isFetchingRef.current) {
+            pendingRefreshRef.current = true;
+            return;
+        }
+
+        isFetchingRef.current = true;
+        const currentRequestId = ++requestIdRef.current;
+
         if (!silencioso) setIsLoading(true);
         setError(null);
         try {
@@ -38,17 +60,32 @@ export function useAuditoriaStats() {
                 getEventos(eventosUrl)
             ]);
 
-            if (statsData) {
-                setEstadisticas(statsData);
-            }
-            if (eventosData && eventosData.items) {
-                setUltimosEventos(eventosData.items);
+            // Protección contra desorden/desincronización de respuestas viejas
+            if (currentRequestId === requestIdRef.current) {
+                if (statsData) {
+                    setEstadisticas(statsData);
+                }
+                if (eventosData && eventosData.items) {
+                    setUltimosEventos(eventosData.items);
+                }
             }
         } catch (e) {
-            console.error("Error obteniendo estadísticas:", e);
-            setError('Error al cargar las estadísticas de auditoría.');
+            if (currentRequestId === requestIdRef.current) {
+                console.error("Error obteniendo estadísticas:", e);
+                setError('Error al cargar las estadísticas de auditoría.');
+            }
         } finally {
-            if (!silencioso) setIsLoading(false);
+            if (currentRequestId === requestIdRef.current && !silencioso) {
+                setIsLoading(false);
+            }
+            isFetchingRef.current = false;
+
+            // Si llegó un evento durante la solicitud, ejecutar un único refresco coalescido con las fechas vigentes
+            if (pendingRefreshRef.current) {
+                pendingRefreshRef.current = false;
+                const { desde: latestDesde, hasta: latestHasta } = activeDatesRef.current;
+                cargar(latestDesde, latestHasta, true);
+            }
         }
     }, [get, getEventos]);
 
@@ -136,15 +173,13 @@ export function useAuditoriaStats() {
                 }, 5000);
             };
 
-            let debounceTimer: ReturnType<typeof setTimeout> | null = null;
-
             socket.onmessage = (event) => {
                 if (isUnmounted) return;
                 try {
                     const data = JSON.parse(event.data);
                     if (data.type === 'UPDATE_INDICADORES') {
-                        if (debounceTimer) clearTimeout(debounceTimer);
-                        debounceTimer = setTimeout(() => {
+                        clearDebounceTimer();
+                        debounceTimerRef.current = setTimeout(() => {
                             const { desde, hasta } = activeDatesRef.current;
                             cargarRef.current(desde, hasta, true);
                         }, 1500); // 1.5s debounce
@@ -153,6 +188,7 @@ export function useAuditoriaStats() {
             };
 
             socket.onclose = (event) => {
+                clearDebounceTimer();
                 if (isUnmounted) return;
                 if (stabilityTimeoutId) clearTimeout(stabilityTimeoutId);
 
@@ -170,6 +206,7 @@ export function useAuditoriaStats() {
             };
 
             socket.onerror = () => {
+                clearDebounceTimer();
                 if (isUnmounted) return;
                 try {
                     if (socket && socket.readyState !== WebSocket.CLOSED && socket.readyState !== WebSocket.CLOSING) {
@@ -183,6 +220,7 @@ export function useAuditoriaStats() {
 
         return () => {
             isUnmounted = true;
+            clearDebounceTimer();
             if (socket) {
                 socket.onclose = null;
                 socket.onerror = null;
@@ -197,7 +235,7 @@ export function useAuditoriaStats() {
             if (timeoutId) clearTimeout(timeoutId);
             if (stabilityTimeoutId) clearTimeout(stabilityTimeoutId);
         };
-    }, []);
+    }, [clearDebounceTimer]);
 
     return {
         estadisticas,
