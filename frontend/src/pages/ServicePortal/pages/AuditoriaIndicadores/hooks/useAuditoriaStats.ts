@@ -113,17 +113,14 @@ export function useAuditoriaStats() {
             if (apiBase.startsWith('http')) {
                 baseUrl = apiBase.replace(/^http/, 'ws');
             } else {
-                let host = window.location.host;
-                if (host.includes(':5173')) {
-                    host = host.replace(':5173', ':8000');
-                }
+                const host = window.location.host;
                 baseUrl = `${wsProtocol}//${host}${apiBase}`;
             }
 
             const wsUrl = `${baseUrl}/auditoria/ws/dashboard?token=${encodeURIComponent(token)}`;
 
             try {
-                socket = new WebSocket(wsUrl, ["auth", token]);
+                socket = new WebSocket(wsUrl);
             } catch (_) {
                 return;
             }
