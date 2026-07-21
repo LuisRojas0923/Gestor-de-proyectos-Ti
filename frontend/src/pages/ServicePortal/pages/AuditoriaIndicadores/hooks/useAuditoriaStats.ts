@@ -72,7 +72,8 @@ export function useAuditoriaStats() {
         } catch (e) {
             if (currentRequestId === requestIdRef.current) {
                 console.error("Error obteniendo estadísticas:", e);
-                setError('Error al cargar las estadísticas de auditoría.');
+                const msg = e instanceof Error ? e.message : 'Error al cargar las estadísticas de auditoría.';
+                setError(msg);
             }
         } finally {
             if (currentRequestId === requestIdRef.current && !silencioso) {
