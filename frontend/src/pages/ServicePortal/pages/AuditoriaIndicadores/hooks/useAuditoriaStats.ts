@@ -104,6 +104,8 @@ export function useAuditoriaStats() {
             if (isUnmounted) return;
 
             const token = localStorage.getItem('token');
+            if (!token) return;
+
             const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
             const wsHost = window.location.host;
             const wsUrl = wsHost.includes('localhost')
@@ -111,7 +113,7 @@ export function useAuditoriaStats() {
                 : `${wsProtocol}//${wsHost}/api/v2/auditoria/ws/dashboard`;
 
             try {
-                socket = new WebSocket(wsUrl, token ? ["auth", token] : []);
+                socket = new WebSocket(wsUrl, ["auth", token]);
             } catch (_) {
                 return;
             }
