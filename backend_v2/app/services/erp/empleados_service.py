@@ -172,7 +172,11 @@ class EmpleadosService:
         return empleado
 
     @staticmethod
-    def consultar_empleados_bulk(db_erp: Session, cedulas: List[str]) -> Dict[str, Dict]:
+    def consultar_empleados_bulk(
+        db_erp: Session,
+        cedulas: List[str],
+        incluir_datos_laborales: bool = False,
+    ) -> Dict[str, Dict]:
         """
         Consulta masiva al ERP: devuelve {cedula: {nombre, estado, empresa}}
         para todas las cédulas proporcionadas (activos e inactivos).
@@ -184,16 +188,40 @@ class EmpleadosService:
         placeholders = ", ".join(f":c{i}" for i in range(len(cedulas)))
         params = {f"c{i}": ced for i, ced in enumerate(cedulas)}
 
+        tiene_jefe = incluir_datos_laborales and _existe_columna(db_erp, "contrato", "jefe")
+        tiene_contrato_numero = incluir_datos_laborales and _existe_columna(db_erp, "contrato", "numerocontrato")
+        tiene_beneficio_autoriza = incluir_datos_laborales and all([
+            tiene_contrato_numero,
+            _existe_columna(db_erp, "beneficio", "contrato"),
+            _existe_columna(db_erp, "beneficio", "autorizacionhorasextras"),
+        ])
+        tiene_beneficio_estado = incluir_datos_laborales and _existe_columna(db_erp, "beneficio", "estado")
+        select_jefe = 'C.jefe::text AS "quien_reporta"' if tiene_jefe else 'NULL::text AS "quien_reporta"'
+        select_autoriza = (
+            'B.autorizacionhorasextras AS "autoriza_he"'
+            if tiene_beneficio_autoriza else 'NULL::boolean AS "autoriza_he"'
+        )
+        join_beneficio = """
+            LEFT JOIN beneficio B
+                ON TRIM(CAST(B.contrato AS TEXT)) = TRIM(CAST(C.numerocontrato AS TEXT))
+                {estado_beneficio}
+        """.format(
+            estado_beneficio="AND B.estado = 'Activo'" if tiene_beneficio_estado else ""
+        ) if tiene_beneficio_autoriza else ""
+
         query = text(f"""
             SELECT DISTINCT ON (E.nrocedula)
                 E.nrocedula      AS "nrocedula",
                 E.nombre::text   AS "nombre",
                 C.estado::text   AS "estado",
                 C.empresa::text  AS "empresa",
-                C.ciudadcontratacion::text AS "ciudadcontratacion"
+                C.ciudadcontratacion::text AS "ciudadcontratacion",
+                {select_jefe},
+                {select_autoriza}
             FROM establecimiento E
             LEFT JOIN contrato C
                 ON TRIM(CAST(C.establecimiento AS TEXT)) = TRIM(CAST(E.nrocedula AS TEXT))
+            {join_beneficio}
             WHERE E.nrocedula IN ({placeholders})
             ORDER BY E.nrocedula, C.fechainicio DESC NULLS LAST
         """)
@@ -206,6 +234,8 @@ class EmpleadosService:
                 "estado": r.estado or "Desconocido",
                 "empresa": r.empresa or "",
                 "ciudadcontratacion": r.ciudadcontratacion or "",
+                "quien_reporta": r.quien_reporta,
+                "autoriza_he": _normalizar_bool(r.autoriza_he),
             }
         return mapa
 
@@ -213,12 +243,10 @@ class EmpleadosService:
     async def consultar_empleados_bulk_async(
         db_erp: Session,
         cedulas: List[str],
+        incluir_datos_laborales: bool = False,
     ) -> Dict[str, Dict]:
-        return await run_in_threadpool(
-            EmpleadosService.consultar_empleados_bulk,
-            db_erp,
-            cedulas,
-        )
+        args = (db_erp, cedulas, True) if incluir_datos_laborales else (db_erp, cedulas)
+        return await run_in_threadpool(EmpleadosService.consultar_empleados_bulk, *args)
 
     @staticmethod
     def actualizar_correo_erp_sync(

@@ -1,24 +1,42 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Title, Text, Button, MaterialCard, Input, Select, Badge } from '../../../../components/atoms';
-import { ArrowLeft, Search, RefreshCw } from 'lucide-react';
-import { listarCalculos } from '../../../../services/horasExtrasService';
-import type { CalculoSemanal } from '../../../../types/horasExtras';
+import { Title, Text, Button, MaterialCard, Input, Select } from '../../../../components/atoms';
+import { DataTable } from '../../../../components/molecules/DataTable';
+import Callout from '../../../../components/molecules/Callout';
+import { ArrowLeft, Search, RefreshCw, Database } from 'lucide-react';
+import { listarCalculosPlanilla } from '../../../../services/horasExtrasPlanillaService';
+import type { CalculoPlanilla } from '../../../../types/horasExtrasPlanilla';
+import { useColumnFilters } from '../../../../hooks/useColumnFilters';
+import {
+  CALCULO_PLANILLA_ACCESSORS,
+  CALCULO_PLANILLA_COLUMNS,
+} from './calculoPlanillaColumns';
 
-const fmtCurrency = (n: number) =>
-  new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(n);
+const currencyFormatter = new Intl.NumberFormat('es-CO', {
+  style: 'currency',
+  currency: 'COP',
+  minimumFractionDigits: 0,
+});
+const fmtCurrency = (n: number) => currencyFormatter.format(n);
 
-const ESTADO_VARIANTS: Record<string, React.ComponentProps<typeof Badge>['variant']> = {
-  BORRADOR: 'default',
-  PENDIENTE_AUTORIZACION: 'warning',
-  CONFIRMADO: 'info',
-  PAGADO: 'success',
-  COMPENSADO: 'warning',
-  ANULADO: 'error',
-};
+const fmtHours = (n: number) => `${Number(n).toFixed(2)} h`;
+const BLOQUE_FILAS = 100;
 
-const labelClass = 'text-xs text-[var(--color-text-secondary)]';
-const valueClass = 'text-[var(--color-text-primary)]';
+interface ResumenCardProps {
+  label: string;
+  value: string | number;
+}
+
+const ResumenCard: React.FC<ResumenCardProps> = ({ label, value }) => (
+  <MaterialCard className="min-h-[88px] p-3 text-center">
+    <Text variant="caption" color="text-secondary" weight="bold" className="uppercase tracking-wider">
+      {label}
+    </Text>
+    <Text variant="h5" weight="bold" className="mt-1 text-[var(--color-text-primary)]">
+      {value}
+    </Text>
+  </MaterialCard>
+);
 
 const CalculoListView: React.FC = () => {
   const navigate = useNavigate();
@@ -26,13 +44,26 @@ const CalculoListView: React.FC = () => {
   const [cedula, setCedula] = useState('');
   const [anio, setAnio] = useState<number | ''>('');
   const [estado, setEstado] = useState('');
-  const [calculos, setCalculos] = useState<CalculoSemanal[]>([]);
+  const [filas, setFilas] = useState<CalculoPlanilla[]>([]);
+  const [limiteFilas, setLimiteFilas] = useState(BLOQUE_FILAS);
   const [cargando, setCargando] = useState(false);
+  const [error, setError] = useState('');
+  const {
+    filters: columnFilters,
+    filteredData,
+    cascadingOptions,
+    setColumnFilter,
+    activeFilterCount,
+    clearAllFilters,
+  } = useColumnFilters(filas, CALCULO_PLANILLA_ACCESSORS);
 
   const cargar = async () => {
     setCargando(true);
+    setError('');
+    setFilas([]);
+    setLimiteFilas(BLOQUE_FILAS);
     try {
-      const r = await listarCalculos(
+      const r = await listarCalculosPlanilla(
         {
           cedula: cedula.trim() || undefined,
           anio: anio === '' ? undefined : Number(anio),
@@ -41,12 +72,28 @@ const CalculoListView: React.FC = () => {
         },
         localStorage.getItem('token') || '',
       );
-      setCalculos(r);
+      setFilas(r);
     } catch {
-      setCalculos([]);
+      setFilas([]);
+      setError('No fue posible consultar los cálculos. Intenta de nuevo.');
     } finally {
       setCargando(false);
     }
+  };
+
+  const buscar = () => {
+    limpiarFiltros();
+    void cargar();
+  };
+
+  const limpiarFiltros = () => {
+    setLimiteFilas(BLOQUE_FILAS);
+    clearAllFilters();
+  };
+
+  const cambiarFiltro = (key: string, values: Set<string>) => {
+    setLimiteFilas(BLOQUE_FILAS);
+    setColumnFilter(key, values);
   };
 
   useEffect(() => {
@@ -54,22 +101,36 @@ const CalculoListView: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const totalHoras = filteredData.reduce((total, fila) => total + Number(fila.cantidad_horas || 0), 0);
+  const costoEmpresa = filteredData.reduce((total, fila) => total + Number(fila.costo_total || 0), 0);
+  const empleados = new Set(filteredData.map((fila) => fila.cedula)).size;
+  const filasRenderizadas = filteredData.slice(0, limiteFilas);
+
   return (
-    <div className="p-6 max-w-6xl mx-auto">
-      <div className="flex items-center gap-3 mb-6">
-        <Button
-          variant="secondary"
-          onClick={() => navigate('/service-portal/tiempo-asistencia')}
-          className="!p-2 !rounded-full"
-          aria-label="Volver a Tiempo y Asistencia"
-        >
-          <ArrowLeft className="w-5 h-5" />
+    <div className="mx-auto flex max-w-[1600px] flex-col gap-2 px-2 sm:px-4 lg:h-[calc(100vh-170px)] lg:overflow-hidden">
+      <div className="flex flex-none flex-col gap-3 pb-1 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex min-w-0 items-center gap-3">
+          <Button
+            variant="ghost"
+            onClick={() => navigate('/service-portal/tiempo-asistencia')}
+            className="!h-10 !w-10 !rounded-full !p-2"
+            aria-label="Volver a Tiempo y Asistencia"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <div className="min-w-0">
+            <Title variant="h4" weight="bold" className="truncate">CÁLCULOS DE HORAS EXTRAS</Title>
+            <Text variant="caption" color="text-secondary">HISTORIAL / TRAZABILIDAD SEMANAL</Text>
+          </div>
+        </div>
+        <Button variant="outline" size="sm" onClick={cargar} disabled={cargando}>
+          <RefreshCw className={`mr-2 h-4 w-4 ${cargando ? 'animate-spin' : ''}`} />
+          Actualizar
         </Button>
-        <Title level={2} className="!m-0">Historial de Cálculos</Title>
       </div>
 
-      <MaterialCard className="p-4 mb-4">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+      <MaterialCard className="flex-none p-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <Input
             label="Cédula"
             value={cedula}
@@ -98,67 +159,83 @@ const CalculoListView: React.FC = () => {
             ]}
           />
           <div className="flex items-end">
-            <Button onClick={cargar} disabled={cargando} className="w-full">
-              <Search className="w-4 h-4 mr-2" />
+            <Button onClick={buscar} disabled={cargando} fullWidth>
+              <Search className="mr-2 h-4 w-4" />
               {cargando ? 'Buscando...' : 'Buscar'}
             </Button>
           </div>
         </div>
       </MaterialCard>
 
-      {calculos.length === 0 ? (
-        <MaterialCard className="p-8 text-center">
-          <Text className="text-[var(--color-text-secondary)]">
-            {cargando ? 'Cargando...' : 'No hay cálculos para los filtros seleccionados.'}
-          </Text>
-        </MaterialCard>
-      ) : (
-        <div className="space-y-2">
-          {calculos.map((c) => (
-            <MaterialCard
-              key={c.id}
-              onClick={() => navigate(`/service-portal/horas-extras/calculos/${c.id}`)}
-              hoverable
-              className="p-4 cursor-pointer border border-[var(--color-border)] hover:border-[var(--color-primary)] hover:bg-[var(--color-surface-variant)]"
-            >
-              <div className="grid grid-cols-1 md:grid-cols-6 gap-2 items-center">
-                <div>
-                  <Text className={labelClass}>Cálculo</Text>
-                  <Text className={`font-medium ${valueClass}`}>#{c.id}</Text>
-                </div>
-                <div>
-                  <Text className={labelClass}>Cédula</Text>
-                  <Text className={valueClass}>{c.cedula}</Text>
-                </div>
-                <div>
-                  <Text className={labelClass}>Periodo</Text>
-                  <Text className={valueClass}>{c.anio}-W{String(c.semana_iso).padStart(2, '0')}</Text>
-                </div>
-                <div>
-                  <Text className={labelClass}>Horas extras</Text>
-                  <Text className={valueClass}>{c.total_horas_extras}h</Text>
-                </div>
-                <div>
-                  <Text className={labelClass}>Costo empresa</Text>
-                  <Text className={`font-medium ${valueClass}`}>{fmtCurrency(c.total_costo_empresa)}</Text>
-                </div>
-                <div>
-                  <Badge size="sm" variant={ESTADO_VARIANTS[c.estado] ?? 'default'}>
-                    {c.estado}
-                  </Badge>
-                </div>
-              </div>
-            </MaterialCard>
-          ))}
-        </div>
+      {error && (
+        <Callout variant="error" role="alert" title="No fue posible cargar los cálculos" className="flex-none">
+          <Text variant="body2" color="inherit">{error}</Text>
+          <Button variant="outline" size="sm" onClick={cargar}>Reintentar</Button>
+        </Callout>
       )}
 
-      <div className="mt-4 flex justify-end">
-        <Button variant="secondary" onClick={cargar} disabled={cargando}>
-          <RefreshCw className="w-4 h-4 mr-2" />
-          Refrescar
-        </Button>
-      </div>
+      {!error && (
+        <div className="contents">
+          <div className="grid flex-none grid-cols-2 gap-2 lg:grid-cols-4" aria-label="Resumen de registros filtrados">
+            <ResumenCard label="Registros filtrados" value={filteredData.length} />
+            <ResumenCard label="Empleados filtrados" value={empleados} />
+            <ResumenCard label="Horas registradas" value={fmtHours(totalHoras)} />
+            <ResumenCard label="Costo calculado" value={fmtCurrency(costoEmpresa)} />
+          </div>
+
+          <div className="flex min-h-[320px] flex-col overflow-hidden rounded-xl lg:min-h-0 lg:flex-1">
+            <div className="flex flex-none items-center justify-between gap-2 border-x border-t border-[var(--color-border)] bg-[var(--color-surface-variant)]/50 px-3 py-2">
+              <div className="flex min-w-0 items-center gap-2">
+                <Database className="h-4 w-4 shrink-0 text-[var(--color-text-secondary)]" />
+                <Text variant="caption" color="text-secondary" weight="bold" className="truncate uppercase tracking-wider">
+                  Registros por empleado · hasta 100 cálculos consultados
+                </Text>
+              </div>
+              {activeFilterCount > 0 && (
+                <Button
+                  variant="ghost"
+                  size="xs"
+                  onClick={limpiarFiltros}
+                  aria-label={`Limpiar ${activeFilterCount} filtros`}
+                >
+                  Limpiar filtros ({activeFilterCount})
+                </Button>
+              )}
+            </div>
+            <DataTable
+              columns={CALCULO_PLANILLA_COLUMNS}
+              data={filasRenderizadas}
+              keyExtractor={(fila) => fila.fila_id}
+              onRowClick={(fila) => navigate(`/service-portal/horas-extras/calculos/${fila.calculo_id}`)}
+              isLoading={cargando}
+              loadingMessage="Consultando cálculos..."
+              emptyMessage="No hay cálculos para los filtros seleccionados."
+              minHeight="min-h-[260px]"
+              maxHeight="max-h-[70vh] lg:max-h-none"
+              className="min-h-0 flex-1 rounded-b-xl"
+              columnFilters={columnFilters}
+              columnOptions={cascadingOptions}
+              onFilterChange={cambiarFiltro}
+            />
+            {filteredData.length > BLOQUE_FILAS && (
+              <div className="flex flex-none items-center justify-between gap-3 border-x border-b border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2">
+                <Text variant="caption" color="text-secondary">
+                  Mostrando {filasRenderizadas.length} de {filteredData.length} registros
+                </Text>
+                {filasRenderizadas.length < filteredData.length && (
+                  <Button
+                    variant="outline"
+                    size="xs"
+                    onClick={() => setLimiteFilas((actual) => actual + BLOQUE_FILAS)}
+                  >
+                    Cargar más registros
+                  </Button>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

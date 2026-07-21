@@ -484,10 +484,34 @@ def empleado_activo(cedula: str, db_erp: AsyncSession) -> dict | None:
 | POST | `/workflow/{tabla}/{id}/transicion` | depende del estado | Body: `{estado_destino, justificacion}` |
 | GET | `/calculo/preview?cedula=&anio=&semana=` | `nomina.calculo.preview` | Calcula sin persistir |
 | POST | `/calculo/confirmar` | `nomina.calculo.aprobacion` | Persiste y deja en BORRADOR |
+| GET | `/calculos/planilla` | `nomina_horas_extras.leer` | Planilla diaria consolidada por empleado, fecha, CC y novedad; aplica alcance de empleados |
 | GET | `/calculos/{calculo_id}` | autenticado | Detalle de un calculo confirmado; incluye `detalle_diario_estado` y `detalle_diario` si existe snapshot |
 | GET | `/bolsa/{cedula}` | `nomina.bolsa.consulta` | Saldo actual y movimientos |
 | POST | `/bolsa/compensar` | `nomina.calculo.aprobacion` | Registra débito |
 | GET | `/festivos/{anio}?fuente=auto|calendarific|emiliani` | público autenticado | Lista festivos |
+
+#### Contrato de la planilla de calculos
+
+`GET /calculos/planilla` acepta `cedula`, `anio`, `semana_iso`, `estado`, `limit` y `offset`. `limit` y `offset` paginan calculos semanales; cada calculo puede producir varias filas diarias. La respuesta usa `Cache-Control: no-store, private` porque contiene identificacion y valores de nomina.
+
+La clave funcional de consolidacion es `cedula + fecha + ot_cc + novedad`. Cuando la ubicacion es `CC`, `ot_cc` y `sub_subc` priorizan `cc` y `scc`; `orden` y `sub_indice` solo son respaldo cuando esos valores no existen. No se emiten repartos de cero horas.
+
+El contrato contiene 23 propiedades. Las 19 columnas operativas son `cedula`, `empleado`, `salario`, `base_hora`, `aplica_he`, `empresa`, `sucursal`, `fecha`, `ot_cc`, `sub_subc`, `especialidad_ot`, `cantidad`, `ubicacion`, `novedad`, `cantidad_horas`, `observaciones`, `responsable`, `encargados` y `cliente`. `fila_id`, `calculo_id`, `costo_total` y `estado` son metadatos internos de UI.
+
+Salario, base hora, estado y responsable se leen del calculo semanal en el estado consultado. Las horas, conceptos e importes diarios se generan desde el snapshot inmutable y se validan por hash, periodo y conciliacion contra el detalle semanal. Si el snapshot no supera la validacion, se usa el detalle semanal historico.
+
+CC, SCC y especialidad se proyectan desde las asignaciones vigentes del planificador porque esos campos no forman parte del snapshot diario persistido. Empresa, sucursal, jefe y metadatos OT/cliente tambien son lecturas ERP vigentes. Por tanto, estos metadatos descriptivos pueden cambiar respecto del momento de confirmacion; no deben interpretarse como evidencia historica inmutable. Si ERP no esta disponible, los campos opcionales quedan vacios sin impedir la consulta.
+
+Evidencia focal del 2026-07-21:
+
+| Comando | Resultado |
+|---|---|
+| `cd backend_v2; python -m pytest ../testing/backend/test_horas_extras_calculos_planilla.py -q` | 17 passed |
+| `cd backend_v2; python -m pytest ../testing/backend/test_horas_extras_ot_horarios.py -q` | 18 passed, 1 skipped; smoke ERP de produccion opt-in |
+| `cd frontend; npm run test -- --run src/tests/CalculoListView.test.tsx src/tests/horasExtrasPlanillaService.test.ts` | 11 passed |
+| `cd frontend; npx eslint src/pages/ServicePortal/pages/HORAS_EXTRAS/CalculoListView.tsx src/pages/ServicePortal/pages/HORAS_EXTRAS/calculoPlanillaColumns.tsx src/services/horasExtrasPlanillaService.ts src/types/horasExtrasPlanilla.ts src/tests/CalculoListView.test.tsx src/tests/horasExtrasPlanillaService.test.ts` | Sin hallazgos |
+| `cd frontend; npm run build` | 4042 modulos transformados |
+| `cd backend_v2; python -m compileall -q app/api/novedades_nomina/routers/horas_extras_consultas.py app/models/novedades_nomina/schemas_horas_extras.py app/models/novedades_nomina/schemas_horas_extras_planilla.py app/services/novedades_nomina/horas_extras_confirmacion.py app/services/novedades_nomina/horas_extras_planilla.py app/services/erp/empleados_service.py app/services/erp/ordenes_trabajo_service.py` | Sin errores |
 
 ### 2.4 Respuestas de error
 

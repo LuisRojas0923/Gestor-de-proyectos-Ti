@@ -46,6 +46,7 @@ Ubicación: `testing/backend/`
 | **Horas Extras S0 Semillas** | `test_horas_extras_s0.py` | Semillado, catalogo base, factores legales y topes iniciales del modulo. | ✅ PASSED |
 | **Horas Extras S1 Calculo** | `test_horas_extras_s1.py` | Motor de calculo semanal, clasificacion HED/HEN/HEFD/HEFN/HF, HF ordinaria festiva dentro de 42h, separacion HF+HEFD, valores numericos festivos, pre-vigencia 44h/220 y validaciones de entrada. | ✅ PASSED |
 | **Horas Extras S2 Confirmacion** | `test_horas_extras_s2.py` | Persistencia de calculo, detalle, bolsa, costo OT, idempotencia y auditoria desde usuario autenticado. | ✅ PASSED |
+| **Horas Extras Planilla Detallada** | `test_horas_extras_calculos_planilla.py` | Filas diarias consolidadas por empleado/fecha/CC/novedad, reparto multi-CC sin ceros, identidad privada por ID/cédula, integridad del snapshot, fallback histórico, alcance 404 y RBAC 401/403. | ✅ 17 PASSED el 2026-07-21 |
 | **Horas Extras Endpoint Audit** | `test_horas_extras_endpoint_audit.py` | Endpoint de confirmación ignora `usuario_confirma` enviado por cliente y persiste el usuario autenticado. | ✅ PASSED |
 | **Horas Extras S4 Workflow** | `test_horas_extras_s4.py` | Transiciones PAGADO/COMPENSADO/ANULADO, compensacion manual y persistencia endpoint-level con commit. | ✅ PASSED |
 | **Horas Extras S5 Festivos** | `test_horas_extras_s5_festivos.py` | Calendario de festivos, cache, sincronizacion Calendarific y manejo de errores externos. | ✅ PASSED |
@@ -56,6 +57,8 @@ Ubicación: `testing/backend/`
 | **Horas Extras S7 Planificador** | `test_horas_extras_s7.py` | Planificador semanal masivo, selector ERP protegido por RBAC, borrador, pre-calculo y confirmacion. | ✅ PASSED |
 | **Horas Extras Planificador Festivos** | `test_horas_extras_planificador_festivos.py` | HF del 13-jul-2026, HF+HEFD/HEFN, novedades oficiales, actividad en snapshot, días únicos, semana entre años, contrato ISO y paridad confirmación/trazabilidad. | ⚠️ 13 casos; 2 focales nuevos PASS, suite DB pendiente por reset de PostgreSQL |
 | **Horas Extras S8 OT/CC** | `test_horas_extras_s8_ot_mano_obra.py` | Reparto por horas/porcentaje con conciliación monetaria y residuo, concurrencia sobre la misma OT, validación del hash del snapshot y reversión exacta tras eliminar asignaciones mutables. | ✅ 10 PASSED |
+| **Horas Extras OT Horarios ERP - automático** | `test_horas_extras_ot_horarios.py` | Contrato SQL/mock paginado de `OThorarios`, selección determinista, categorías obligatorias, comodines escapados, límites HTTP, 401/403, total fuera de rango, cierre de sesión ERP y degradación controlada a 503. | ✅ 18 PASSED / 1 SKIPPED el 2026-07-21 |
+| **Horas Extras OT Horarios ERP - producción** | `test_horas_extras_ot_horarios.py::test_ot_horarios_contrato_erp_produccion` | Smoke read-only opt-in de relación/casing, permisos, columnas, nulabilidad, búsqueda y paginación. Responsable: equipo despliegue/ERP. Fecha objetivo: 2026-07-22, antes de desplegar. | ⛔ PENDIENTE; ejecutar con `RUN_ERP_PROD_CONTRACT=1` y `ERP_PROD_OT_QUERY` |
 | **Horas Extras S9 Reglas GH** | `test_horas_extras_s9_reglas_gh.py` | Reglas confirmadas por Gestion Humana: jornada semanal 42h/210h desde 2026-07-16, compensacion semanal, nocturna 19:00-06:00 y turnos cruzados en dos dias. | ✅ PASSED |
 | **Horas Extras S10 Trazabilidad Diaria** | `test_horas_extras_s10_trazabilidad_diaria.py` | Persistencia del snapshot diario de 7 dias asociado al calculo confirmado; lectura de estados `DISPONIBLE`, `HISTORICO_SIN_SNAPSHOT` e `INCOMPLETO`, sin ejecutar DDL con el rol runtime. | ✅ 3 PASSED |
 | **Horas Extras Parametros Calculo** | `test_horas_extras_parametros_calculo.py` | Consulta y edicion de reglas vigentes en `nomina_parametros_legales`; valida ruta sin prefijo duplicado, RBAC y uso de parametros editados. | ✅ PASSED |
@@ -104,6 +107,7 @@ Ubicación: `frontend/src/`
 | **Indicadores de Auditoría** | `pages/ServicePortal/pages/AuditoriaIndicadores/index.test.tsx` | Estados de éxito, error y actualización manual del dashboard. | ✅ PASSED |
 | **Organigrama interactivo** | `pages/OrganizationalHierarchy/*.test.tsx` y `utils.test.ts` | Expansión inicial, paneo móvil, layout aislado y controles accesibles. | ✅ PASSED |
 | **Líneas Corporativas** | `components/atoms/SearchableSelect.test.tsx`, `components/molecules/__tests__/{DataTable,Modal}.test.tsx`, `pages/CorporateLines/**/*.test.tsx` | Teclado, tabla/filtros accesibles, modales, confirmaciones, reintentos y estados de gestores. | ✅ PASSED |
+| **Horas Extras Cálculos UI** | `tests/CalculoListView.test.tsx`, `tests/horasExtrasPlanillaService.test.ts` | Orden exacto de 19 columnas, filtros Excel combinados, carga incremental de 100 filas, reinicio global, estados, navegación y contrato HTTP. | ✅ 11 PASSED el 2026-07-21 |
 
 ### 3. Arnés de agentes (Pytest)
 Ubicación: `testing/agent_harness/`
