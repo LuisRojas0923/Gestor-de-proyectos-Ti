@@ -411,9 +411,15 @@ async def actualizar_reserva(
         reservation.updated_by_name = usuario.nombre
         reservation.updated_by_document = usuario.cedula
 
-        await db.commit()
-        await db.refresh(reservation)
-        return reservation
+        try:
+            await db.commit()
+            await db.refresh(reservation)
+            return reservation
+        except IntegrityError:
+            await db.rollback()
+            raise HTTPException(
+                status_code=409, detail="La sala ya tiene una reserva en ese horario (Conflicto de integridad)"
+            )
     except HTTPException:
         raise
     except Exception as e:

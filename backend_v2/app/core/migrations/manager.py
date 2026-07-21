@@ -5,6 +5,7 @@ from app.core.migrations.structural_blindaje import ejecutar_blindaje_estructura
 from app.core.migrations.saneamiento_secuencias import reparar_todas_las_secuencias
 from app.core.migrations.auditoria_evento_migration import crear_tabla_auditoria_evento
 from app.core.migrations.auditoria_acciones_migration import crear_tabla_auditoria_acciones
+from app.core.migrations.reserva_salas_migration import desplegar_garantia_concurrente_reservas
 
 logger = logging.getLogger(__name__)
 
@@ -33,6 +34,13 @@ async def init_db_process(async_engine, AsyncSessionLocal):
             await reparar_todas_las_secuencias(conn)
         except Exception as e:
             logger.error(f"Error en saneamiento de secuencias: {e}")
+
+    # 3.4 Despliegue de Garantía Concurrente de Reservas
+    async with async_engine.begin() as conn:
+        try:
+            await desplegar_garantia_concurrente_reservas(conn)
+        except Exception as e:
+            logger.error(f"Error en garantía concurrente de reservas: {e}")
 
     # 3.5 Crear tabla auditoria_eventos (registro de intentos de verify-admin)
     async with async_engine.begin() as conn:

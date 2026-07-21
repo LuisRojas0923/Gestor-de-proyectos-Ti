@@ -8,7 +8,8 @@ from datetime import datetime, date, time
 from sqlmodel import SQLModel, Field, Relationship
 from sqlalchemy import Column, Text, DateTime, Index
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID, ARRAY, JSONB
-from sqlalchemy import text
+from sqlalchemy import text, ExcludeConstraint
+from sqlalchemy.sql import func
 
 
 def _uuid_pk():
@@ -79,6 +80,12 @@ class Reservation(SQLModel, table=True):
 
     __table_args__ = (
         Index("idx_reservation_room_time", "room_id", "start_datetime", "end_datetime"),
+        ExcludeConstraint(
+            ("room_id", "="),
+            (text("tstzrange(start_datetime, end_datetime, '()')"), "&&"),
+            where=text("status = 'ACTIVE'"),
+            name="exclude_overlapping_reservations"
+        ),
         {"extend_existing": True},
     )
 
