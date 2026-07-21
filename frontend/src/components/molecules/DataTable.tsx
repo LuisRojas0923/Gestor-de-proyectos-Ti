@@ -57,9 +57,29 @@ export interface DataTableProps<T> {
     emptyIcon?: React.ReactNode;
 
     maxHeight?: string;
-    minHeight?: string;
     className?: string;
 }
+
+const isInteractiveElement = (target: HTMLElement): boolean => {
+    const tagName = target.tagName;
+    const role = target.getAttribute('role');
+    if (
+        tagName === 'BUTTON' ||
+        tagName === 'INPUT' ||
+        tagName === 'SELECT' ||
+        tagName === 'TEXTAREA' ||
+        tagName === 'A' ||
+        role === 'button' ||
+        role === 'link' ||
+        role === 'checkbox' ||
+        role === 'option' ||
+        target.isContentEditable ||
+        target.closest('button, a, input, select, textarea, [role="button"], [role="link"], [role="checkbox"], [role="option"], [contenteditable="true"]') !== null
+    ) {
+        return true;
+    }
+    return false;
+};
 
 export function DataTable<T>({
     columns,
@@ -381,7 +401,7 @@ export function DataTable<T>({
                                     onClick={(e) => {
                                         if (onRowClick) {
                                             const target = e.target as HTMLElement;
-                                            if (target.tagName !== 'BUTTON' && target.tagName !== 'INPUT' && target.closest('button') === null) {
+                                            if (!isInteractiveElement(target)) {
                                                 e.stopPropagation();
                                                 onRowClick(row);
                                             }
@@ -390,18 +410,7 @@ export function DataTable<T>({
                                     onKeyDown={(e) => {
                                         if (onRowClick && (e.key === 'Enter' || e.key === ' ')) {
                                             const target = e.target as HTMLElement;
-                                            const role = target.getAttribute('role');
-                                            // Solo activar si el enter se hizo directamente en la fila
-                                            // o no proviene de elementos interactivos anidados
-                                            if (
-                                                target.tagName !== 'BUTTON' &&
-                                                target.tagName !== 'INPUT' &&
-                                                target.tagName !== 'SELECT' &&
-                                                target.tagName !== 'TEXTAREA' &&
-                                                target.tagName !== 'A' &&
-                                                role !== 'button' &&
-                                                target.closest('button') === null
-                                            ) {
+                                            if (!isInteractiveElement(target)) {
                                                 e.preventDefault();
                                                 onRowClick(row);
                                             }

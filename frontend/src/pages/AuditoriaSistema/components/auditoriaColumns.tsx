@@ -75,11 +75,17 @@ const calcularSeveridad = (row: AuditoriaEvento): Severidad => {
   const acc = (row.accion || '').toLowerCase();
   const code = row.codigo_respuesta || 200;
 
+  const cedulaConsultada = typeof row.metadatos?.cedula_consultada === 'string'
+    ? row.metadatos.cedula_consultada
+    : typeof row.metadatos?.cedula_consultada === 'number'
+    ? String(row.metadatos.cedula_consultada)
+    : null;
+
   const esConsultaTercero =
     row.modulo === 'viaticos' &&
-    row.metadatos?.cedula_consultada &&
-    row.usuario_id &&
-    !row.usuario_id.includes(row.metadatos.cedula_consultada);
+    Boolean(cedulaConsultada) &&
+    Boolean(row.usuario_id) &&
+    !row.usuario_id.includes(cedulaConsultada!);
 
   if (esConsultaTercero) return 'Medio';
 
@@ -273,11 +279,17 @@ export function getAuditoriaColumns(): DataTableColumn<AuditoriaEvento>[] {
         const sev = calcularSeveridad(row);
         let info = getSeveridadDetalle(sev);
 
+        const cedulaConsultada = typeof row.metadatos?.cedula_consultada === 'string'
+          ? row.metadatos.cedula_consultada
+          : typeof row.metadatos?.cedula_consultada === 'number'
+          ? String(row.metadatos.cedula_consultada)
+          : null;
+
         const esConsultaTercero =
           row.modulo === 'viaticos' &&
-          row.metadatos?.cedula_consultada &&
-          row.usuario_id &&
-          !row.usuario_id.includes(row.metadatos.cedula_consultada);
+          Boolean(cedulaConsultada) &&
+          Boolean(row.usuario_id) &&
+          !row.usuario_id.includes(cedulaConsultada!);
 
         if (esConsultaTercero && sev === 'Medio') {
           info = { significado: 'Consulta a tercero', accion: 'Validar motivo' };

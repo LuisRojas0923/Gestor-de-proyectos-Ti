@@ -68,6 +68,9 @@ const ConsolidatedTableById: React.FC<{ desarrolloId: string }> = ({ desarrolloI
     const [error, setError] = useState<string | null>(null);
 
     const [columnFilters, setColumnFilters] = useState<Record<string, Set<string>>>({});
+    const [activeFilter, setActiveFilter] = useState<string | null>(null);
+    const [anchorRect, setAnchorRect] = useState<DOMRect | null>(null);
+    const [filterSearchTerm, setFilterSearchTerm] = useState<string>('');
     const filterRefs = useRef<Record<string, HTMLButtonElement | null>>({});
 
     useEffect(() => {
@@ -367,6 +370,69 @@ const ConsolidatedTableById: React.FC<{ desarrolloId: string }> = ({ desarrolloI
             ) : (
                 <div className="py-12 text-center bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)]">
                     <Text variant="body2" color="text-secondary">No hay actividades registradas para este desarrollo.</Text>
+            {activeFilter && anchorRect && (
+                <div
+                    className="fixed z-50 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-3 shadow-xl max-w-xs"
+                    style={{
+                        top: anchorRect.bottom + 4,
+                        left: anchorRect.left,
+                    }}
+                >
+                    <input
+                        type="text"
+                        placeholder="Buscar..."
+                        value={filterSearchTerm}
+                        onChange={(e) => setFilterSearchTerm(e.target.value)}
+                        className="w-full mb-2 px-2 py-1 text-xs border border-[var(--color-border)] rounded bg-transparent text-[var(--color-text-primary)]"
+                    />
+                    <div className="max-h-40 overflow-y-auto space-y-1 text-xs">
+                        {(uniqueValues[activeFilter as keyof typeof uniqueValues] || [])
+                            .filter((val) => val.toLowerCase().includes(filterSearchTerm.toLowerCase()))
+                            .map((val) => {
+                                const isChecked = columnFilters[activeFilter]?.has(val) ?? false;
+                                return (
+                                    <label key={val} className="flex items-center gap-2 cursor-pointer text-[var(--color-text-primary)]">
+                                        <input
+                                            type="checkbox"
+                                            checked={isChecked}
+                                            onChange={() => {
+                                                setColumnFilters((prev) => {
+                                                    const current = new Set(prev[activeFilter] || []);
+                                                    if (current.has(val)) {
+                                                        current.delete(val);
+                                                    } else {
+                                                        current.add(val);
+                                                    }
+                                                    return { ...prev, [activeFilter]: current };
+                                                });
+                                            }}
+                                        />
+                                        <span>{val}</span>
+                                    </label>
+                                );
+                            })}
+                    </div>
+                    <div className="mt-2 flex justify-between gap-2 border-t border-[var(--color-border)] pt-2">
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setColumnFilters((prev) => ({ ...prev, [activeFilter]: new Set() }));
+                            }}
+                            className="text-[10px] text-red-500 hover:underline"
+                        >
+                            Limpiar
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setActiveFilter(null);
+                                setAnchorRect(null);
+                            }}
+                            className="text-[10px] text-[var(--color-primary)] font-bold hover:underline"
+                        >
+                            Cerrar
+                        </button>
+                    </div>
                 </div>
             )}
         </div>

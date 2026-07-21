@@ -192,6 +192,57 @@ describe('DataTable — accesibilidad de fila', () => {
     expect(firstRow).not.toHaveAttribute('tabIndex');
     expect(firstRow).not.toHaveClass('cursor-pointer');
   });
+
+  it('no dispara onRowClick cuando se interactúa con controles anidados (a, select, textarea, role="button", contenteditable)', () => {
+    const onRowClick = vi.fn();
+    const columnsWithControls: DataTableColumn<Row>[] = [
+      {
+        key: 'name',
+        label: 'Nombre',
+        render: row => (
+          <div>
+            <a href="#test" data-testid="nested-link">Enlace {row.name}</a>
+            <select data-testid="nested-select"><option>Opt 1</option></select>
+            <textarea data-testid="nested-textarea" defaultValue="Texto" />
+            <span role="button" data-testid="nested-role-btn">Boton Role</span>
+            <span role="link" data-testid="nested-role-link">Link Role</span>
+            <div contentEditable data-testid="nested-editable">Editable</div>
+          </div>
+        ),
+      },
+    ];
+
+    render(
+      <DataTable<Row>
+        columns={columnsWithControls}
+        data={rows}
+        keyExtractor={row => row.id}
+        onRowClick={onRowClick}
+      />
+    );
+
+    fireEvent.click(screen.getAllByTestId('nested-link')[0]);
+    expect(onRowClick).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getAllByTestId('nested-select')[0]);
+    expect(onRowClick).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getAllByTestId('nested-textarea')[0]);
+    expect(onRowClick).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getAllByTestId('nested-role-btn')[0]);
+    expect(onRowClick).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getAllByTestId('nested-role-link')[0]);
+    expect(onRowClick).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getAllByTestId('nested-editable')[0]);
+    expect(onRowClick).not.toHaveBeenCalled();
+
+    const cell = screen.getAllByTestId('nested-link')[0].parentElement!;
+    fireEvent.click(cell);
+    expect(onRowClick).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe('DataTable — responsive', () => {

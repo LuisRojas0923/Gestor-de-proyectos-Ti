@@ -7,6 +7,56 @@ vi.mock('../../../../../hooks/useApi', () => ({
   useApi: vi.fn(),
 }));
 
+const createCloseEvent = (code: number, reason: string = ''): CloseEvent => {
+  return {
+    code,
+    reason,
+    wasClean: code === 1000,
+    type: 'close',
+    target: null,
+    currentTarget: null,
+    eventPhase: 0,
+    bubbles: false,
+    cancelable: false,
+    defaultPrevented: false,
+    composed: false,
+    isTrusted: true,
+    timeStamp: Date.now(),
+    NONE: 0,
+    CAPTURING_PHASE: 1,
+    AT_TARGET: 2,
+    BUBBLING_PHASE: 3,
+    initCloseEvent: vi.fn(),
+    composedPath: vi.fn(() => []),
+    preventDefault: vi.fn(),
+    stopImmediatePropagation: vi.fn(),
+    stopPropagation: vi.fn(),
+  } as unknown as CloseEvent;
+};
+
+const createOpenEvent = (): Event => {
+  return {
+    type: 'open',
+    target: null,
+    currentTarget: null,
+    eventPhase: 0,
+    bubbles: false,
+    cancelable: false,
+    defaultPrevented: false,
+    composed: false,
+    isTrusted: true,
+    timeStamp: Date.now(),
+    NONE: 0,
+    CAPTURING_PHASE: 1,
+    AT_TARGET: 2,
+    BUBBLING_PHASE: 3,
+    composedPath: vi.fn(() => []),
+    preventDefault: vi.fn(),
+    stopImmediatePropagation: vi.fn(),
+    stopPropagation: vi.fn(),
+  } as unknown as Event;
+};
+
 describe('useAuditoriaStats WebSocket Reconexión', () => {
   let wsInstanceMock: Partial<WebSocket> & { close: ReturnType<typeof vi.fn> };
   let mockGet = vi.fn();
@@ -45,11 +95,11 @@ describe('useAuditoriaStats WebSocket Reconexión', () => {
     renderHook(() => useAuditoriaStats());
 
     act(() => {
-      wsInstanceMock.onopen?.();
+      wsInstanceMock.onopen?.(createOpenEvent());
     });
 
     act(() => {
-      wsInstanceMock.onclose?.({ code: 1008 });
+      wsInstanceMock.onclose?.(createCloseEvent(1008));
     });
 
     act(() => {
@@ -63,10 +113,10 @@ describe('useAuditoriaStats WebSocket Reconexión', () => {
     renderHook(() => useAuditoriaStats());
 
     act(() => {
-      wsInstanceMock.onopen?.();
+      wsInstanceMock.onopen?.(createOpenEvent());
     });
     act(() => {
-      wsInstanceMock.onclose?.({ code: 1000 });
+      wsInstanceMock.onclose?.(createCloseEvent(1000));
     });
     act(() => {
       vi.advanceTimersByTime(10000);
@@ -79,7 +129,7 @@ describe('useAuditoriaStats WebSocket Reconexión', () => {
 
     // Cierre 1006 (Abnormal Closure)
     act(() => {
-      wsInstanceMock.onclose?.({ code: 1006 });
+      wsInstanceMock.onclose?.(createCloseEvent(1006));
     });
 
     act(() => {
@@ -88,7 +138,7 @@ describe('useAuditoriaStats WebSocket Reconexión', () => {
     expect(global.WebSocket).toHaveBeenCalledTimes(2);
 
     act(() => {
-      wsInstanceMock.onclose?.({ code: 1006 });
+      wsInstanceMock.onclose?.(createCloseEvent(1006));
     });
 
     act(() => {
@@ -97,7 +147,7 @@ describe('useAuditoriaStats WebSocket Reconexión', () => {
     expect(global.WebSocket).toHaveBeenCalledTimes(3);
 
     act(() => {
-      wsInstanceMock.onclose?.({ code: 1006 });
+      wsInstanceMock.onclose?.(createCloseEvent(1006));
     });
 
     act(() => {
@@ -109,25 +159,25 @@ describe('useAuditoriaStats WebSocket Reconexión', () => {
   it('resetee backoff solo tras la ventana estable de 5 segundos', () => {
     renderHook(() => useAuditoriaStats());
 
-    act(() => { wsInstanceMock.onclose?.({ code: 1006 }); });
+    act(() => { wsInstanceMock.onclose?.(createCloseEvent(1006)); });
     act(() => { vi.advanceTimersByTime(1000); });
     expect(global.WebSocket).toHaveBeenCalledTimes(2);
 
-    act(() => { wsInstanceMock.onopen?.(); });
+    act(() => { wsInstanceMock.onopen?.(createOpenEvent()); });
 
     act(() => {
       vi.advanceTimersByTime(2000);
-      wsInstanceMock.onclose?.({ code: 1006 });
+      wsInstanceMock.onclose?.(createCloseEvent(1006));
     });
 
     act(() => { vi.advanceTimersByTime(2000); });
     expect(global.WebSocket).toHaveBeenCalledTimes(3);
 
-    act(() => { wsInstanceMock.onopen?.(); });
+    act(() => { wsInstanceMock.onopen?.(createOpenEvent()); });
 
     act(() => { vi.advanceTimersByTime(6000); });
 
-    act(() => { wsInstanceMock.onclose?.({ code: 1006 }); });
+    act(() => { wsInstanceMock.onclose?.(createCloseEvent(1006)); });
 
     act(() => { vi.advanceTimersByTime(1000); });
     expect(global.WebSocket).toHaveBeenCalledTimes(4);

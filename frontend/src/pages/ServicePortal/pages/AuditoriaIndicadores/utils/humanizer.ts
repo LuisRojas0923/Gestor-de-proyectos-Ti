@@ -183,13 +183,13 @@ export const humanizarAccionDetallada = (row: any): string => {
 
     // Acciones específicas de Actividades
     if (ruta.includes('/actividades')) {
-      const titulo = datos?.titulo ? ` "${datos.titulo}"` : '';
+      const titulo = (datos && typeof datos === 'object' && typeof datos.titulo === 'string') ? ` "${datos.titulo}"` : '';
       if (row.metodo_http === 'POST' || row.accion === 'crear') {
         return `Creó una nueva actividad${titulo} en el proyecto`;
       }
       if (row.metodo_http === 'PATCH' || row.metodo_http === 'PUT' || row.accion === 'actualizar') {
-        if (datos?.estado) return `Actualizó el estado de la actividad${titulo} a "${datos.estado}"`;
-        if (datos?.porcentaje_avance !== undefined) return `Actualizó el progreso de la actividad${titulo} al ${datos.porcentaje_avance}%`;
+        if (datos && typeof datos === 'object' && datos.estado) return `Actualizó el estado de la actividad${titulo} a "${datos.estado}"`;
+        if (datos && typeof datos === 'object' && typeof datos.porcentaje_avance === 'number') return `Actualizó el progreso de la actividad${titulo} al ${datos.porcentaje_avance}%`;
         return `Actualizó información de la actividad${titulo}`;
       }
       if (row.metodo_http === 'DELETE' || row.accion === 'eliminar') {
@@ -202,12 +202,12 @@ export const humanizarAccionDetallada = (row: any): string => {
 
     // Acciones específicas de Desarrollos (Proyectos)
     if (ruta.includes('/desarrollos') || row.entidad === 'desarrollo' || row.accion) {
-      const nombre = datos?.nombre ? ` "${datos.nombre}"` : '';
+      const nombre = (datos && typeof datos === 'object' && typeof datos.nombre === 'string') ? ` "${datos.nombre}"` : '';
       if (row.metodo_http === 'POST' || row.accion === 'crear') {
         return `Creó el proyecto/requerimiento${nombre}`;
       }
       if (row.metodo_http === 'PATCH' || row.metodo_http === 'PUT' || row.accion === 'actualizar') {
-        if (datos?.estado) return `Cambió el estado del proyecto${nombre} a "${datos.estado}"`;
+        if (datos && typeof datos === 'object' && datos.estado) return `Cambió el estado del proyecto${nombre} a "${datos.estado}"`;
         return `Actualizó la información base del proyecto${nombre}`;
       }
       if (row.metodo_http === 'DELETE' || row.accion === 'eliminar') {
@@ -218,8 +218,9 @@ export const humanizarAccionDetallada = (row: any): string => {
 
   // 5. ERP / Requisiciones
   if (ruta.includes('/requisiciones/crear')) {
-    const uen = datos?.uen ? ` para UEN: ${datos.uen}` : '';
-    const lineas = datos?.lineas?.length ? ` con ${datos.lineas.length} ítems` : '';
+    const uen = (datos && typeof datos === 'object' && datos.uen) ? ` para UEN: ${datos.uen}` : '';
+    const lineasCount = (datos && typeof datos === 'object' && Array.isArray(datos.lineas)) ? datos.lineas.length : 0;
+    const lineas = lineasCount > 0 ? ` con ${lineasCount} ítems` : '';
     return `Creó requisición de compras${uen}${lineas}`;
   }
 
