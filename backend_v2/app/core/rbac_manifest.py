@@ -11,6 +11,20 @@ from typing import List, Dict, Any
 SYSTEM_MODULES_REGISTRY: List[Dict[str, Any]] = [
     # --- CATEGORÍA: PORTAL (Módulos de Cara al Usuario) ---
     {
+        "id": "nomina_novedades",
+        "nombre": "Novedades de Nómina",
+        "categoria": "portal",
+        "es_critico": True,
+        "descripcion": "Gestión y carga de novedades, excepciones y descuentos de nómina.",
+    },
+    {
+        "id": "comisiones",
+        "nombre": "Comisiones",
+        "categoria": "portal",
+        "es_critico": True,
+        "descripcion": "Gestión y carga de comisiones del personal.",
+    },
+    {
         "id": "service-portal",
         "nombre": "Portal de Servicios (Shell)",
         "categoria": "portal",
