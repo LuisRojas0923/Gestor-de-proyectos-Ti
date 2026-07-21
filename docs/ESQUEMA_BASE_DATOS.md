@@ -2192,10 +2192,10 @@ Para garantizar la prevención estricta a nivel de motor de base de datos de res
 CREATE EXTENSION IF NOT EXISTS btree_gist;
 
 -- Restricción de exclusión de solapamiento
-ALTER TABLE reservations 
-    ADD CONSTRAINT exclude_overlapping_reservations 
+ALTER TABLE reservations
+    ADD CONSTRAINT exclude_overlapping_reservations
     EXCLUDE USING gist (
-        room_id WITH =, 
+        room_id WITH =,
         tstzrange(start_datetime, end_datetime, '()') WITH &&
     )
     WHERE (status = 'ACTIVE');
