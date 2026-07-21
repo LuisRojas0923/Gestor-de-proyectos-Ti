@@ -26,44 +26,94 @@ async def registrar_sesion(
     scope: Optional[str] = None,
     tiempo_expiracion: Optional[timedelta] = None,
 ) -> None:
-    """Registra una nueva sesión en la base de datos.
-
-    Acepta `tipo_sesion` ('web' | 'mcp'), `jti` (UUID del JWT) y `scope`
-    para soportar tokens MCP de larga duracion (ver docs/PLAN_SERVIDOR_MCP.md).
-    `tiempo_expiracion` permite sobreescribir el default de
-    `jwt_token_expire_minutes` cuando se registran tokens con vigencia
-    personalizada (MCP: 30/90 dias).
-    """
-    from app.database import AsyncSessionLocal
+    """Registra una nueva sesión en la base de datos dentro de la transacción actual."""
     from app.models.auth.usuario import Sesion
 
     try:
-        async with AsyncSessionLocal() as session:
-            ahora = get_bogota_now()
-            expira = ahora + (
-                tiempo_expiracion
-                if tiempo_expiracion
-                else timedelta(minutes=config.jwt_token_expire_minutes)
-            )
+        ahora = get_bogota_now()
+        expira = ahora + (
+            tiempo_expiracion
+            if tiempo_expiracion
+            else timedelta(minutes=config.jwt_token_expire_minutes)
+        )
 
-            nueva_sesion = Sesion(
-                usuario_id=usuario_id,
-                token_sesion=token_jwt,
-                nombre_usuario=nombre_usuario,
-                rol_usuario=rol_usuario,
-                direccion_ip=direccion_ip,
-                agente_usuario=agente_usuario,
-                expira_en=expira,
-                tipo_sesion=tipo_sesion,
-                jti=jti,
-                scope=scope,
-            )
-            session.add(nueva_sesion)
-            await session.commit()
+        nueva_sesion = Sesion(
+            usuario_id=usuario_id,
+            token_sesion=token_jwt,
+            nombre_usuario=nombre_usuario,
+            rol_usuario=rol_usuario,
+            direccion_ip=direccion_ip,
+            agente_usuario=agente_usuario,
+            expira_en=expira,
+            tipo_sesion=tipo_sesion,
+            jti=jti,
+            scope=scope,
+        )
+        db.add(nueva_sesion)
+        await db.commit()
     except Exception as e:
         import logging
 
-        logging.warning(f"No se pudo registrar sesion para {usuario_id}: {e}")
+        logging.error(f"Error al registrar sesion para {usuario_id}: {e}")
+        await db.rollback()
+        raise e
+
+
+async def rotar_sesion(
+    db: AsyncSession,
+    old_jti: Optional[str],
+    nuevo_token: str,
+    nuevo_jti: str,
+    usuario_id: str,
+    nombre_usuario: Optional[str] = None,
+    rol_usuario: Optional[str] = None,
+    direccion_ip: Optional[str] = None,
+    agente_usuario: Optional[str] = None,
+    tipo_sesion: str = "web",
+) -> None:
+    """Rotación de sesión en DB al refrescar el JWT.
+    Actualiza el JTI y el token_sesion de la sesión existente (o crea una nueva si no existía).
+    """
+    from app.models.auth.usuario import Sesion
+
+    sesion = None
+    if old_jti:
+        result = await db.execute(select(Sesion).where(Sesion.jti == old_jti))
+        sesion = result.scalars().first()
+
+    ahora = get_bogota_now()
+    expira = ahora + timedelta(minutes=config.jwt_token_expire_minutes)
+
+    if sesion:
+        sesion.jti = nuevo_jti
+        sesion.token_sesion = nuevo_token
+        sesion.expira_en = expira
+        if direccion_ip:
+            sesion.direccion_ip = direccion_ip
+        if agente_usuario:
+            sesion.agente_usuario = agente_usuario
+    else:
+        sesion = Sesion(
+            usuario_id=usuario_id,
+            token_sesion=nuevo_token,
+            nombre_usuario=nombre_usuario,
+            rol_usuario=rol_usuario,
+            direccion_ip=direccion_ip,
+            agente_usuario=agente_usuario,
+            expira_en=expira,
+            tipo_sesion=tipo_sesion,
+            jti=nuevo_jti,
+        )
+        db.add(sesion)
+
+    try:
+        await db.commit()
+    except Exception as e:
+        import logging
+
+        logging.error(f"Error rotando sesion para {usuario_id}: {e}")
+        await db.rollback()
+        raise e
 
 
 async def marcar_fin_sesion(db: AsyncSession, token_jwt: str) -> bool:

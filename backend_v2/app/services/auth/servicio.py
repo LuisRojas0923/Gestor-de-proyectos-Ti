@@ -16,6 +16,7 @@ from app.services.erp import EmpleadosService
 from app.services.erp.empleados_service import normalizar_bool_erp
 from .sesion_service import (
     registrar_sesion,
+    rotar_sesion,
     marcar_fin_sesion,
     invalidar_sesiones_usuario,
 )
@@ -516,5 +517,6 @@ class ServicioAuth:
     crear_usuario_portal_desde_erp = staticmethod(crear_usuario_portal_desde_erp)
     registrar_usuario_portal = staticmethod(registrar_usuario_portal)
     registrar_sesion = staticmethod(registrar_sesion)
+    rotar_sesion = staticmethod(rotar_sesion)
     marcar_fin_sesion = staticmethod(marcar_fin_sesion)
     invalidar_sesiones_usuario = staticmethod(invalidar_sesiones_usuario)

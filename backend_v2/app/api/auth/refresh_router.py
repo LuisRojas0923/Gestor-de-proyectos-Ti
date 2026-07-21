@@ -13,6 +13,10 @@ from app.core.rate_limiter import (
 from app.services.auth.servicio import ServicioAuth
 
 
+import uuid
+from sqlalchemy.ext.asyncio import AsyncSession
+from app.database import obtener_db
+
 router = APIRouter()
 _settings = obtener_configuracion()
 
@@ -21,22 +25,10 @@ _settings = obtener_configuracion()
 @limiter.limit(_settings.rate_limit_refresh, key_func=_mcp_token_key_func)
 async def refrescar_token(
     request: Request,
+    db: AsyncSession = Depends(obtener_db),
     token_actual: str = Depends(ServicioAuth.oauth2_scheme),
 ):
-    """Refresca un JWT vigente, devolviendo uno nuevo con `exp` actualizado.
-
-    NO requiere body: el token a refrescar viene en el header Authorization.
-    El nuevo token preserva el claim `last_ip` del original (no se re-estampa
-    con la IP actual; el usuario podria haber cambiado de red y aun asi
-    seguir siendo el mismo).
-
-    El token entrante debe ser valido (firma OK y no expirado). Si esta
-    expirado, jwt.decode lanza JWTError y respondemos 401. Esto es a
-    proposito: no queremos que un atacante con un token expirado pueda
-    re-pedir tokens indefinidamente (combinado con el rate limit 20/h
-    por IP, es suficiente para que un usuario legitimo refresque una vez
-    cada 45 min sin problemas, y limite el abuso a 20 refreshes/h por IP).
-    """
+    """Refresca un JWT vigente, devolviendo uno nuevo con `exp` actualizado y rotando la sesión en BD."""
     if not token_actual:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -52,13 +44,31 @@ async def refrescar_token(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    # Re-emitir el token con todos los claims del original. El claim `last_ip`
-    # se preserva tal cual; los demas claims (sub, rol, jti, token_type, scope)
-    # se mantienen, solo se renueva `exp` y se genera un nuevo `jti`.
+    nuevo_jti = str(uuid.uuid4())
+    old_jti = payload.get("jti")
+    cedula = payload.get("sub")
+
     nuevo_token = ServicioAuth.crear_token_acceso(
         datos={k: v for k, v in payload.items() if k not in ("exp", "jti", "iat")},
+        jti=nuevo_jti,
         tipo_token=payload.get("token_type", "session"),
     )
+
+    if cedula:
+        usuario = await ServicioAuth.obtener_usuario_por_cedula(db, cedula)
+        if usuario:
+            await ServicioAuth.rotar_sesion(
+                db=db,
+                old_jti=old_jti,
+                nuevo_token=nuevo_token,
+                nuevo_jti=nuevo_jti,
+                usuario_id=usuario.id,
+                nombre_usuario=usuario.nombre,
+                rol_usuario=usuario.rol,
+                direccion_ip=request.client.host if request.client else None,
+                agente_usuario=request.headers.get("user-agent"),
+                tipo_sesion=payload.get("token_type", "web"),
+            )
 
     return {
         "access_token": nuevo_token,

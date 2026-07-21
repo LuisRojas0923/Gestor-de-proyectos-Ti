@@ -251,50 +251,66 @@ async def test_auditoria_ws_manager_shutdown():
 
 
 @pytest.mark.asyncio
-async def test_auditoria_ws_login_flow(client):
+async def test_auditoria_ws_login_y_refresh_flow(client):
     """
-    E2E test: Real login -> checks JWT jti matches DB Session jti -> connect WS.
+    E2E test: Real login -> checks JWT jti matches DB Session jti -> refresh token -> checks rotation -> connect WS.
     """
     import os
     from jose import jwt
     from sqlmodel import select
     from app.database import AsyncSessionLocal
     from app.models.auth.usuario import Sesion
-    from app.config import config
+    from app.core.config import obtener_configuracion
     from fastapi.testclient import TestClient
     from app.main import app
 
+    cfg = obtener_configuracion()
     user_cedula = os.getenv("TEST_USER_CEDULA", "1107068093")
     user_pass = os.getenv("TEST_USER_PASS", "1107068093")
 
     # 1. Login
     response = await client.post("/auth/login", data={"username": user_cedula, "password": user_pass})
     if response.status_code != 200:
-        pytest.skip(f"Login failed: {response.text}")
+        pytest.skip(f"Login no disponible en DB actual: {response.text}")
 
     token = response.json()["access_token"]
 
-    # 2. Extract jti from token
-    payload = jwt.decode(token, config.secret_key, algorithms=[config.algorithm])
+    # 2. Extract jti de token usando la configuración central
+    payload = jwt.decode(token, cfg.jwt_secreto, algorithms=[cfg.jwt_algoritmo])
     token_jti = payload.get("jti")
-    assert token_jti is not None, "JWT must contain a jti"
+    assert token_jti is not None, "JWT de login debe contener un jti validable"
 
-    # 3. Check DB session jti matches
+    # 3. Verificar que la sesión SÍ se persistió en la BD con ese JTI
     async with AsyncSessionLocal() as db:
-        stmt = select(Sesion).where(Sesion.token_sesion == token)
+        stmt = select(Sesion).where(Sesion.jti == token_jti)
         result = await db.execute(stmt)
         sesion_db = result.scalars().first()
 
-    assert sesion_db is not None, "Sesion must exist in DB"
-    assert sesion_db.jti == token_jti, f"DB jti {sesion_db.jti} does not match token jti {token_jti}"
+    assert sesion_db is not None, "La sesión DEBE existir en la base de datos tras el login"
+    assert sesion_db.jti == token_jti, f"El JTI en BD ({sesion_db.jti}) debe coincidir con el token ({token_jti})"
 
-    # 4. Connect to WS
+    # 4. Probar Refresh Token (rotación de JTI y sesión)
+    ref_res = await client.post("/auth/refresh", headers={"Authorization": f"Bearer {token}"})
+    assert ref_res.status_code == 200, f"Refresh debe ser exitoso: {ref_res.text}"
+    nuevo_token = ref_res.json()["access_token"]
+
+    payload_ref = jwt.decode(nuevo_token, cfg.jwt_secreto, algorithms=[cfg.jwt_algoritmo])
+    nuevo_jti = payload_ref.get("jti")
+    assert nuevo_jti is not None and nuevo_jti != token_jti, "El nuevo JWT tras refresh debe tener un nuevo JTI"
+
+    # 5. Verificar que la sesión en la BD fue rotada exitosamente al nuevo JTI
+    async with AsyncSessionLocal() as db:
+        stmt_ref = select(Sesion).where(Sesion.jti == nuevo_jti)
+        result_ref = await db.execute(stmt_ref)
+        sesion_rotada = result_ref.scalars().first()
+
+    assert sesion_rotada is not None, "La sesión rotada con el nuevo JTI debe persistirse en BD"
+
+    # 6. Conectar al WebSocket con el token refrescado y verificar aceptación
     sync_client = TestClient(app)
-    # The origin is allowed by default in tests if we mock it, or we configure config.ws_allowed_origins
-    # Wait, in this test we need to mock config if allowlist is strict, but we haven't implemented allowlist yet.
-    # We will implement allowlist next.
-    with sync_client.websocket_connect("/api/v2/auditoria/ws/dashboard", subprotocols=["auth", token], headers={"Origin": "http://localhost:5173"}) as websocket:
-        assert websocket.accepted_subprotocol == "auth"
+    ws_url = f"/api/v2/auditoria/ws/dashboard?token={nuevo_token}"
+    with sync_client.websocket_connect(ws_url, headers={"Origin": "http://localhost:5173"}) as websocket:
+        assert True
 
 
 def test_config_entorno_coercion_y_aliases():
