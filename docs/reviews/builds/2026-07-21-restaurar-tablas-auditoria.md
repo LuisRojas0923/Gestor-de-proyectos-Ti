@@ -11,8 +11,10 @@
 ## 1. Archivos modificados
 
 - `backend_v2/app/api/auditoria/router.py`
+- `backend_v2/app/api/auth/refresh_router.py`
 - `backend_v2/app/core/config.py`
 - `backend_v2/app/services/auth/servicio.py`
+- `backend_v2/app/services/auth/sesion_service.py`
 - `frontend/src/pages/ServicePortal/pages/AuditoriaIndicadores/hooks/useAuditoriaStats.ts`
 - `.env.example`
 - `testing/backend/test_auditoria_ws.py`
@@ -22,13 +24,13 @@
 | Subagente | Resultado | Bloquea | Notas |
 |---|---|---|---|
 | docs-tests-reviewer | PASS | NO | Se ejecutaron pruebas de backend y frontend con 100% de éxito |
-| backend-reviewer | PASS | NO | Validación de router WebSocket en FastAPI y soporte de alias de entorno |
+| backend-reviewer | PASS | NO | Validación de router WebSocket, consistencia transaccional de sesiones y rotación de JTI |
 | frontend-reviewer | PASS | NO | Validación en React/Vite de la URL y subprotocolos de WebSocket |
-| security-rbac-reviewer | PASS | NO | Política WS Origin en producción con falla cerrada (fail-closed) y sanitización de aliases |
+| security-rbac-reviewer | PASS | NO | Garantizada la validez del token en WS tras login y refresh con trazabilidad de JTI |
 
 ## 3. Hallazgos bloqueantes
 
-Ninguno (los 4 puntos bloqueantes han sido solucionados y verificados).
+Ninguno (los 5 puntos bloqueantes han sido solucionados y verificados).
 
 ## 4. Hallazgos no bloqueantes
 
