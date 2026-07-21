@@ -42,6 +42,7 @@ Ubicación: `testing/backend/`
 | **Notificaciones** | `test_notificaciones.py` | Ciclo CRUD de notificaciones persistentes de usuario. | ✅ PASSED |
 | **Indicadores de Auditoría** | `test_auditoria_estadisticas.py` | Valida límites e integridad de rangos temporales del dashboard. | ✅ PASSED |
 | **RBAC de Auditoría** | `test_auditoria_estadisticas_rbac.py` | Autoriza el dashboard por permiso efectivo y rechaza accesos sin permiso. | ✅ PASSED |
+| **Manifiesto RBAC** | `test_rbac_manifest.py` | IDs únicos, módulos de nómina canónicos, advisory lock transaccional, rollback y propagación de errores críticos. | ✅ 8 PASSED |
 | **API de Auditoría** | `test_auditoria_estadisticas_http.py` | Contrato HTTP 401/403/200 del endpoint de indicadores. | ✅ PASSED |
 | **Diagnóstico de Estados** | `test_validate_estados.py` | Manejo seguro de resultados y errores DB del script diagnóstico. | ✅ PASSED |
 | **ETL Beneficiar** | `test_beneficiar_prima.py` | Prima opcional, meses ordinarios y rechazo de columnas obligatorias ausentes. | ✅ PASSED |
