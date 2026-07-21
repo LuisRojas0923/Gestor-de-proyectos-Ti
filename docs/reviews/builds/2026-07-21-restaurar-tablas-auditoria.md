@@ -11,21 +11,24 @@
 ## 1. Archivos modificados
 
 - `backend_v2/app/api/auditoria/router.py`
+- `backend_v2/app/core/config.py`
 - `backend_v2/app/services/auth/servicio.py`
 - `frontend/src/pages/ServicePortal/pages/AuditoriaIndicadores/hooks/useAuditoriaStats.ts`
+- `.env.example`
+- `testing/backend/test_auditoria_ws.py`
 
 ## 2. Subagentes ejecutados
 
 | Subagente | Resultado | Bloquea | Notas |
 |---|---|---|---|
-| docs-tests-reviewer | PASS | NO | Se ejecutaron pruebas (backend y frontend) |
-| backend-reviewer | PASS | NO | Validación de router WebSocket en FastAPI |
+| docs-tests-reviewer | PASS | NO | Se ejecutaron pruebas de backend y frontend con 100% de éxito |
+| backend-reviewer | PASS | NO | Validación de router WebSocket en FastAPI y soporte de alias de entorno |
 | frontend-reviewer | PASS | NO | Validación en React/Vite de la URL y subprotocolos de WebSocket |
-| security-rbac-reviewer | PASS | NO | El token JWT viaja de manera segura por la query string con autenticación |
+| security-rbac-reviewer | PASS | NO | Política WS Origin en producción con falla cerrada (fail-closed) y sanitización de aliases |
 
 ## 3. Hallazgos bloqueantes
 
-Ninguno
+Ninguno (los 4 puntos bloqueantes han sido solucionados y verificados).
 
 ## 4. Hallazgos no bloqueantes
 
@@ -33,12 +36,12 @@ Ninguno
 
 ## 5. Tests / comandos ejecutados
 
-- `pytest testing/backend/test_auditoria_dashboard.py testing/backend/test_reserva_salas_concurrent.py testing/backend/test_reserva_auditoria_middleware.py -v` — PASS
+- `pytest testing/backend/test_auditoria_ws.py -v` — PASS (20 passed, 1 skipped)
 - `npm run test -- src/pages/ServicePortal/pages/AuditoriaIndicadores/hooks/useAuditoriaStats.test.ts` — PASS
 
 ## 6. Documentacion actualizada
 
-- No hubieron cambios estructurales (solo un hotfix del subprotocolo WS). No requiere actualización de esquemas.
+- `.env.example` actualizado con documentación de `CORS_ORIGENES_PERMITIDOS`, `WS_ORIGENES_PERMITIDOS` y `ENVIRONMENT`.
 
 ## 7. Decision final
 
