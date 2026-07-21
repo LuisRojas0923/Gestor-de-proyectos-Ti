@@ -1,4 +1,4 @@
-# Alcance y Evidencia de PR #17 (8b03bced)
+# Alcance y Evidencia de PR #17 (dae9dcd)
 
 Este documento justifica la modificación de 116 archivos en la PR #17 (+5200 / -824 líneas) y certifica la resolución y estabilización de todos los hallazgos del arnés de calidad.
 
