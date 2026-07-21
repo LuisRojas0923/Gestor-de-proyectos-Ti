@@ -65,10 +65,16 @@ export interface StatsPorModulo {
   ultimos_eventos?: AuditoriaEventoResumen[];
 }
 
-export type AuditoriaEventoResumen = Pick<
-  AuditoriaEvento,
-  'id' | 'timestamp' | 'usuario_id' | 'usuario_nombre' | 'modulo' | 'accion' | 'resultado'
->;
+export interface AuditoriaEventoResumen {
+  id: number;
+  timestamp: string | null;
+  usuario_id: string;
+  usuario_nombre: string | null;
+  modulo: string;
+  accion: AccionAuditoria;
+  resultado: ResultadoAuditoria;
+  accion_detallada?: string | null;
+}
 
 export interface TipoFallo {
   tipo: string;

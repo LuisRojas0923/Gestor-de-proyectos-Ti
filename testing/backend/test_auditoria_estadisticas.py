@@ -52,7 +52,7 @@ def test_normalizar_rango_completa_limites_omitidos(fecha_desde, fecha_hasta):
 def test_auditoria_resumen_omite_campos_sensibles():
     from app.models.auditoria.accion_usuario import AuditoriaEventoResumen
 
-    campos_seguros = {"id", "timestamp", "usuario_id", "usuario_nombre", "modulo", "accion", "resultado"}
+    campos_seguros = {"id", "timestamp", "usuario_id", "usuario_nombre", "modulo", "accion", "resultado", "accion_detallada"}
     campos_modelo = set(AuditoriaEventoResumen.model_fields.keys())
 
     assert "ruta" not in campos_modelo

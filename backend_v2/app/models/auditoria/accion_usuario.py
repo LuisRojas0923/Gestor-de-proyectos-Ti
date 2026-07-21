@@ -100,10 +100,7 @@ class AuditoriaEventoResumen(SQLModel):
     modulo: str
     accion: str
     resultado: str
-    metodo_http: Optional[str] = None
-    ruta: Optional[str] = None
-    datos_nuevos: Optional[Dict[str, Any]] = None
-    metadatos: Optional[Dict[str, Any]] = None
+    accion_detallada: Optional[str] = None
 
 
 class StatsPorModulo(SQLModel):

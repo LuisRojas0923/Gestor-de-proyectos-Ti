@@ -123,7 +123,11 @@ export const humanizarModuloAccion = (label: string): string => {
 /**
  * Traduce una acción técnica agregando detalles específicos basados en el payload.
  */
-export const humanizarAccionDetallada = (row: AuditoriaEvento): string => {
+export const humanizarAccionDetallada = (row: any): string => {
+  if (row.accion_detallada) {
+    return row.accion_detallada;
+  }
+
   const modulo = (row.modulo || '').toLowerCase();
   const ruta = (row.ruta || '').toLowerCase();
   let datos = row.datos_nuevos;

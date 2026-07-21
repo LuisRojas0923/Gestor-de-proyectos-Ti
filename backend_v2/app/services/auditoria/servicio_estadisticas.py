@@ -162,8 +162,20 @@ class ServicioAuditoriaEstadisticas:
         ultimos_todos_rows = (await db.execute(eventos_stmt)).all()
 
         from app.models.auditoria.accion_usuario import AuditoriaEventoResumen
+        from app.services.auditoria.humanizador import generar_accion_detallada
+        
         ultimos_por_modulo = {}
         for row in ultimos_todos_rows:
+            accion_det = generar_accion_detallada(
+                modulo=row.modulo,
+                accion=row.accion,
+                metodo_http=row.metodo_http,
+                ruta=row.ruta,
+                datos_nuevos=row.datos_nuevos,
+                metadatos=row.metadatos,
+                entidad_tipo=None
+            )
+            
             ev = AuditoriaEventoResumen(
                 id=row.id,
                 timestamp=row.timestamp,
@@ -172,10 +184,7 @@ class ServicioAuditoriaEstadisticas:
                 modulo=row.modulo,
                 accion=row.accion,
                 resultado=row.resultado,
-                metodo_http=row.metodo_http,
-                ruta=row.ruta,
-                datos_nuevos=row.datos_nuevos,
-                metadatos=row.metadatos
+                accion_detallada=accion_det
             )
             mod = ev.modulo or 'Desconocido'
             if mod not in ultimos_por_modulo:
