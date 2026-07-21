@@ -21,6 +21,9 @@ from app.core.migrations.horas_extras_migration_s6 import (
 from app.core.migrations.horas_extras_migration_s8 import crear_tabla_planificador_dia_ot
 from app.core.migrations.horas_extras_migration_s10 import crear_tabla_calculo_diario_detalle
 from app.core.migrations.horarios_relaciones_migration import migrar_horarios_relaciones
+from app.core.migrations.bitacoras_operacionales_migration import (
+    migrar_bitacoras_operacionales,
+)
 from app.core.migrations.schema_verifier import verificar_esquema_runtime
 
 logger = logging.getLogger(__name__)
@@ -138,6 +141,18 @@ async def aplicar_privilegios_runtime(session):
         f"GRANT USAGE ON SCHEMA public TO {runtime_role}",
         f"GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO {runtime_role}",
         f"GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO {runtime_role}",
+        "REVOKE ALL ON public.bitacoras_operacionales, "
+        "public.bitacora_operacional_actividades, "
+        "public.bitacora_operacional_fotografias FROM PUBLIC",
+        f"REVOKE ALL ON public.bitacoras_operacionales, "
+        f"public.bitacora_operacional_actividades, "
+        f"public.bitacora_operacional_fotografias FROM {runtime_role}",
+        f"GRANT SELECT, INSERT, UPDATE, DELETE ON public.bitacoras_operacionales, "
+        f"public.bitacora_operacional_actividades, "
+        f"public.bitacora_operacional_fotografias TO {runtime_role}",
+        "REVOKE ALL ON SEQUENCE public.bitacora_operacional_actividades_id_seq FROM PUBLIC",
+        f"REVOKE ALL ON SEQUENCE public.bitacora_operacional_actividades_id_seq FROM {runtime_role}",
+        f"GRANT USAGE, SELECT ON SEQUENCE public.bitacora_operacional_actividades_id_seq TO {runtime_role}",
         f"REVOKE CREATE ON SCHEMA public FROM {runtime_role}",
         f"REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON public.modulos_sistema, public.permisos_rol, public.roles_sistema FROM {runtime_role}",
         f"REVOKE ALL ON TABLE public.configuracion_seguridad_runtime FROM {runtime_role}",
@@ -284,6 +299,10 @@ async def init_db_process(async_engine, AsyncSessionLocal):
     # 3.16 Migracion critica: debe abortar el arranque ante cualquier fallo.
     async with async_engine.begin() as conn:
         await migrar_horarios_relaciones(conn)
+
+    # 3.17 Persistencia de Bitacoras Operacionales; no integra el ERP.
+    async with async_engine.begin() as conn:
+        await migrar_bitacoras_operacionales(conn)
 
     # 4. Saneamiento de Datos (Inventario y otros)
     saneamientos = [

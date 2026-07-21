@@ -9,6 +9,7 @@ MODEL_MODULES = (
     "app.models.auth.relacion_gestor_empleado",
     "app.models.auth.usuario",
     "app.models.biometria.biometria_models",
+    "app.models.bitacoras_operacionales.modelos",
     "app.models.desarrollo.actividad",
     "app.models.desarrollo.desarrollo",
     "app.models.desarrollo.plantilla_actividad",

@@ -13,6 +13,25 @@ CONSTRAINTS_REQUERIDOS = {
     "ck_plantilla_horas_par": ("nomina_plantillas_horario_dias", "CHECK (((hora_entrada IS NULL) = (hora_salida IS NULL)))"),
     "uq_aplicacion_solicitud_plantilla": ("nomina_aplicaciones_plantilla_horario", "UNIQUE (solicitud_id, plantilla_id)"),
     "uq_relacion_gestor_empleado": ("relaciones_gestor_empleado", "UNIQUE (gestor_usuario_id, empleado_cedula)"),
+    "ck_bitacora_estado_artefactos": (
+        "bitacoras_operacionales",
+        (
+            "estado",
+            "borrador",
+            "finalizada",
+            "firma_ruta is null",
+            "firma_ruta is not null",
+            "(finalizado_por_id)::text = (creado_por_id)::text",
+        ),
+    ),
+    "uq_bitacora_actividad_orden": (
+        "bitacora_operacional_actividades",
+        "UNIQUE (bitacora_id, orden) DEFERRABLE INITIALLY DEFERRED",
+    ),
+    "uq_bitacora_fotografia_orden": (
+        "bitacora_operacional_fotografias",
+        "UNIQUE (bitacora_id, orden) DEFERRABLE INITIALLY DEFERRED",
+    ),
 }
 
 TRIGGERS_REQUERIDOS = {
@@ -21,6 +40,37 @@ TRIGGERS_REQUERIDOS = {
     "trg_nomina_aplicaciones_plantilla_empleados_append_only": ("nomina_aplicaciones_plantilla_empleados", "rechazar_mutacion_append_only", 27),
     "trg_historial_relaciones_gestor_empleado_append_only": ("historial_relaciones_gestor_empleado", "rechazar_mutacion_append_only", 27),
     "trg_usuarios_proteger_admin_runtime": ("usuarios", "proteger_credenciales_admin_runtime", 31),
+    "trg_bitacora_operacional_inmutable": (
+        "bitacoras_operacionales", "proteger_bitacora_operacional_inmutable", 27,
+    ),
+    "trg_bitacora_actividad_inmutable": (
+        "bitacora_operacional_actividades",
+        "proteger_hijo_bitacora_operacional_inmutable",
+        31,
+    ),
+    "trg_bitacora_fotografia_inmutable": (
+        "bitacora_operacional_fotografias",
+        "proteger_hijo_bitacora_operacional_inmutable",
+        31,
+    ),
+    "trg_bitacora_operacional_completa": (
+        "bitacoras_operacionales", "validar_bitacora_operacional_completa", 21,
+    ),
+    "trg_bitacora_fecha_bogota": (
+        "bitacoras_operacionales", "validar_fecha_bitacora_operacional", 23,
+    ),
+}
+
+INDICES_BITACORAS_REQUERIDOS = {
+    "idx_bitacoras_propietario_fecha": (
+        "bitacoras_operacionales", ["creado_por_id", "fecha_elaboracion"],
+    ),
+    "idx_bitacoras_ot_fecha": (
+        "bitacoras_operacionales", ["orden_trabajo", "fecha_elaboracion"],
+    ),
+    "idx_bitacoras_estado_fecha": (
+        "bitacoras_operacionales", ["estado", "fecha_elaboracion"],
+    ),
 }
 
 
@@ -36,7 +86,11 @@ def _validar_constraints(rows) -> bool:
         row = encontrados.get(nombre)
         if not row or row["tabla"] != tabla or not row["validado"]:
             return False
-        if _normalizar(row["definicion"]) != _normalizar(definicion_esperada):
+        definicion_actual = _normalizar(row["definicion"])
+        if isinstance(definicion_esperada, tuple):
+            if not all(_normalizar(fragmento) in definicion_actual for fragmento in definicion_esperada):
+                return False
+        elif definicion_actual != _normalizar(definicion_esperada):
             return False
     return True
 
@@ -77,11 +131,37 @@ def _validar_admin_functions(funciones, owner_role: str, runtime_role: str) -> b
     return True
 
 
+def _validar_funciones_bitacora(funciones, owner_role: str) -> bool:
+    from app.core.migrations.bitacoras_operacionales_migration import (
+        BITACORA_FUNCTIONS,
+    )
+
+    for nombre, cuerpo in BITACORA_FUNCTIONS.items():
+        row = funciones.get(nombre)
+        if (
+            not row
+            or row["argumentos"] != ""
+            or row["retorno"] != "trigger"
+            or row["lenguaje"] != "plpgsql"
+            or row["owner"] != owner_role
+            or row["security_definer"]
+            or set(row["grantees_execute"] or []) != {owner_role}
+            or _normalizar(row["cuerpo"]) != _normalizar(cuerpo)
+        ):
+            return False
+    return True
+
+
 async def verificar_esquema_runtime(async_engine):
     """Comprueba estructura, ownership e identidad sin modificar la base."""
     from app.core.migrations.rbac_admin_procedures import PRIVILEGED_FUNCTIONS
+    from app.core.migrations.bitacoras_operacionales_schema import (
+        validar_estructura_bitacoras,
+    )
+    from app.models.registry import cargar_modelos
     from app.models.auth.auditoria_evento import AuditoriaEvento
 
+    cargar_modelos()
     tablas = list(SQLModel.metadata.tables.values()) + [AuditoriaEvento.__table__]
     nombres_tablas = sorted({table.name for table in tablas})
     columnas = {(table.name, column.name) for table in tablas for column in table.columns}
@@ -124,6 +204,10 @@ async def verificar_esquema_runtime(async_engine):
         nombres_funciones = [
             "rechazar_mutacion_append_only",
             "proteger_credenciales_admin_runtime",
+            "proteger_bitacora_operacional_inmutable",
+            "proteger_hijo_bitacora_operacional_inmutable",
+            "validar_bitacora_operacional_completa",
+            "validar_fecha_bitacora_operacional",
             *PRIVILEGED_FUNCTIONS,
         ]
         funciones = (await conn.execute(text(  # @audit-ok: verificación read-only fail-fast
@@ -180,6 +264,21 @@ async def verificar_esquema_runtime(async_engine):
         """), {"nombres": [
             "idx_auditoria_usuario_ts", "idx_auditoria_resultado",
         ]})).mappings().all()
+        indices_bitacoras = (await conn.execute(text(  # @audit-ok: verificación read-only fail-fast
+            """
+            SELECT x.relname AS nombre, t.relname AS tabla,
+                   i.indisvalid AS valido, i.indisunique AS unico,
+                   i.indpred IS NULL AS sin_predicado,
+                   i.indexprs IS NULL AS sin_expresiones,
+                   ARRAY(
+                       SELECT pg_get_indexdef(i.indexrelid, posicion, TRUE)
+                       FROM generate_series(1, i.indnkeyatts) AS posicion
+                   ) AS columnas
+            FROM pg_index i JOIN pg_class x ON x.oid = i.indexrelid
+            JOIN pg_class t ON t.oid = i.indrelid
+            JOIN pg_namespace n ON n.oid = x.relnamespace
+            WHERE n.nspname = 'public' AND x.relname = ANY(:nombres)
+        """), {"nombres": list(INDICES_BITACORAS_REQUERIDOS)})).mappings().all()
         secuencia = (await conn.execute(text(  # @audit-ok: verificación read-only fail-fast
             """
             SELECT c.relname AS nombre, pg_get_userbyid(c.relowner) AS owner
@@ -195,10 +294,14 @@ async def verificar_esquema_runtime(async_engine):
         from app.core.migrations.auth_runtime_protection import AUTH_PROTECTION_FUNCTION_BODY
         from app.core.migrations.horarios_relaciones_migration import APPEND_ONLY_FUNCTION_BODY
         auth_body = AUTH_PROTECTION_FUNCTION_BODY.format(runtime_role=runtime_role)
+        estructura_bitacoras = await validar_estructura_bitacoras(
+            conn, owner_role, runtime_role
+        )
         estructura_valida = (
             set(owners) == set(nombres_tablas)
             and set(owners.values()) == {owner_role}
             and columnas <= {tuple(row) for row in columnas_rows}
+            and estructura_bitacoras
             and len(funciones) == len(nombres_funciones)
             and _validar_constraints(constraints)
             and _validar_triggers(triggers)
@@ -213,6 +316,7 @@ async def verificar_esquema_runtime(async_engine):
             and set(proteccion_auth["grantees_execute"] or []) == {owner_role}
             and _normalizar(proteccion_auth["cuerpo"]) == _normalizar(auth_body)
             and _validar_admin_functions(funciones_por_nombre, owner_role, runtime_role)
+            and _validar_funciones_bitacora(funciones_por_nombre, owner_role)
             and indice is not None
             and indice["tabla"] == "permisos_rol"
             and indice["unico"] and indice["valido"]
@@ -228,6 +332,12 @@ async def verificar_esquema_runtime(async_engine):
                 "idx_auditoria_usuario_ts": ["usuario_id", '"timestamp"'],
                 "idx_auditoria_resultado": ["resultado"],
             }
+            and {
+                row["nombre"]: (row["tabla"], list(row["columnas"]))
+                for row in indices_bitacoras
+                if row["valido"] and not row["unico"]
+                and row["sin_predicado"] and row["sin_expresiones"]
+            } == INDICES_BITACORAS_REQUERIDOS
             and secuencia is not None and secuencia["owner"] == owner_role
         )
         capacidad = (await conn.execute(text(  # @audit-ok: verificación read-only fail-fast
