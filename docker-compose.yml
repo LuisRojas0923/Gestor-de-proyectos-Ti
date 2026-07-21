@@ -20,6 +20,7 @@ services:
       - TRUSTED_PROXY_IPS=${TRUSTED_PROXY_IPS:-}
       - SYNC_EXTERNAL_URL=${SYNC_EXTERNAL_URL}
       - FRONTEND_URL=http://${FRONTEND_HOST:-localhost}
+      - WS_ORIGENES_PERMITIDOS=${WS_ORIGENES_PERMITIDOS:-http://localhost:5173,http://localhost:3000,http://127.0.0.1:5173}
       - TZ=America/Bogota
       - WATCHFILES_FORCE_POLLING=true
     volumes:

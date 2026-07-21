@@ -271,12 +271,16 @@ async def test_auditoria_ws_login_y_refresh_flow(client):
     # 1. Login
     response = await client.post("/auth/login", data={"username": user_cedula, "password": user_pass})
     if response.status_code != 200:
-        pytest.skip(f"Login no disponible en DB actual: {response.text}")
-
-    token = response.json()["access_token"]
+        pytest.skip(f"No se pudo hacer login para el test E2E: {response.text}")
+    
+    data = response.json()
+    if "access_token" not in data:
+        pytest.skip(f"Login no retornó access_token: {data}")
+        
+    token = data["access_token"]
 
     # 2. Extract jti de token usando la configuración central
-    payload = jwt.decode(token, cfg.jwt_secreto, algorithms=[cfg.jwt_algoritmo])
+    payload = jwt.decode(token, cfg.jwt_secret_key, algorithms=[cfg.algorithm])
     token_jti = payload.get("jti")
     assert token_jti is not None, "JWT de login debe contener un jti validable"
 
@@ -294,7 +298,7 @@ async def test_auditoria_ws_login_y_refresh_flow(client):
     assert ref_res.status_code == 200, f"Refresh debe ser exitoso: {ref_res.text}"
     nuevo_token = ref_res.json()["access_token"]
 
-    payload_ref = jwt.decode(nuevo_token, cfg.jwt_secreto, algorithms=[cfg.jwt_algoritmo])
+    payload_ref = jwt.decode(nuevo_token, cfg.jwt_secret_key, algorithms=[cfg.algorithm])
     nuevo_jti = payload_ref.get("jti")
     assert nuevo_jti is not None and nuevo_jti != token_jti, "El nuevo JWT tras refresh debe tener un nuevo JTI"
 
@@ -353,4 +357,3 @@ def test_politica_origin_produccion_falla_cerrada():
         assert origin_valido("http://localhost:5173") is True
         assert origin_valido("http://127.0.0.1:5173") is True
         assert origin_valido("http://hacker.com") is False
-

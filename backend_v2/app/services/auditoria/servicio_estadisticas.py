@@ -163,7 +163,7 @@ class ServicioAuditoriaEstadisticas:
 
         from app.models.auditoria.accion_usuario import AuditoriaEventoResumen
         from app.services.auditoria.humanizador import generar_accion_detallada
-        
+
         ultimos_por_modulo = {}
         for row in ultimos_todos_rows:
             accion_det = generar_accion_detallada(
@@ -175,7 +175,7 @@ class ServicioAuditoriaEstadisticas:
                 metadatos=row.metadatos,
                 entidad_tipo=None
             )
-            
+
             ev = AuditoriaEventoResumen(
                 id=row.id,
                 timestamp=row.timestamp,

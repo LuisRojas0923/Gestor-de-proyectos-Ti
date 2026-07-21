@@ -48,7 +48,7 @@ def generar_accion_detallada(
 
     if not isinstance(datos, dict):
         datos = {}
-        
+
     if not isinstance(metadatos, dict):
         metadatos = {}
 
@@ -189,12 +189,12 @@ def generar_accion_detallada(
                 return 'Modificó la línea de reporte (jefe inmediato) de un empleado'
             if metodo_http == 'DELETE':
                 return 'Desactivó la línea de reporte de un empleado'
-        
+
         if ('/usuarios' in ruta or '/analistas/crear' in ruta) and metodo_http == 'POST':
             return 'Registró un nuevo usuario en el sistema'
         if '/analistas/' in ruta and metodo_http == 'PATCH':
             return 'Actualizó el perfil, estado o rol de un usuario'
-        
+
         if '/permisos' in ruta and metodo_http == 'POST':
             return 'Actualizó la matriz global de permisos del sistema'
         if '/roles' in ruta:

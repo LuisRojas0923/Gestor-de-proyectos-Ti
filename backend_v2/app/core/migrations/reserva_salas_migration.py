@@ -44,7 +44,7 @@ async def desplegar_garantia_concurrente_reservas(conn: AsyncConnection):
         WHERE r1.created_at < r2.created_at
            OR (r1.created_at = r2.created_at AND r1.id < r2.id)
     )
-    UPDATE reservations 
+    UPDATE reservations
     SET status = 'CANCELLED',
         cancelled_by_name = 'Sistema (Auto-Sanación)',
         updated_at = NOW()
@@ -59,10 +59,10 @@ async def desplegar_garantia_concurrente_reservas(conn: AsyncConnection):
 
     logger.info("Aplicando ExcludeConstraint estructural a reservations...")
     alter_sql = """
-    ALTER TABLE reservations 
-    ADD CONSTRAINT exclude_overlapping_reservations 
+    ALTER TABLE reservations
+    ADD CONSTRAINT exclude_overlapping_reservations
     EXCLUDE USING gist (
-        room_id WITH =, 
+        room_id WITH =,
         tstzrange(start_datetime, end_datetime, '()') WITH &&
     )
     WHERE (status = 'ACTIVE');
@@ -73,4 +73,3 @@ async def desplegar_garantia_concurrente_reservas(conn: AsyncConnection):
         logger.info("Restricción 'exclude_overlapping_reservations' aplicada con éxito.")
     except Exception as e:
         logger.error(f"No se pudo aplicar ExcludeConstraint (¿Falta btree_gist?). Detalles: {e}")
-
