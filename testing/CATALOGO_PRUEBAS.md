@@ -43,9 +43,10 @@ Ubicación: `testing/backend/`
 | **Indicadores de Auditoría** | `test_auditoria_estadisticas.py` | Valida límites e integridad de rangos temporales del dashboard. | ✅ PASSED |
 | **RBAC de Auditoría** | `test_auditoria_estadisticas_rbac.py` | Autoriza el dashboard por permiso efectivo y rechaza accesos sin permiso. | ✅ PASSED |
 | **API de Auditoría** | `test_auditoria_estadisticas_http.py` | Contrato HTTP 401/403/200 del endpoint de indicadores. | ✅ PASSED |
-| **Auditoría WS** | `test_auditoria_ws.py` | Validación de tokens MCP revocados, RBAC en WebSockets y conexión/desconexión asíncrona. | ✅ PASSED |
-| **Auditoría PII Unitario** | `test_auditoria_pii_unitario.py` | Certifica el enmascaramiento y anonimización de datos sensibles en el Log. | ✅ PASSED |
-| **Auditoría Reserva Salas** | `test_reserva_auditoria_middleware.py` | Middleware de auditoría capturando transformaciones correctas de UUID/Datetime (JSONB). | ✅ PASSED |
+| **Auditoría WS** | `test_auditoria_ws.py` | Validación de tokens, RBAC en WebSockets y conexión/desconexión asíncrona. | ✅ 20 PASSED / 1 SKIPPED |
+| **Auditoría PII Unitario** | `test_auditoria_pii_unitario.py` | Certifica el enmascaramiento y anonimización de datos sensibles en el Log. | ✅ 2 PASSED |
+| **Auditoría Reserva Salas** | `test_reserva_auditoria_middleware.py` | Middleware de auditoría capturando transformaciones correctas de UUID/Datetime (JSONB). | ✅ 3 PASSED |
+| **Reserva Salas Concurrencia** | `test_reserva_salas_concurrent.py` | Garantía de concurrencia y prevención de reservas solapadas (409 Conflict / PostgreSQL ExclusionConstraint). | ✅ 1 PASSED |
 | **Diagnóstico de Estados** | `test_validate_estados.py` | Manejo seguro de resultados y errores DB del script diagnóstico. | ✅ PASSED |
 | **ETL Beneficiar** | `test_beneficiar_prima.py` | Prima opcional, meses ordinarios y rechazo de columnas obligatorias ausentes. | ✅ PASSED |
 | **ETL Grancoop** | `test_grancoop_nombre_matching.py` | CREDIPRIMA, NOMPRI estricto, sumatoria sin duplicar y límites PDF. | ✅ PASSED |

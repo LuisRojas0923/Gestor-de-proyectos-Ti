@@ -2184,6 +2184,36 @@ erDiagram
 | created_at | timestamp with time zone | YES | now() |
 | updated_at | timestamp with time zone | YES | now() |
 
+##### Restricciones de Concurrencia (PostgreSQL GIST & btree_gist)
+Para garantizar la prevención estricta a nivel de motor de base de datos de reservas de salas solapadas en condiciones de alta concurrencia, se utiliza la extensión `btree_gist` junto con una restricción de exclusión (`ExclusionConstraint`):
+
+```sql
+-- Extensión requerida
+CREATE EXTENSION IF NOT EXISTS btree_gist;
+
+-- Restricción de exclusión de solapamiento
+ALTER TABLE reservations 
+    ADD CONSTRAINT exclude_overlapping_reservations 
+    EXCLUDE USING gist (
+        room_id WITH =, 
+        tstzrange(start_datetime, end_datetime, '()') WITH &&
+    )
+    WHERE (status = 'ACTIVE');
+```
+
+##### Procedimiento de Despliegue y Auto-Sanación
+1. El backend ejecuta la migración programática en startup (`desplegar_garantia_concurrente_reservas` en `backend_v2/app/core/migrations/reserva_salas_migration.py`) o vía SQL directo (`sql/migracion_reservas_btree.sql`).
+2. Antes de aplicar la restricción, la migración detecta y cancela de forma automática cualquier reserva previa que presente solapamiento en estado `ACTIVE`, registrando `cancelled_by_name = 'Sistema (Auto-Sanación)'`.
+3. Se crea la extensión `btree_gist` y la restricción `exclude_overlapping_reservations`.
+
+##### Procedimiento de Rollback
+En caso de requerir revertir la restricción de exclusión en la base de datos:
+```sql
+ALTER TABLE reservations DROP CONSTRAINT IF EXISTS exclude_overlapping_reservations;
+-- (Opcional) Desinstalar extensión si ninguna otra tabla la utiliza:
+-- DROP EXTENSION IF EXISTS btree_gist;
+```
+
 #### Tabla: `roles_sistema`
 | Columna | Tipo | Nulable | Defecto |
 |---------|------|---------|---------|
