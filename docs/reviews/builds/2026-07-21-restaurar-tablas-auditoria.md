@@ -32,12 +32,12 @@
 |---|---|---|---|
 | docs-tests-reviewer | PASS | NO | Se ejecutaron pruebas de backend y frontend con 100% de éxito (35 test files passed) |
 | backend-reviewer | PASS | NO | Validación de router WebSocket, consistencia transaccional de sesiones y rotación de JTI |
-| frontend-reviewer | PASS | NO | Compilación sin errores (tsc y vite build), narrowing de tipos y prevención de onRowClick en controles anidados |
+| frontend-reviewer | PASS | NO | Compilación sin errores (tsc y vite build), request coalescing, narrowing de tipos y prevención de onRowClick en controles anidados |
 | security-rbac-reviewer | PASS | NO | Garantizada la validez del token en WS tras login y refresh con trazabilidad de JTI |
 
 ## 3. Hallazgos bloqueantes
 
-Ninguno (los 6 puntos bloqueantes han sido solucionados y verificados).
+Ninguno (los 7 puntos bloqueantes han sido solucionados y verificados).
 
 ## 4. Hallazgos no bloqueantes
 
@@ -47,7 +47,7 @@ Ninguno
 
 - `pytest testing/backend/test_auditoria_ws.py -v` — PASS (20 passed, 1 skipped)
 - `npx tsc --noEmit` — PASS (0 errores)
-- `npx vitest run` — PASS (35 test files, 143 passed)
+- `npx vitest run` — PASS (35 test files, 144 passed)
 - `npm run build` — PASS (Build exitoso de producción en Vite)
 
 ## 6. Documentacion actualizada
