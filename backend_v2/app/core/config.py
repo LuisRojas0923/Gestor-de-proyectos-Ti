@@ -8,7 +8,7 @@ o se lanza un error en producción.
 from functools import lru_cache
 from typing import Literal
 
-from pydantic import Field, field_validator
+from pydantic import AliasChoices, Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -22,7 +22,10 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    entorno: Literal["desarrollo", "produccion", "tests"] = "desarrollo"
+    entorno: Literal["desarrollo", "produccion", "tests"] = Field(
+        default="desarrollo",
+        validation_alias=AliasChoices("entorno", "environment", "env"),
+    )
 
     verify_admin_rate_limit: str = "5/5minute"
 
@@ -35,7 +38,7 @@ class Settings(BaseSettings):
     jwt_algoritmo: str = "HS256"
 
     cors_origenes_permitidos: str = "*"
-    ws_origenes_permitidos: str = "http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000,http://127.0.0.1:3000"
+    ws_origenes_permitidos: str = ""
 
     # Auth: contraseña temporal del portal para usuarios JIT.
     # En producción NO puede estar vacía ni ser el literal "PORTAL_PENDING_PWD".
@@ -80,6 +83,19 @@ class Settings(BaseSettings):
     lockout_ventana_minutos: int = 15
     lockout_duracion_minutos: int = 15
 
+    @field_validator("entorno", mode="before")
+    @classmethod
+    def _coercion_entorno(cls, v):
+        if isinstance(v, str):
+            val = v.strip().lower()
+            if val in ("production", "produccion", "prod"):
+                return "produccion"
+            if val in ("development", "desarrollo", "dev"):
+                return "desarrollo"
+            if val in ("testing", "tests", "test"):
+                return "tests"
+        return v
+
     @field_validator("portal_pending_pwd")
     @classmethod
     def _validar_portal_pending_pwd(cls, v: str) -> str:
@@ -119,6 +135,21 @@ class Settings(BaseSettings):
         if self.cors_origenes_permitidos == "*":
             return ["*"]
         return [o.strip() for o in self.cors_origenes_permitidos.split(",") if o.strip()]
+
+    @property
+    def ws_origenes_lista(self) -> list[str]:
+        if self.ws_origenes_permitidos and self.ws_origenes_permitidos.strip() != "*":
+            return [o.strip() for o in self.ws_origenes_permitidos.split(",") if o.strip()]
+        if not self.es_produccion:
+            return [
+                "http://localhost:5173",
+                "http://127.0.0.1:5173",
+                "http://localhost:5174",
+                "http://localhost:8000",
+                "http://localhost:3000",
+                "http://127.0.0.1:3000",
+            ]
+        return []
 
     @property
     def trusted_proxy_ips_set(self) -> set[str]:

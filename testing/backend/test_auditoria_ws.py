@@ -295,3 +295,46 @@ async def test_auditoria_ws_login_flow(client):
     # We will implement allowlist next.
     with sync_client.websocket_connect("/api/v2/auditoria/ws/dashboard", subprotocols=["auth", token], headers={"Origin": "http://localhost:5173"}) as websocket:
         assert websocket.accepted_subprotocol == "auth"
+
+
+def test_config_entorno_coercion_y_aliases():
+    from app.core.config import Settings
+
+    s1 = Settings(_env_file=None, entorno="production")
+    assert s1.entorno == "produccion"
+    assert s1.es_produccion is True
+
+    s2 = Settings(_env_file=None, entorno="desarrollo")
+    assert s2.entorno == "desarrollo"
+    assert s2.es_produccion is False
+
+    s3 = Settings(_env_file=None, entorno="testing")
+    assert s3.entorno == "tests"
+    assert s3.es_produccion is False
+
+
+def test_politica_origin_produccion_falla_cerrada():
+    from app.core.config import Settings
+    from app.api.auditoria.router import origin_valido
+
+    # Producción sin orígenes configurados explícitamente -> falla cerrada (rechaza todo)
+    prod_config = Settings(entorno="produccion", ws_origenes_permitidos="")
+    with patch("app.api.auditoria.router.obtener_configuracion", return_value=prod_config):
+        assert origin_valido("http://localhost:5173") is False
+        assert origin_valido("http://127.0.0.1:5173") is False
+        assert origin_valido("https://empresa.com") is False
+
+    # Producción con origen explícito
+    prod_config_allowed = Settings(entorno="produccion", ws_origenes_permitidos="https://empresa.com,https://servicios.empresa.com")
+    with patch("app.api.auditoria.router.obtener_configuracion", return_value=prod_config_allowed):
+        assert origin_valido("https://empresa.com") is True
+        assert origin_valido("https://servicios.empresa.com") is True
+        assert origin_valido("http://localhost:5173") is False
+
+    # Desarrollo por defecto permite localhost
+    dev_config = Settings(entorno="desarrollo", ws_origenes_permitidos="")
+    with patch("app.api.auditoria.router.obtener_configuracion", return_value=dev_config):
+        assert origin_valido("http://localhost:5173") is True
+        assert origin_valido("http://127.0.0.1:5173") is True
+        assert origin_valido("http://hacker.com") is False
+

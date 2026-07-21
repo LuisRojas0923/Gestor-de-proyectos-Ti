@@ -118,14 +118,7 @@ def origin_valido(origin: str) -> bool:
     if not origin:
         return False
     config_core = obtener_configuracion()
-    allowed = [o.strip() for o in config_core.ws_origenes_permitidos.split(",") if o.strip()]
-    
-    # Permitir orígenes de desarrollo local de Vite de forma resiliente
-    # ya que localmente el puerto puede cambiar y es un entorno controlado.
-    if hasattr(config_core, "entorno") and getattr(config_core, "entorno", "development") != "production":
-        allowed.extend(["http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:5174", "http://localhost:8000"])
-        
-    return origin in allowed
+    return origin in config_core.ws_origenes_lista
 
 @router.websocket("/ws/dashboard")
 async def websocket_auditoria_dashboard(

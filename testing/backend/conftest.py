@@ -45,8 +45,12 @@ builtins.open = _open_utf8
 # luego el .env del backend como fallback.
 _env_test = Path(__file__).parent / ".env.test"
 _env_backend = Path(__file__).parent.parent.parent / "backend_v2" / ".env"
-load_dotenv(_env_test)
+load_dotenv(_env_test, override=True)
 load_dotenv(_env_backend)  # fallback para vars no definidas en .env.test
+os.environ["ENVIRONMENT"] = "tests"
+
+from app.core.config import obtener_configuracion
+obtener_configuracion.cache_clear()
 
 # Suprimir DeprecationWarning del legacy app.config en el contexto de tests.
 # La migración completa a app.core.config está pendiente (Fase 4); mientras
