@@ -20,7 +20,7 @@ const IndicatorsTimeView: React.FC<Props> = ({ areaStats, timeline, causaStats }
                 <div className="bg-[var(--color-surface)] rounded-[1.5rem] md:rounded-[2.5rem] p-3 md:p-4 shadow-xl border border-[var(--color-border)]">
                     <Title variant="h4" weight="bold" color="text-primary" className="mb-3 text-lg md:text-xl">Minutos de Atención por Área</Title>
                     <div className="h-[300px] w-full">
-                        <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+                        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                             <BarChart data={areaStats || []} margin={{ bottom: 25 }}>
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" />
                                 <XAxis 
@@ -78,7 +78,7 @@ const IndicatorsTimeView: React.FC<Props> = ({ areaStats, timeline, causaStats }
             <div className="bg-[var(--color-surface)] rounded-[1.5rem] md:rounded-[2.5rem] p-3 md:p-4 shadow-xl border border-[var(--color-border)]">
                 <Title variant="h4" weight="bold" color="text-primary" className="mb-3 text-lg md:text-xl">Solicitudes por Fecha</Title>
                 <div className="h-[250px] w-full">
-                    <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+                    <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                         <LineChart data={timeline || []}>
                             <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
                             <XAxis dataKey="fecha" tick={{ fontSize: 10 }} />
@@ -94,7 +94,7 @@ const IndicatorsTimeView: React.FC<Props> = ({ areaStats, timeline, causaStats }
             <div className="bg-[var(--color-surface)] rounded-[1.5rem] md:rounded-[2.5rem] p-3 md:p-4 shadow-xl border border-[var(--color-border)]">
                 <Title variant="h4" weight="bold" color="text-primary" className="mb-3 text-lg md:text-xl">Tiempo de Solicitud por Fecha (Min)</Title>
                 <div className="h-[250px] w-full">
-                    <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+                    <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                         <LineChart data={timeline || []}>
                             <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
                             <XAxis dataKey="fecha" tick={{ fontSize: 10 }} />

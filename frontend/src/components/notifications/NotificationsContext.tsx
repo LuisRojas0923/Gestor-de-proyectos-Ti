@@ -106,7 +106,14 @@ export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({
 
     return () => {
       isMounted = false;
-      if (socket) socket.close();
+      if (socket) {
+        socket.onclose = null;
+        if (socket.readyState === 1) {
+          socket.close();
+        } else if (socket.readyState === 0) {
+          socket.onopen = () => socket?.close();
+        }
+      }
       clearTimeout(reconnectTimeout);
     };
   }, [userId, addNotification]);

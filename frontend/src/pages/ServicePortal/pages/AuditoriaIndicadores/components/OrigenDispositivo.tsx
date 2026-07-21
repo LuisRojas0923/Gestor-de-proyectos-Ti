@@ -37,7 +37,7 @@ export const OrigenDispositivo: React.FC<OrigenDispositivoProps> = ({ datos }) =
         {chartData.length === 0 ? (
           <Text variant="body2" color="text-secondary">No hay datos de dispositivos.</Text>
         ) : (
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
             <PieChart>
               <Pie
                 data={chartData}

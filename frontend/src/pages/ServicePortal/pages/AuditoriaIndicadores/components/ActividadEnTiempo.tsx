@@ -151,7 +151,7 @@ const ActividadEnTiempo: React.FC<ActividadEnTiempoProps> = ({ datos }) => {
             <Text variant="body2" color="text-secondary">No hay datos para este período.</Text>
           </div>
         ) : (
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
             <LineChart data={formattedData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" opacity={0.5} />
               <XAxis

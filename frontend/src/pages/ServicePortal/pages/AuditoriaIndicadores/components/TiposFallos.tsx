@@ -72,7 +72,7 @@ const TiposFallos: React.FC<TiposFallosProps> = ({ datos }) => {
              <Text variant="body2" color="text-secondary">No hay fallos para este período.</Text>
            </div>
         ) : (
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
             <BarChart data={chartData} layout="vertical" margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
               <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="var(--color-border)" opacity={0.5} />
               <XAxis type="number" stroke="var(--color-text-secondary)" fontSize={12} allowDecimals={false} />

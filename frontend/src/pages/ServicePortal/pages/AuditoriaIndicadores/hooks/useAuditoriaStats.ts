@@ -168,7 +168,11 @@ export function useAuditoriaStats() {
             isUnmounted = true;
             if (socket) {
                 socket.onclose = null; // Prevenir reconexión tras desmontar
-                socket.close();
+                if (socket.readyState === 1) {
+                    socket.close();
+                } else if (socket.readyState === 0) {
+                    socket.onopen = () => socket?.close();
+                }
             }
             if (timeoutId) clearTimeout(timeoutId);
             if (stabilityTimeoutId) clearTimeout(stabilityTimeoutId);
