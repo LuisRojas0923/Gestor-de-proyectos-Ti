@@ -89,6 +89,16 @@ def limiter_reset():
         pass
 
 
+@pytest.fixture(autouse=True)
+def dispose_global_engine():
+    yield
+    try:
+        from app.database import async_engine
+        async_engine.sync_engine.dispose()
+    except Exception:
+        pass
+
+
 @pytest.fixture(scope="session", autouse=True)
 def bcrypt_fast():
     """

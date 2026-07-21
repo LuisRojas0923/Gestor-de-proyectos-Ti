@@ -44,7 +44,14 @@ async def test_middleware_auditoria_creacion_reserva(override_get_db, db_session
     # Necesitamos simular el token o usar dependencias
     # Podemos hacer patch de obtener_usuario_actual_db para forzar el usuario
     from app.api.auth.router import obtener_usuario_actual_db
-    app.dependency_overrides[obtener_usuario_actual_db] = lambda: usuario_test
+    from starlette.requests import Request
+    def mock_user(request: Request):
+        request.state.usuario_id = usuario_test.id
+        request.state.usuario_nombre = usuario_test.nombre
+        request.state.usuario_rol = usuario_test.rol
+        return usuario_test
+
+    app.dependency_overrides[obtener_usuario_actual_db] = mock_user
 
     from datetime import datetime, timezone, timedelta
     start_dt = datetime.now(timezone.utc).replace(hour=14, minute=0, second=0)
@@ -85,14 +92,14 @@ async def test_middleware_auditoria_creacion_reserva(override_get_db, db_session
         select(AuditoriaAccionUsuario)
         .where(
             AuditoriaAccionUsuario.ruta == "/api/v2/reserva-salas/reservations",
-            AuditoriaAccionUsuario.usuario_nombre == "Usuario Auditoria"
+            AuditoriaAccionUsuario.usuario_id == str(usuario_test.id)
         )
     )
     auditorias = result.scalars().all()
 
     # Debe existir al menos un evento de auditoría por la creación
     assert len(auditorias) > 0, "No se encontró el evento de auditoría para este usuario"
-    auditoria = auditorias[-1]
+    auditoria = auditorias[0]
 
     # Comprobar que los datos nuevos tienen UUID convertido a string y room_name insertado
     assert auditoria.datos_nuevos is not None
