@@ -2,8 +2,8 @@
 
 > **Estado histórico:** veredicto bloqueado supersedido. El cierre canónico está en `2026-07-21_horas-extras-planilla-detallada-final.md`.
 
-**Fecha:** 2026-07-21  
-**Alcance:** endpoint y servicio de planilla detallada de cálculos HE, enriquecimiento ERP, tabla frontend, catálogo, evidencia TDD y necesidades documentales  
+**Fecha:** 2026-07-21
+**Alcance:** endpoint y servicio de planilla detallada de cálculos HE, enriquecimiento ERP, tabla frontend, catálogo, evidencia TDD y necesidades documentales
 **Resultado:** `blocked`
 
 ## Evidencia revisada

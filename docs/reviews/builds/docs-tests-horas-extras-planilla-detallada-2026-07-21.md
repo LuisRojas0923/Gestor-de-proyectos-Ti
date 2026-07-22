@@ -2,9 +2,9 @@
 
 > **Estado histórico:** revisión focal conservada para auditoría. El cierre canónico está en `2026-07-21_horas-extras-planilla-detallada-final.md`.
 
-**Fecha:** 2026-07-21  
-**Alcance:** `docs/specs/2026-06-01_modulo-horas-extras-novedades.md`, `testing/CATALOGO_PRUEBAS.md`, `testing/backend/test_horas_extras_calculos_planilla.py`, `testing/backend/test_horas_extras_ot_horarios.py`, `frontend/src/tests/CalculoListView.test.tsx` y `frontend/src/tests/horasExtrasPlanillaService.test.ts`  
-**Decisión:** **approved_with_risks**  
+**Fecha:** 2026-07-21
+**Alcance:** `docs/specs/2026-06-01_modulo-horas-extras-novedades.md`, `testing/CATALOGO_PRUEBAS.md`, `testing/backend/test_horas_extras_calculos_planilla.py`, `testing/backend/test_horas_extras_ot_horarios.py`, `frontend/src/tests/CalculoListView.test.tsx` y `frontend/src/tests/horasExtrasPlanillaService.test.ts`
+**Decisión:** **approved_with_risks**
 **Estado del reporte:** esta revisión reemplaza el veredicto bloqueado anterior del mismo archivo.
 
 ## Evidencia validada
@@ -63,8 +63,8 @@ Ninguna es bloqueante para el alcance solicitado.
 
 ## Veredicto
 
-Docs/tests review: approved_with_risks  
-Findings: 1 medio y 2 bajos; sin hallazgos altos ni bloqueantes. Los bloqueos previos de semántica, reparto multi-CC, integridad, privacidad, alcance, contrato UI y evidencia quedaron cerrados.  
-Required tests: ninguno bloqueante; recomendados período/identidad de snapshot, integración RBAC real y reintento/resúmenes/error HTTP frontend.  
-Required docs: registrar el comando exacto de `compileall` si forma parte de la evidencia final.  
+Docs/tests review: approved_with_risks
+Findings: 1 medio y 2 bajos; sin hallazgos altos ni bloqueantes. Los bloqueos previos de semántica, reparto multi-CC, integridad, privacidad, alcance, contrato UI y evidencia quedaron cerrados.
+Required tests: ninguno bloqueante; recomendados período/identidad de snapshot, integración RBAC real y reintento/resúmenes/error HTTP frontend.
+Required docs: registrar el comando exacto de `compileall` si forma parte de la evidencia final.
 Blocking reasons: ninguno.

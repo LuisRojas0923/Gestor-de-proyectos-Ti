@@ -2,8 +2,8 @@
 
 > **Estado histórico:** revisión intermedia no vigente. El comportamiento final se documenta en `2026-07-21_horas-extras-planilla-detallada-final.md`.
 
-**Fecha:** 2026-07-21  
-**Alcance:** enriquecimiento ERP de nombres en la lista de cálculos de horas extras y filtros locales de `CalculoListView`; trabajo dirty ajeno excluido  
+**Fecha:** 2026-07-21
+**Alcance:** enriquecimiento ERP de nombres en la lista de cálculos de horas extras y filtros locales de `CalculoListView`; trabajo dirty ajeno excluido
 **Decisión:** **blocked**
 
 ## 1. Evidencia revisada
@@ -67,8 +67,8 @@ Se recibieron conteos y estados, no las invocaciones exactas ni logs crudos. Est
 
 **BLOCKED** hasta cubrir el endpoint/response y sus fallbacks públicos, fijar mediante test el orden inicial de la tabla y actualizar los estados del catálogo. Los casos adicionales de columnas numéricas, limpieza y resúmenes pueden quedar como riesgo posterior si el contrato mínimo anterior queda verde.
 
-Docs/tests review: blocked  
-Findings: contrato HTTP/serialización sin prueba; fallbacks null/parcial y filtros incompletos; posible inversión silenciosa del orden; catálogo focal aún “EN VALIDACIÓN”; fase roja TDD no auditable.  
-Required tests: HTTP 200 con nombre y bulk único; HTTP 200/null con ERP ausente/fallido; mapa ERP parcial; UI `No disponible`/`(Vacío)`; orden inicial e indicador; recomendado período/número/limpieza/resúmenes.  
-Required docs: actualizar las dos entradas focales de `testing/CATALOGO_PRUEBAS.md` a 3 PASSED; este reporte sustituye una bitácora adicional.  
+Docs/tests review: blocked
+Findings: contrato HTTP/serialización sin prueba; fallbacks null/parcial y filtros incompletos; posible inversión silenciosa del orden; catálogo focal aún “EN VALIDACIÓN”; fase roja TDD no auditable.
+Required tests: HTTP 200 con nombre y bulk único; HTTP 200/null con ERP ausente/fallido; mapa ERP parcial; UI `No disponible`/`(Vacío)`; orden inicial e indicador; recomendado período/número/limpieza/resúmenes.
+Required docs: actualizar las dos entradas focales de `testing/CATALOGO_PRUEBAS.md` a 3 PASSED; este reporte sustituye una bitácora adicional.
 Blocking reasons: el nuevo contrato público no está probado end-to-end, la degradación visible no está cubierta y el orden inicial potencialmente regresivo carece de especificación/test.

@@ -2,9 +2,9 @@
 
 > **Estado histórico:** revisión focal conservada para auditoría. El cierre canónico está en `2026-07-21_horas-extras-planilla-detallada-final.md`.
 
-**Fecha:** 2026-07-21  
-**Alcance:** cierre de hallazgos del enriquecimiento ERP y filtros de `CalculoListView`; trabajo dirty ajeno excluido  
-**Reporte previo:** `docs-tests-employee-name-column-filter-2026-07-21.md`  
+**Fecha:** 2026-07-21
+**Alcance:** cierre de hallazgos del enriquecimiento ERP y filtros de `CalculoListView`; trabajo dirty ajeno excluido
+**Reporte previo:** `docs-tests-employee-name-column-filter-2026-07-21.md`
 **Decisión:** **approved_with_risks**
 
 ## 1. Cierre de hallazgos previos
@@ -55,8 +55,8 @@ El endpoint prueba wiring y serialización con `listar_calculos` mockeado, mient
 
 Los bloqueos funcionales y documentales del reporte previo están cerrados. El resultado pasa a **approved_with_risks** únicamente por ausencia de rojo TDD auditable y por la necesidad operativa de repetir los casos DB en un entorno capaz de resolver `db`; ninguno de esos riesgos atribuye un fallo a la implementación focal.
 
-Docs/tests review: approved_with_risks  
-Findings: sin hallazgos altos; cobertura HTTP, fallbacks, orden, error y catálogo cerrados. Riesgos residuales: TDD rojo no auditable y run DB mixto afectado por DNS local.  
-Required tests: ninguno bloqueante; recomendado repetir los seis casos DB en Docker y añadir limpieza/período/reintento UI.  
-Required docs: ninguna adicional; catálogo correcto y este reporte final sustituye una bitácora.  
+Docs/tests review: approved_with_risks
+Findings: sin hallazgos altos; cobertura HTTP, fallbacks, orden, error y catálogo cerrados. Riesgos residuales: TDD rojo no auditable y run DB mixto afectado por DNS local.
+Required tests: ninguno bloqueante; recomendado repetir los seis casos DB en Docker y añadir limpieza/período/reintento UI.
+Required docs: ninguna adicional; catálogo correcto y este reporte final sustituye una bitácora.
 Blocking reasons: ninguno.

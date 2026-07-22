@@ -2,11 +2,11 @@
 
 > **Estado histórico:** veredicto bloqueado supersedido. El cierre canónico está en `2026-07-21_horas-extras-planilla-detallada-final.md`.
 
-**Fecha:** 2026-07-21  
-**Build:** Tabla detallada de cálculos de horas extras  
-**Autor del build:** no indicado  
-**Modo:** build  
-**Proyecto:** Gestor-de-proyectos-Ti  
+**Fecha:** 2026-07-21
+**Build:** Tabla detallada de cálculos de horas extras
+**Autor del build:** no indicado
+**Modo:** build
+**Proyecto:** Gestor-de-proyectos-Ti
 **Decisión:** **blocked**
 
 Se revisó exclusivamente el alcance solicitado y se ignoró el resto del worktree. No se modificó código de aplicación.

@@ -2,7 +2,7 @@
 
 > **Estado histórico:** revisión focal conservada para auditoría. El cierre canónico está en `2026-07-21_horas-extras-planilla-detallada-final.md`.
 
-**Fecha:** 2026-07-21 — re-review final  
+**Fecha:** 2026-07-21 — re-review final
 **Scope:** únicamente `GET /calculos/planilla` de Horas Extras, su servicio de lectura, enriquecimiento ERP y pruebas focales.
 
 ## Checklist results
