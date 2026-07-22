@@ -13,9 +13,63 @@
     "review <files>": "Review backend files or diffs",
     "checklist <scope>": "Return the relevant subset of the backend review checklist"
   },
-  "review_history": [],
+  "review_history": [
+    {
+      "subagent": "backend-reviewer",
+      "scope": "bitacoras-operacionales-fase1-persistencia-final",
+      "files_reviewed": [
+        "backend_v2/app/models/bitacoras_operacionales/modelos.py",
+        "backend_v2/app/models/bitacoras_operacionales/schemas.py",
+        "backend_v2/app/models/bitacoras_operacionales/__init__.py",
+        "backend_v2/app/core/migrations/bitacoras_operacionales_migration.py",
+        "backend_v2/app/core/migrations/bitacoras_operacionales_schema.py",
+        "backend_v2/app/core/migrations/manager.py",
+        "backend_v2/app/core/migrations/schema_verifier.py",
+        "backend_v2/app/models/registry.py",
+        "testing/backend/test_bitacoras_operacionales_persistencia.py",
+        "testing/backend/test_bitacoras_operacionales_postgres.py",
+        "testing/backend/test_bitacoras_schema_normalizacion.py",
+        "testing/CATALOGO_PRUEBAS.md",
+        "docs/ESQUEMA_BASE_DATOS.md"
+      ],
+      "outcome": "approved_with_risks",
+      "date": "2026-07-21T00:00:00Z",
+      "findings_count": {
+        "critico": 0,
+        "alto": 0,
+        "medio": 1,
+        "bajo": 2
+      },
+      "summary": "Fase 1 de persistencia aprobada sin bloqueantes; defaults, serialización FOR UPDATE, propiedad inmutable, contrato físico, ACL y cobertura PostgreSQL quedaron cerrados. La fase funcional continúa diferida hasta el contrato real Aperturas OT V4."
+    },
+    {
+      "subagent": "backend-reviewer",
+      "scope": "cierre-snapshot-multidominio-2026-07-22",
+      "files_reviewed": [
+        "backend_v2/app/api/tickets/router.py",
+        "backend_v2/app/api/notificaciones/router.py",
+        "backend_v2/app/services/ticket/servicio.py",
+        "backend_v2/app/services/ticket/ws_manager.py",
+        "backend_v2/app/services/notificacion/ws_manager.py",
+        "backend_v2/app/api/novedades_nomina/routers/horas_extras_planificador.py",
+        "testing/backend/test_ticket_update_errors.py",
+        "testing/backend/test_ticket_websocket_security.py",
+        "testing/backend/test_horas_extras_ot_horarios.py",
+        "docs/reviews/builds/cierre-snapshot-multidominio-2026-07-22.md"
+      ],
+      "outcome": "approved",
+      "date": "2026-07-22T23:00:06Z",
+      "findings_count": {
+        "critico": 0,
+        "alto": 0,
+        "medio": 0,
+        "bajo": 0
+      },
+      "summary": "Snapshot multidominio aprobado sin bloqueantes. Evidencia: suite backend multidominio 75 passed/1 skipped/1 deselected más rerun de aislamiento 6 passed, planilla/ERP 25 passed, focal Redis/WebSocket 5 passed y compileall PASS."
+    }
+  ],
   "stats": {
-    "total_reviews": 0,
-    "last_review": null
+    "total_reviews": 2,
+    "last_review": "2026-07-22T23:00:06Z"
   }
 }

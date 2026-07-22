@@ -12,9 +12,28 @@
     "review <files>": "Review frontend files or diffs",
     "checklist <scope>": "Return the relevant subset of the frontend review checklist"
   },
-  "review_history": [],
+  "review_history": [
+    {
+      "subagent": "frontend-reviewer",
+      "scope": "cierre-snapshot-multidominio-2026-07-22",
+      "files_reviewed": [
+        "frontend/src/",
+        "frontend/src/components/molecules/DataTable.tsx",
+        "docs/reviews/builds/cierre-snapshot-multidominio-2026-07-22.md"
+      ],
+      "outcome": "approved",
+      "date": "2026-07-22T23:00:07Z",
+      "findings_count": {
+        "critico": 0,
+        "alto": 0,
+        "medio": 0,
+        "bajo": 0
+      },
+      "summary": "Snapshot frontend aprobado: 357 tests passed/2 skipped, TypeScript PASS, build de 4042 módulos y ESLint focal sin errores; la sesión fail-closed y los estados de tabla quedaron cerrados."
+    }
+  ],
   "stats": {
-    "total_reviews": 0,
-    "last_review": null
+    "total_reviews": 1,
+    "last_review": "2026-07-22T23:00:07Z"
   }
 }

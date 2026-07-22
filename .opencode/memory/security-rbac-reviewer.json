@@ -220,7 +220,7 @@
         "BAJO": 0
       },
       "cwe_references": ["CWE-284", "CWE-307", "CWE-754"],
-      "summary": "Delta blocked: production migrate imports runtime JWT config without receiving JWT_SECRET_KEY; an intentionally disabled noncritical RBAC module fails verify-only startup; admin_sistemas can satisfy bootstrap without any actor authorized for protected administration; and the admin unlock endpoint does not remove hashed account lockout keys. HBA, unauthenticated Redis, auth oracles and legitimate ERP JIT remain documented out-of-scope debt."
+      "summary": "Delta blocked: production migrate imports runtime JWT config without receiving JWT_SECRET_KEY; an intentionally disabled noncritical RBAC module fails verify-only startup; admin_sistemas can satisfy bootstrap without any actor authorized for protected administration; and the admin unlock endpoint does not remove hashed account lockout keys. HBA, Redis sin autenticación, auth oracles y ERP JIT legítimo eran deuda fuera de alcance en este snapshot histórico. Redis quedó cerrado posteriormente el 2026-07-22 con REDIS_URL sin credenciales y REDIS_PASSWORD obligatoria por separado."
     },
     {
       "date": "2026-07-17",
@@ -234,12 +234,101 @@
       },
       "cwe_references": [],
       "summary": "Approved: migrate no longer imports JWT runtime configuration, inactive noncritical modules survive verification and sync, bootstrap requires the same admin role as protected procedures, and administrative unlock uses the hashed account identifier. Evidence: 47 focal tests passed and isolated acceptance passed in 215.25 seconds."
+    },
+    {
+      "date": "2026-07-21",
+      "scope": "Frontend route substitution /service-portal/horas-extras/calculos to regional payroll previews",
+      "outcome": "blocked",
+      "finding_count_by_severity": {
+        "BLOQUEANTE": 0,
+        "ALTO": 1,
+        "MEDIO": 2,
+        "BAJO": 0
+      },
+      "cwe_references": ["CWE-863", "CWE-284", "CWE-287"],
+      "summary": "Blocked: the route preserves nomina_horas_extras.leer but renders payroll components whose APIs require nomina_novedades and whose visible Procesar action replaces period records. Backend remains fail-closed, but reused Axios calls omit the required Bearer token and the added test only verifies props, not permission behavior."
+    },
+    {
+      "date": "2026-07-21",
+      "scope": "Final re-review of /service-portal/horas-extras/calculos regional payroll integration",
+      "outcome": "approved_with_risks",
+      "finding_count_by_severity": {
+        "BLOQUEANTE": 0,
+        "ALTO": 0,
+        "MEDIO": 0,
+        "BAJO": 1
+      },
+      "cwe_references": ["CWE-602"],
+      "summary": "Previous blockers closed: route and hub now require nomina_novedades, 1Q/2Q requests send Bearer, integrated route hides upload/processing controls, legacy processing remains intentional, and ProtectedRoute fails closed. Residual low risk: mostrarCarga is presentation only; nomina_novedades remains the backend write authority."
+    },
+    {
+      "date": "2026-07-21",
+      "scope": "Horas Extras calculos employee-name ERP enrichment",
+      "outcome": "approved_with_risks",
+      "finding_count_by_severity": {
+        "BLOQUEANTE": 0,
+        "ALTO": 0,
+        "MEDIO": 1,
+        "BAJO": 1
+      },
+      "cwe_references": ["CWE-400", "CWE-770", "CWE-639"],
+      "summary": "Existing nomina_horas_extras.leer and cedula scope remain intact; only scoped DB results feed the ERP lookup, errors/logs do not disclose PII, and the optional session closes safely. Residual risks are repeated slow ERP degradation without a circuit breaker and missing combined scope-to-ERP regression coverage."
+    },
+    {
+      "subagent": "security-rbac-reviewer",
+      "scope": "bitacoras-operacionales-fase1-persistencia-final",
+      "files_reviewed": [
+        "backend_v2/app/models/bitacoras_operacionales/modelos.py",
+        "backend_v2/app/core/migrations/bitacoras_operacionales_migration.py",
+        "backend_v2/app/core/migrations/bitacoras_operacionales_schema.py",
+        "backend_v2/app/core/migrations/manager.py",
+        "backend_v2/app/core/migrations/schema_verifier.py",
+        "testing/backend/test_bitacoras_operacionales_persistencia.py",
+        "testing/backend/test_bitacoras_operacionales_postgres.py"
+      ],
+      "outcome": "approved_with_risks",
+      "date": "2026-07-21T00:00:00Z",
+      "findings_count": {
+        "critico": 0,
+        "alto": 0,
+        "medio": 1,
+        "bajo": 2
+      },
+      "cwe_references": ["CWE-693", "CWE-754", "CWE-400", "CWE-20", "CWE-345"],
+      "summary": "Sin bloqueantes: propietario inmutable, locks FOR UPDATE, ACL exacta y verifier runtime read-only/fail-closed confirmados. API y RBAC funcional permanecen correctamente diferidos hasta el contrato Aperturas OT V4."
+    },
+    {
+      "subagent": "security-rbac-reviewer",
+      "scope": "cierre-snapshot-multidominio-2026-07-22",
+      "files_reviewed": [
+        "backend_v2/app/api/tickets/router.py",
+        "backend_v2/app/api/notificaciones/router.py",
+        "backend_v2/app/services/ticket/servicio.py",
+        "backend_v2/app/services/ticket/ws_manager.py",
+        "backend_v2/app/services/notificacion/ws_manager.py",
+        "backend_v2/app/services/notificacion/ws_security.py",
+        "backend_v2/app/core/rate_limiter.py",
+        "docker-compose.prod.yml",
+        "docker-compose.Pruebas3.yml",
+        "testing/backend/test_ticket_websocket_security.py",
+        "docs/reviews/builds/cierre-snapshot-multidominio-2026-07-22.md"
+      ],
+      "outcome": "approved",
+      "date": "2026-07-22T23:00:08Z",
+      "findings_count": {
+        "critico": 0,
+        "alto": 0,
+        "medio": 0,
+        "bajo": 0
+      },
+      "cwe_references": [],
+      "summary": "Aprobado sin bloqueantes: PATCH ligado al actor y RBAC dinámico; WebSocket de tickets con ticket efímero, propiedad o ticket-management y revalidación; Redis con contraseña separada de REDIS_URL; OThorarios con cuota específica."
     }
   ],
   "stats": {
-    "total_operations": 17,
-    "total_reviews": 17,
-    "last_operation": "2026-07-17",
-    "last_review": "2026-07-17"
+    "total_operations": 22,
+    "total_reviews": 22,
+    "last_operation": "2026-07-22T23:00:08Z",
+    "last_review": "2026-07-22T23:00:08Z"
   }
 }

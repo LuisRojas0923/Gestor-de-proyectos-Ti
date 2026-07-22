@@ -1,0 +1,35 @@
+{
+  "subagent": "frontend-table-specialist",
+  "description": "Read-only specialist for high-performance tables, per-column filters, lightweight virtualization, and loading states.",
+  "capabilities": {
+    "review_tables": "Verify column filters, horizontal scrolling, active-filter indicators and table performance",
+    "review_loading_states": "Verify loading, empty and error states",
+    "review_accessibility": "Verify keyboard and accessible feedback for table controls"
+  },
+  "operation_history": [],
+  "review_history": [
+    {
+      "subagent": "frontend-table-specialist",
+      "scope": "cierre-snapshot-multidominio-2026-07-22",
+      "files_reviewed": [
+        "frontend/src/components/molecules/DataTable.tsx",
+        "docs/reviews/builds/cierre-snapshot-multidominio-2026-07-22.md"
+      ],
+      "outcome": "approved_with_risks",
+      "date": "2026-07-22T23:00:09Z",
+      "findings_count": {
+        "critico": 0,
+        "alto": 0,
+        "medio": 0,
+        "bajo": 1
+      },
+      "summary": "DataTable aprobado sin bloqueantes: scroll horizontal, filtros agrupados e indicador de filtro activo verificados. Riesgo bajo: DataTable.tsx está próximo al límite de 550 líneas."
+    }
+  ],
+  "stats": {
+    "total_operations": 1,
+    "total_reviews": 1,
+    "last_operation": "2026-07-22T23:00:09Z",
+    "last_review": "2026-07-22T23:00:09Z"
+  }
+}

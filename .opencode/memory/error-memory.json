@@ -77,13 +77,209 @@
       "timestamp": "2026-07-16T00:00:00Z",
       "prioridad": "ALTA",
       "estado": "RESUELTO"
+    },
+    {
+      "operation": "record error",
+      "id": "ERR-008",
+      "titulo": "Bitácoras Operacionales Fase 1 presentaba brechas de integridad, concurrencia y verificación PostgreSQL",
+      "timestamp": "2026-07-21T00:00:00Z",
+      "prioridad": "ALTA",
+      "estado": "RESUELTO"
+    },
+    {
+      "operation": "record decision",
+      "id": "DEC-001",
+      "titulo": "Defaults de servidor declarados en modelo y reafirmados por migración especializada",
+      "timestamp": "2026-07-21T00:00:01Z",
+      "estado": "VIGENTE"
+    },
+    {
+      "operation": "record decision",
+      "id": "DEC-002",
+      "titulo": "Mutaciones hijas serializadas con finalización e identidad creadora inmutable",
+      "timestamp": "2026-07-21T00:00:02Z",
+      "estado": "VIGENTE"
+    },
+    {
+      "operation": "record decision",
+      "id": "DEC-003",
+      "titulo": "Schema verifier runtime read-only y fail-closed sobre el contrato físico completo",
+      "timestamp": "2026-07-21T00:00:03Z",
+      "estado": "VIGENTE"
+    },
+    {
+      "operation": "record decision",
+      "id": "DEC-004",
+      "titulo": "Inventario documental con login migrador y SET ROLE seguro al owner",
+      "timestamp": "2026-07-21T00:00:04Z",
+      "estado": "VIGENTE"
+    },
+    {
+      "operation": "record decision",
+      "id": "DEC-005",
+      "titulo": "ERP, API y RBAC funcional de Bitácoras diferidos hasta el contrato real Aperturas OT V4",
+      "timestamp": "2026-07-21T00:00:05Z",
+      "estado": "VIGENTE"
+    },
+    {
+      "operation": "record review",
+      "subagent": "backend-reviewer",
+      "scope": "bitacoras-operacionales-fase1-persistencia-final",
+      "timestamp": "2026-07-21T00:00:06Z",
+      "outcome": "approved_with_risks"
+    },
+    {
+      "operation": "record review",
+      "subagent": "security-rbac-reviewer",
+      "scope": "bitacoras-operacionales-fase1-persistencia-final",
+      "timestamp": "2026-07-21T00:00:07Z",
+      "outcome": "approved_with_risks"
+    },
+    {
+      "operation": "update review evidence",
+      "subagent": "docs-tests-reviewer",
+      "scope": "bitacoras-operacionales-fase1-persistencia-definitivo",
+      "timestamp": "2026-07-21T00:00:08Z",
+      "outcome": "approved_with_risks",
+      "evidence": "25 focales PostgreSQL, 8 regresiones y 30 startup"
+    },
+    {
+      "operation": "update error",
+      "id": "ERR-006",
+      "titulo": "PATCH de tickets permitía mutaciones sin autenticación y confiaba en identidad de auditoría enviada por el cliente",
+      "timestamp": "2026-07-22T00:00:00Z",
+      "previous_state": "NO_RESUELTO",
+      "estado": "RESUELTO",
+      "evidence": "Dependencia obtener_usuario_actual_db, autorización de servicio e identidad derivada del actor verificadas por inspección estática; cobertura focal presente pero no ejecutada por error-memory."
+    },
+    {
+      "operation": "record error",
+      "id": "ERR-009",
+      "titulo": "Redis de producción y Pruebas3 permitía despliegue sin contraseña obligatoria",
+      "timestamp": "2026-07-22T00:00:01Z",
+      "prioridad": "ALTA",
+      "estado": "RESUELTO"
+    },
+    {
+      "operation": "record error",
+      "id": "ERR-010",
+      "titulo": "WebSocket de notificaciones no degradaba explícitamente ante fallo DB y no limitaba conexiones locales por usuario",
+      "timestamp": "2026-07-22T00:00:02Z",
+      "prioridad": "ALTA",
+      "estado": "RESUELTO"
+    },
+    {
+      "operation": "record error",
+      "id": "ERR-011",
+      "titulo": "Consulta ERP OThorarios carecía de cuota específica por endpoint",
+      "timestamp": "2026-07-22T00:00:03Z",
+      "prioridad": "MEDIA",
+      "estado": "RESUELTO"
+    },
+    {
+      "operation": "record error",
+      "id": "ERR-012",
+      "titulo": "Planilla de horas extras mostraba salario y base hora estimados persistidos",
+      "timestamp": "2026-07-22T00:00:04Z",
+      "prioridad": "ALTA",
+      "estado": "RESUELTO",
+      "evidence": "37 pruebas de planilla, 5 de offload ERP y 15 RBAC aprobadas; backend approved_with_risks sin bloqueos y security approved."
+    },
+    {
+      "operation": "update error evidence",
+      "id": "ERR-006",
+      "timestamp": "2026-07-22T23:00:00Z",
+      "estado": "RESUELTO",
+      "evidence": "Suite multidominio 75 passed/1 skipped/1 deselected y rerun de aislamiento 6 passed; backend y security approved sin bloqueantes."
+    },
+    {
+      "operation": "update error evidence",
+      "id": "ERR-009",
+      "timestamp": "2026-07-22T23:00:01Z",
+      "estado": "RESUELTO",
+      "evidence": "REDIS_URL sin credenciales y REDIS_PASSWORD separada; focal Redis/WebSocket 5 passed y Compose prod/Pruebas3 config PASS."
+    },
+    {
+      "operation": "update error evidence",
+      "id": "ERR-010",
+      "timestamp": "2026-07-22T23:00:02Z",
+      "estado": "RESUELTO",
+      "evidence": "Suite multidominio ejecutada y cierre security approved; fallos DB, cuota local y revocación antes de transmitir cubiertos."
+    },
+    {
+      "operation": "update error evidence",
+      "id": "ERR-011",
+      "timestamp": "2026-07-22T23:00:03Z",
+      "estado": "RESUELTO",
+      "evidence": "test_horas_extras_ot_horarios.py ejecutado dentro de la suite multidominio aprobada; smoke productivo opt-in queda como riesgo no bloqueante."
+    },
+    {
+      "operation": "record error",
+      "id": "ERR-013",
+      "titulo": "WebSocket de tickets permitía una suscripción pública sin autenticar ni revalidar autorización",
+      "timestamp": "2026-07-22T23:00:04Z",
+      "prioridad": "CRITICA",
+      "estado": "RESUELTO",
+      "evidence": "Ticket efímero, sesión, propiedad/RBAC y revalidación antes de evento; focal Redis/WebSocket 5 passed."
+    },
+    {
+      "operation": "record decision",
+      "id": "DEC-006",
+      "titulo": "WebSockets de tickets protegidos con credencial efímera, autorización dinámica y revalidación por evento",
+      "timestamp": "2026-07-22T23:00:05Z",
+      "estado": "VIGENTE"
+    },
+    {
+      "operation": "record review",
+      "subagent": "backend-reviewer",
+      "scope": "cierre-snapshot-multidominio-2026-07-22",
+      "timestamp": "2026-07-22T23:00:06Z",
+      "outcome": "approved"
+    },
+    {
+      "operation": "record review",
+      "subagent": "frontend-reviewer",
+      "scope": "cierre-snapshot-multidominio-2026-07-22",
+      "timestamp": "2026-07-22T23:00:07Z",
+      "outcome": "approved"
+    },
+    {
+      "operation": "record review",
+      "subagent": "security-rbac-reviewer",
+      "scope": "cierre-snapshot-multidominio-2026-07-22",
+      "timestamp": "2026-07-22T23:00:08Z",
+      "outcome": "approved"
+    },
+    {
+      "operation": "record review",
+      "subagent": "frontend-table-specialist",
+      "scope": "cierre-snapshot-multidominio-2026-07-22",
+      "timestamp": "2026-07-22T23:00:09Z",
+      "outcome": "approved_with_risks"
+    },
+    {
+      "operation": "record review",
+      "subagent": "docs-tests-reviewer",
+      "scope": "cierre-snapshot-multidominio-2026-07-22",
+      "timestamp": "2026-07-22T23:00:10Z",
+      "outcome": "approved"
+    },
+    {
+      "operation": "record review",
+      "subagent": "scope-reviewer",
+      "scope": "cierre-snapshot-multidominio-2026-07-22",
+      "timestamp": "2026-07-22T23:00:11Z",
+      "outcome": "approved"
     }
   ],
   "stats": {
-    "total_operations": 7,
-    "last_operation": "record error (ERR-007) — 2026-07-16T00:00:00Z",
-    "errors_recorded": 6,
-    "decisions_recorded": 1,
+    "total_operations": 33,
+    "last_operation": "record review scope-reviewer — 2026-07-22T23:00:11Z",
+    "errors_recorded": 12,
+    "errors_updated": 5,
+    "decisions_recorded": 7,
+    "reviews_recorded": 8,
+    "reviews_updated": 1,
     "memory_persistence_enabled": true,
     "permission_grant_date": "2026-06-03"
   }

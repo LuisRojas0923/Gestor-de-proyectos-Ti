@@ -309,10 +309,203 @@
         "low": 1
       },
       "test_coverage_observations": "Evidencia final comunicada: backend focal 78 passed; frontend focal verde tras rerun Select; tsc, eslint, build y pre-commit PASS; arnés 22 passed y 11 adaptadores. Catálogo, volúmenes prod/Pruebas3 y guía backup/retención quedan cerrados. Riesgos residuales: carreras PostgreSQL reales, HTTP 429 y exclusión exacta de GestionTi_SoporteFiles_Pruebas3/."
+    },
+    {
+      "date": "2026-07-21",
+      "scope": "frontend-horas-extras-calculos-planilla-regional-final",
+      "outcome": "blocked",
+      "finding_count_by_severity": {
+        "critical": 0,
+        "high": 0,
+        "medium": 3,
+        "low": 0
+      },
+      "test_coverage_observations": "El orquestador reporta 24 passed: 2 rutas, 18 configuración y 4 planillas regionales. La suite nueva cubre Bearer GET/POST y ocultamiento de carga para 1Q/2Q; el helper cubre límites 15/16 y la guarda nomina_novedades. Bloquea la ausencia de PlanillasRegionalesAuth y del run focal en CATALOGO_PRUEBAS; quedan como riesgos no bloqueantes el render real 1Q/2Q, retorno de detalle y etiqueta de dashboard sin regresión directa."
+    },
+    {
+      "date": "2026-07-21",
+      "scope": "bitacoras-operacionales-fase-tecnica-0",
+      "outcome": "blocked",
+      "finding_count_by_severity": {
+        "critical": 0,
+        "high": 2,
+        "medium": 4,
+        "low": 1
+      },
+      "test_coverage_observations": "Collect-only local confirmo 29 casos: 12 Fase 0, 2 notificaciones y 15 auditoria. Los pases comunicados de frontend 7, backend Fase 0 12 y auditoria 15 son coherentes con el arbol final, pero faltan salidas persistidas y no hay pase para los 2 casos modificados de notificaciones. Bloquean la ausencia de flujos HTTP autenticados/IDOR y de pruebas del handler WebSocket con ticket, sesion, expiracion, revocacion y Origin."
+    },
+    {
+      "date": "2026-07-21",
+      "scope": "employee-name-column-filter-horas-extras",
+      "outcome": "blocked",
+      "finding_count_by_severity": {
+        "critical": 0,
+        "high": 1,
+        "medium": 4,
+        "low": 1
+      },
+      "test_coverage_observations": "Evidencia comunicada: backend focal 3 passed, relacionado 12 passed, health 4 passed/4 skipped, frontend relacionado 27 passed y eslint/build PASS. Collect-only confirmo 3 focales backend. Cubren bulk/lista vacia/excepcion y UI nombre+estado+navegacion, pero faltan endpoint/response HTTP, ERP None/mapa parcial, fallback UI (Vacio), orden inicial visible y filtros numericos/periodo/resumen; catalogo conserva EN VALIDACION y no hay rojo TDD auditable."
+    },
+    {
+      "date": "2026-07-21",
+      "scope": "bitacoras-operacionales-fase-tecnica-0-rereview",
+      "outcome": "approved_with_risks",
+      "finding_count_by_severity": {
+        "critical": 0,
+        "high": 0,
+        "medium": 3,
+        "low": 2
+      },
+      "test_coverage_observations": "Evidencia persistida: backend combinado 38 passed (19 Fase 0, 4 HTTP notificaciones, 15 auditoria), frontend focal 10 passed, build, ESLint focal y py_compile PASS. Collect-only local confirmo los 38 casos. Cerrados los bloqueos de REST privado, Origin, subprotocolo, sesion DB corta, revocacion, IDs RBAC, body de auditoria y catalogo. Riesgos residuales: integracion real del handler WS/Redis/DB, HTTP anonimo y multiusuario persistente, middleware/rollback integrado, lifecycle frontend completo y baseline global."
+    },
+    {
+      "date": "2026-07-21",
+      "scope": "employee-name-column-filter-horas-extras-final",
+      "outcome": "approved_with_risks",
+      "finding_count_by_severity": {
+        "critical": 0,
+        "high": 0,
+        "medium": 2,
+        "low": 2
+      },
+      "test_coverage_observations": "Cerrados endpoint/response, ERP parcial/sin sesion/error, fallback UI, AND, orden, error accesible y catalogo. Evidencia comunicada: backend focal 7 passed, relacionado previo 12 passed, health 4 passed/4 skipped, frontend relacionado 30 passed, ESLint/build PASS; collect-only confirmo 7 focales. Riesgos no bloqueantes: sin rojo TDD auditable y seis casos DB del run mixto requieren rerun en entorno que resuelva el hostname Docker db; el focal paso 7/7 en ese mismo run."
+    },
+    {
+      "date": "2026-07-21",
+      "scope": "detailed-employee-planilla",
+      "outcome": "blocked",
+      "finding_count_by_severity": {
+        "critical": 0,
+        "high": 3,
+        "medium": 4,
+        "low": 1
+      },
+      "test_coverage_observations": "Evidencia comunicada: planilla backend 6 passed, enriquecimiento 7, combinado 14 sin comando reconciliado, frontend focal 7, relacionado 31 y lint/build PASS; lote backend amplio termino en timeout de teardown y no es agregado final. Collect-only local confirmo 13 casos en los dos archivos nombrados. Bloquean la falta de prueba de inmutabilidad historica, la ausencia de integracion directa de listar_calculos_planilla y la matriz negativa RBAC/alcance/cache para datos salariales."
+    },
+    {
+      "date": "2026-07-21",
+      "scope": "bitacoras-operacionales-fase1-persistencia",
+      "outcome": "blocked",
+      "finding_count_by_severity": {
+        "critical": 0,
+        "high": 2,
+        "medium": 3,
+        "low": 1
+      },
+      "test_coverage_observations": "Collect-only local confirmo 14 casos. Evidencia comunicada: local 11 passed/3 skipped, PostgreSQL 15 14 passed, regresiones 8 passed, backend healthy, migracion repetida y sync_docs exitoso. Los tres casos PostgreSQL reales no cubren inmutabilidad directa del padre ni fotografias, falta de foto al finalizar o actor distinto; la idempotencia automatizada usa un grabador, no PostgreSQL. Bloquea tambien la deriva masiva y ausencia de relaciones del MER auto-generado desde db-test."
+    },
+    {
+      "date": "2026-07-21",
+      "scope": "horas-extras-planilla-detallada-evidencia-final",
+      "outcome": "blocked",
+      "finding_count_by_severity": {
+        "critical": 0,
+        "high": 1,
+        "medium": 3,
+        "low": 2
+      },
+      "test_coverage_observations": "Collect-only confirmo 12 casos de planilla y 31 al combinar planilla+OT ERP; los dos archivos frontend contienen 8 casos. Los pases 12/8, ESLint y build son evidencia comunicada sin salida focal persistida. El combinado agoto timeout tras 26 puntos y no tiene resumen final. Bloquean la promesa documental de snapshot historico frente a asignaciones actuales y la falta de regresion de estabilidad temporal; quedan gaps de integridad completa, RBAC/alcance real, degradacion ERP y contratos UI."
+    },
+    {
+      "date": "2026-07-21",
+      "scope": "horas-extras-planilla-detallada-rereview-final",
+      "outcome": "approved_with_risks",
+      "finding_count_by_severity": {
+        "critical": 0,
+        "high": 0,
+        "medium": 1,
+        "low": 2
+      },
+      "test_coverage_observations": "Collect-only confirmo 16 casos de planilla y 19 de OT/ERP; frontend contiene 10 casos. Evidencia final registrada: planilla 16 passed, ERP 18 passed/1 skipped, frontend 10 passed, ESLint focal sin hallazgos y build 4042 modulos. Cerrados multi-CC, concepto inesperado, privacidad de confirmador, alcance 404 sin servicio, 19 columnas exactas, loading/vacio y reset global. Riesgos: rojo TDD no auditable, comando compileall no registrado y bordes opcionales de periodo/RBAC real/reintento frontend."
+    },
+    {
+      "date": "2026-07-21",
+      "scope": "bitacoras-operacionales-fase1-persistencia-final",
+      "outcome": "blocked",
+      "finding_count_by_severity": {
+        "critical": 0,
+        "high": 1,
+        "medium": 2,
+        "low": 1
+      },
+      "test_coverage_observations": "Collect-only confirmo 24 casos (18 persistencia + 6 postgres). Evidencia comunicada y reconciliada: PostgreSQL 15 24 passed, regresiones 8 passed y startup 30 passed. Quedan cubiertas doble migracion, drift, ACL, concurrencia, falta de foto/actor e inmutabilidad completa. El bloqueo restante es documental: sync_docs usa runtime e information_schema, omite tablas canonicas sin privilegio como configuracion_seguridad_runtime y el MER global conserva deriva no reconciliada."
+    },
+    {
+      "date": "2026-07-21",
+      "scope": "bitacoras-operacionales-fase1-persistencia-definitivo",
+      "outcome": "approved_with_risks",
+      "finding_count_by_severity": {
+        "critical": 0,
+        "high": 0,
+        "medium": 1,
+        "low": 2
+      },
+      "test_coverage_observations": "Evidencia final reconciliada: PostgreSQL 15 25 passed (24 de persistencia/PostgreSQL avanzado + 1 regresion de normalizacion UUID), regresiones 8 passed y startup 30 passed. El MER incluye configuracion_seguridad_runtime mediante login migrador + SET ROLE owner seguro, relaciones/cardinalidad focal y VARCHAR(n). Bloqueo cerrado. Riesgos no bloqueantes: sync_docs sin suite automatizada propia y UNIQUE compuesto futuro no representado como 1:1."
+    },
+    {
+      "subagent": "docs-tests-reviewer",
+      "scope": "cierre-snapshot-multidominio-2026-07-22",
+      "files_reviewed": [
+        "docs/reviews/builds/cierre-snapshot-multidominio-2026-07-22.md",
+        "testing/CATALOGO_PRUEBAS.md",
+        "testing/backend/test_bitacoras_operacionales_fase0.py",
+        "testing/backend/test_notificaciones.py",
+        "testing/backend/test_ticket_update_errors.py",
+        "testing/backend/test_ticket_websocket_security.py",
+        "testing/backend/test_horas_extras_calculos_planilla.py",
+        "testing/backend/test_horas_extras_ot_horarios.py",
+        "testing/backend/test_horas_extras_planilla_salarios_erp.py",
+        "testing/backend/test_erp_empleados_offload.py"
+      ],
+      "outcome": "approved",
+      "date": "2026-07-22T23:00:10Z",
+      "findings_count": {
+        "critico": 0,
+        "alto": 0,
+        "medio": 0,
+        "bajo": 0
+      },
+      "test_coverage_observations": "Cierre canónico aprobado con evidencia ejecutada: backend multidominio 75 passed/1 skipped/1 deselected y rerun 6 passed; ERP/planilla 25 passed; Redis/WebSocket 5 passed; frontend 357 passed/2 skipped; tsc, build, compileall, Compose prod/Pruebas3 y diff-check PASS."
+    },
+    {
+      "date": "2026-07-22",
+      "scope": "ajuste-tabla-calculos-horas-extras-cuatro-archivos-frontend",
+      "outcome": "blocked",
+      "finding_count_by_severity": {
+        "critical": 0,
+        "high": 1,
+        "medium": 0,
+        "low": 1
+      },
+      "test_coverage_observations": "Evidencia comunicada: 12 pruebas de CalculoListView y 14 regresiones de DataTable, total 26 PASS; tsc, ESLint y diff-check PASS. Cubiertos cédula vs cliente, Encargados y ausencia de lucide-funnel. Único bloqueo: build todavía en curso. Recomendación baja: aserción directa del showFilterIcon=true predeterminado."
+    },
+    {
+      "date": "2026-07-22",
+      "scope": "horas-por-concepto-calculo-list-view",
+      "outcome": "blocked",
+      "finding_count_by_severity": {
+        "critical": 0,
+        "high": 2,
+        "medium": 0,
+        "low": 1
+      },
+      "test_coverage_observations": "Cobertura estática exacta del caso solicitado: SALARIO 8 h, HED 2+1.5=3,5 h, filtro NOVEDAD=HED y desaparición de SALARIO. Evidencia comunicada: 14 tests, tsc, ESLint y diff-check PASS; build pendiente. Bloquea además el catálogo, que aún declara 19 columnas y 11 PASS. Estado vacío del resumen queda como mejora no bloqueante."
+    },
+    {
+      "date": "2026-07-22",
+      "scope": "exportacion-xlsx-filtrada-calculo-list-view",
+      "outcome": "blocked",
+      "finding_count_by_severity": {
+        "critical": 0,
+        "high": 1,
+        "medium": 0,
+        "low": 2
+      },
+      "test_coverage_observations": "Evidencia comunicada: 15 UI tests, tsc, ESLint y diff-check PASS; catálogo reconciliado a 17 (15 UI + 2 servicio). La prueba cubre filtrado HED, resumen, nombres de hojas, filename y writeFile. Bloquea únicamente el build en curso. Riesgos bajos: no distingue filteredData de un bloque visible de 100 filas ni cubre el fallo/reintento XLSX."
     }
   ],
   "stats": {
-    "total_reviews": 25,
-    "last_review": "2026-07-18"
+    "total_reviews": 40,
+    "last_review": "2026-07-22"
   }
 }

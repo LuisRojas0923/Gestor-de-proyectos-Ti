@@ -11,9 +11,31 @@
     "analyze <scope>": "Return scope classification and required reviewers",
     "risks <scope>": "Return scope-related risks"
   },
-  "review_history": [],
+  "review_history": [
+    {
+      "subagent": "scope-reviewer",
+      "scope": "cierre-snapshot-multidominio-2026-07-22",
+      "files_reviewed": [
+        "backend_v2/",
+        "frontend/",
+        "testing/",
+        "docker-compose.prod.yml",
+        "docker-compose.Pruebas3.yml",
+        "docs/reviews/builds/cierre-snapshot-multidominio-2026-07-22.md"
+      ],
+      "outcome": "approved",
+      "date": "2026-07-22T23:00:11Z",
+      "findings_count": {
+        "critico": 0,
+        "alto": 0,
+        "medio": 0,
+        "bajo": 0
+      },
+      "summary": "Alcance multidominio aprobado después de separar commits por dominio y reconciliar la evidencia final; backend, frontend, seguridad, tablas, pruebas e infraestructura quedaron cubiertos sin bloqueantes."
+    }
+  ],
   "stats": {
-    "total_reviews": 0,
-    "last_review": null
+    "total_reviews": 1,
+    "last_review": "2026-07-22T23:00:11Z"
   }
 }
