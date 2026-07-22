@@ -3,6 +3,7 @@
 **Fecha:** 2026-07-22
 **Rama:** `fix/frontend-syntax`
 **Base:** `origin/main`
+**SHA funcional validado:** `563c6f4fb2155a71e242562ee5fbd488d6269f4b`
 **Modo:** build
 **Estado técnico:** candidato a aprobación
 
@@ -47,17 +48,28 @@ La deuda de aislamiento y cobertura funcional de `MyDevelopmentsReview` queda fu
 
 La suite completa conserva advertencias preexistentes de `act(...)` en `Fase2Integration.test.tsx` y logs deliberados de error en `WbsNodeModal.test.tsx`; ninguna procede de los archivos de esta funcionalidad. El lint global conserva deuda distribuida por módulos ajenos; el lint focalizado de los cinco archivos modificados es exitoso.
 
+Comandos ejecutados desde `frontend/` sobre el estado funcional validado:
+
+```powershell
+npm run test -- --run src/components/__tests__/ConsolidatedTableById.test.tsx src/components/__tests__/ConsolidatedTableById.regressions.test.tsx
+npm run test -- --run
+npx eslint src/components/atoms/Button.tsx src/components/molecules/ColumnFilterPopover.tsx src/components/ConsolidatedTableById.tsx src/components/__tests__/ConsolidatedTableById.test.tsx src/components/__tests__/ConsolidatedTableById.regressions.test.tsx
+npm run build
+npx tsc -b
+npm run lint
+```
+
 ## Revisores obligatorios
 
 | Subagente | Resultado final | Hallazgos residuales |
 |---|---|---|
-| `scope-reviewer` | `approved_with_risks` | Publicar el SHA final y corregir el título remoto. |
+| `scope-reviewer` | `approved` | Pendientes remotos separados del código local. |
 | `frontend-reviewer` | `approved_with_risks` | Sin bloqueos de código; deuda visual heredada no introducida. |
 | `docs-tests-reviewer` | `approved_with_risks` | Sin bloqueos de contenido; evidencia remota pendiente. |
 
 ## Documentación
 
-- `testing/CATALOGO_PRUEBAS.md` registra las dos suites de tabla consolidada y sus 20 casos.
+- `testing/CATALOGO_PRUEBAS.md` registra las dos suites de tabla consolidada y sus 21 casos.
 - Este archivo reemplaza todos los reportes intermedios de la sesión.
 - `.opencode/memory/docs-tests-reviewer.json` conserva una única entrada final autoritativa para este alcance.
 - No aplican MER, esquema de base de datos, ADR, RBAC ni infraestructura.
