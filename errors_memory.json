@@ -138,12 +138,86 @@
         "regresion"
       ],
       "evidencia": [
-        "25 pruebas backend HDI aprobadas",
+        "70 pruebas backend focalizadas HDI aprobadas",
         "4 health aprobadas y 4 omitidas",
-        "2 pruebas frontend aprobadas",
+        "5 pruebas frontend aprobadas",
         "ESLint focalizado, build, py_compile y diff-check aprobados"
       ],
       "nota_publicacion": "Resuelto localmente; commit y push pendientes de instrucción explícita del usuario."
+    },
+    {
+      "id": "ERR-004",
+      "titulo": "PR #22 HDI: HdiPreview omitía Authorization tras proteger GET/POST con RBAC",
+      "archivos_afectados": [
+        "frontend/src/pages/ServicePortal/pages/NOVEDADES_NOMINA/HdiPreview.tsx:85-87 (GET; antes axios directo)",
+        "frontend/src/pages/ServicePortal/pages/NOVEDADES_NOMINA/HdiPreview.tsx:126-129 (POST; antes axios directo)",
+        "frontend/src/pages/ServicePortal/pages/NOVEDADES_NOMINA/__tests__/HdiPreview.test.tsx:50-106"
+      ],
+      "causa_raiz": "Después de que PR #22 protegió los endpoints HDI GET/POST con RBAC, HdiPreview continuó usando axios directamente para ambas llamadas y no adjuntó Authorization, por lo que usuarios autenticados recibían 401.",
+      "solucion_propuesta": [
+        "Migrar las llamadas GET y POST de HdiPreview al cliente autenticado useApi.",
+        "Preservar el flujo centralizado de refresh/logout y dejar que el cliente gestione correctamente el boundary de FormData.",
+        "Cubrir con Vitest el GET autenticado, los campos FormData del POST, la notificación de éxito, la ausencia de POST para archivos inválidos y los errores de GET/POST."
+      ],
+      "impacto": "El flujo HDI quedaba inutilizable para usuarios con sesión válida porque la carga inicial y el procesamiento podían responder 401 pese a contar con permisos RBAC.",
+      "estado": "RESUELTO",
+      "prioridad": "ALTA",
+      "componente": "frontend",
+      "fecha_deteccion": "2026-07-22",
+      "tags": [
+        "PR-22",
+        "HDI",
+        "frontend",
+        "RBAC",
+        "Authorization",
+        "useApi",
+        "axios",
+        "FormData",
+        "401",
+        "regresion"
+      ],
+      "evidencia": [
+        "5 pruebas Vitest aprobadas, incluida cobertura de errores GET y POST",
+        "ESLint focalizado aprobado",
+        "Build frontend aprobado"
+      ],
+      "nota_publicacion": "Resuelto localmente; commit y push pendientes."
+    },
+    {
+      "id": "ERR-005",
+      "titulo": "Novedades de nómina: catálogo devolvía 401 por consultas frontend sin Authorization",
+      "archivos_afectados": [
+        "backend_v2/app/api/ (GET /novedades-nomina/catalogo protegido con requiere_permiso_nomina_novedades)",
+        "frontend/src/pages/ServicePortal/pages/NOVEDADES_NOMINA/NominaDashboard.tsx",
+        "frontend/src/pages/ServicePortal/pages/NOVEDADES_NOMINA/NominaCategoryView.tsx",
+        "frontend/src/pages/ServicePortal/pages/NOVEDADES_NOMINA/ExcepcionesPreview.tsx",
+        "frontend/src/pages/ServicePortal/pages/NOVEDADES_NOMINA/__tests__/NominaDashboard.test.tsx"
+      ],
+      "causa_raiz": "Tras proteger GET /novedades-nomina/catalogo con requiere_permiso_nomina_novedades, NominaDashboard, NominaCategoryView y ExcepcionesPreview continuaron consultando el endpoint mediante axios directo, sin adjuntar el encabezado Authorization. El backend respondía 401 y las vistas interpretaban el fallo como un catálogo sin categorías.",
+      "solucion_propuesta": [
+        "Migrar las consultas de catálogo de NominaDashboard, NominaCategoryView y ExcepcionesPreview al cliente autenticado useApi.",
+        "Añadir NominaDashboard.test.tsx para cubrir la carga autenticada y prevenir la regresión."
+      ],
+      "impacto": "Usuarios autenticados con permisos de novedades de nómina veían categorías vacías y no podían navegar correctamente el catálogo, aunque su sesión y autorización RBAC fueran válidas.",
+      "estado": "RESUELTO",
+      "prioridad": "ALTA",
+      "componente": "frontend",
+      "fecha_deteccion": "2026-07-22",
+      "tags": [
+        "novedades-nomina",
+        "catalogo",
+        "frontend",
+        "RBAC",
+        "Authorization",
+        "useApi",
+        "axios",
+        "401",
+        "regresion"
+      ],
+      "evidencia": [
+        "6 pruebas frontend focalizadas aprobadas",
+        "Build frontend aprobado"
+      ]
     }
   ],
   "decisions": [

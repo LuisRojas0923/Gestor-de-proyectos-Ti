@@ -4,12 +4,23 @@ Implementa los 7 pasos de normalización solicitados por el usuario.
 """
 
 import io
+import math
 import re
 import collections
 from typing import List, Dict, Any, Optional, Tuple
 import pandas as pd
 
+from .errores import ErrorEstructuraNomina
 from .validacion_excel_hdi import MAX_EXCEL_COLS, MAX_EXCEL_ROWS, MAX_EXCEL_SHEETS
+
+
+COLUMNAS_HDI_REQUERIDAS = (
+    "CERT",
+    "TIPO",
+    "IDENTIFICACION",
+    "NOMBRES Y APELLIDOS",
+    "PRIMA ANUAL",
+)
 
 def _formatear_nombre(nombre: str) -> str:
     """Invierte el nombre de 'Nombres Apellidos' a 'Apellidos Nombres'."""
@@ -33,12 +44,29 @@ def _limpiar_numero(valor: Any) -> float:
     if valor is None or pd.isna(valor) or valor == "":
         return 0.0
 
+    if isinstance(valor, bool):
+        raise ValueError("Un booleano no es un valor monetario")
     if isinstance(valor, (int, float)):
-        return float(valor)
+        numero = float(valor)
+        if not math.isfinite(numero):
+            raise ValueError("El valor monetario debe ser finito")
+        return numero
 
-    s = str(valor).replace("$", "").replace("\u00A0", " ").strip()
+    s = str(valor).replace("\u00A0", " ").strip()
     if not s:
         return 0.0
+
+    if s.startswith("$"):
+        s = s[1:].strip()
+    s = s.replace(" ", "")
+    patrones_validos = (
+        r"-?\d+",
+        r"-?\d+[\.,]\d{1,2}",
+        r"-?\d{1,3}(?:\.\d{3})+(?:,\d{1,2})?",
+        r"-?\d{1,3}(?:,\d{3})+(?:\.\d{1,2})?",
+    )
+    if not any(re.fullmatch(patron, s) for patron in patrones_validos):
+        raise ValueError("Formato monetario inválido")
 
     # Notación mixta (punto y coma presentes)
     if "." in s and "," in s:
@@ -67,11 +95,7 @@ def _limpiar_numero(valor: Any) -> float:
             if len(parts[1]) == 3 and len(parts[0]) <= 3:
                 s = s.replace(".", "")
 
-    s = re.sub(r"[^0-9\.\-]", "", s)
-    try:
-        return float(s) if s else 0.0
-    except ValueError:
-        return 0.0
+    return float(s)
 
 
 def _aplicar_reemplazos(cedula: str, nombre: str) -> Tuple[str, str]:
@@ -88,125 +112,96 @@ def _aplicar_reemplazos(cedula: str, nombre: str) -> Tuple[str, str]:
     return cedula, nombre
 
 
-def normalizar_df(df: pd.DataFrame, warnings_out: Optional[List[str]] = None) -> pd.DataFrame:
-    """Normaliza el DataFrame (de Excel) siguiendo la estructura de HDI exigiendo TIPO estrictamente ('P' o 'D')."""
+def normalizar_df(
+    df: pd.DataFrame,
+    warnings_out: Optional[List[str]] = None,
+    sheet_name: str = "Hoja",
+    first_data_row: int = 2,
+) -> pd.DataFrame:
+    """Valida y normaliza el contrato tabular estricto de Seguros HDI."""
     df = df.copy()
     if len(df.columns) > MAX_EXCEL_COLS:
-        raise ValueError(f"La hoja supera el límite de {MAX_EXCEL_COLS} columnas.")
+        raise ErrorEstructuraNomina(
+            f"Hoja '{sheet_name}': supera el límite de {MAX_EXCEL_COLS} columnas."
+        )
     if len(df) > MAX_EXCEL_ROWS:
-        raise ValueError(f"La hoja supera el límite de {MAX_EXCEL_ROWS} filas.")
+        raise ErrorEstructuraNomina(
+            f"Hoja '{sheet_name}': supera el límite de {MAX_EXCEL_ROWS} filas."
+        )
 
-    df = df.dropna(axis=1, how='all').dropna(axis=0, how='all')
-    if len(df.columns) < 2 or len(df) == 0:
-        return pd.DataFrame()
+    columnas = [str(columna).upper().strip() for columna in df.columns]
+    duplicadas = sorted({
+        columna
+        for columna in COLUMNAS_HDI_REQUERIDAS
+        if columnas.count(columna) > 1
+    })
+    if duplicadas:
+        raise ErrorEstructuraNomina(
+            f"Hoja '{sheet_name}': columna obligatoria duplicada: {', '.join(duplicadas)}."
+        )
 
-    # Detectar columnas por nombre de encabezado primero (evitando sobreescrituras por coincidencias parciales)
-    col_map = {}
+    faltantes = [
+        columna for columna in COLUMNAS_HDI_REQUERIDAS
+        if columna not in columnas
+    ]
+    if faltantes:
+        raise ErrorEstructuraNomina(
+            f"Hoja '{sheet_name}': faltan columnas obligatorias: {', '.join(faltantes)}."
+        )
 
-    def _mapear_columnas(columnas):
-        m = {}
-        for i, col in enumerate(columnas):
-            c_str = str(col).upper().strip()
-            if "CERT" in c_str and "cert" not in m:
-                m["cert"] = i
-            if c_str == "TIPO" or ("TIPO" in c_str and "tipo" not in m):
-                m["tipo"] = i
-            if ("IDENTIF" in c_str or "CEDULA" in c_str or "DOCUMENTO" in c_str or "NIT" in c_str or c_str == "ID") and "id" not in m:
-                m["id"] = i
-            if ("NOMBRE" in c_str or "ASOCIADO" in c_str or ("ASEGURADO" in c_str and "VALOR" not in c_str)) and "nombre" not in m:
-                m["nombre"] = i
-
-            # Priorizar PRIMA ANUAL sobre PRIMA COBRO y VALOR ASEGURADO
-            if "PRIMA ANUAL" in c_str or "ANUAL" in c_str:
-                m["prima"] = i
-            elif "prima" not in m and ("PRIMA" in c_str and "EXTRA" not in c_str):
-                m["prima"] = i
-            elif "prima" not in m and ("VALOR" in c_str and "ASEGURADO" not in c_str):
-                m["prima"] = i
-            elif "prima" not in m and "MONTO" in c_str:
-                m["prima"] = i
-        return m
-
-    col_map = _mapear_columnas(df.columns)
-
-    # Si no se identificó "id" en df.columns, verificar si la fila 0 contiene los encabezados
-    if "id" not in col_map and len(df) > 0:
-        first_row = [str(x).upper().strip() for x in df.iloc[0]]
-        if any("IDENTIF" in x or "CEDULA" in x or "CERT" in x for x in first_row):
-            df.columns = df.iloc[0]
-            df = df.iloc[1:].reset_index(drop=True)
-            col_map = _mapear_columnas(df.columns)
-
-    # Si no se identificó por encabezado, buscar posicionalmente
-    if "id" not in col_map:
-        id_col_idx = -1
-        for i in range(min(8, len(df.columns))):
-            col_vals = df.iloc[:, i].astype(str).str.strip().tolist()
-            if any(re.match(r"^\d{5,12}(\.0)?$", v) for v in col_vals if v):
-                id_col_idx = i
-                break
-        if id_col_idx != -1:
-            col_map["id"] = id_col_idx
-            if "tipo" not in col_map and id_col_idx > 0:
-                col_map["tipo"] = id_col_idx - 1
-            if "nombre" not in col_map and id_col_idx + 1 < len(df.columns):
-                col_map["nombre"] = id_col_idx + 1
-
-    if "id" not in col_map:
-        return pd.DataFrame()
-
-    id_col_idx = col_map["id"]
-    tipo_col_idx = col_map.get("tipo", id_col_idx - 1 if id_col_idx > 0 else -1)
-    nombre_col_idx = col_map.get("nombre", id_col_idx + 1 if id_col_idx + 1 < len(df.columns) else -1)
-    cert_col_idx = col_map.get("cert", 0)
-    prima_col_idx = col_map.get("prima", -1)
-
-    if prima_col_idx == -1:
-        for i in range(len(df.columns) - 1, -1, -1):
-            if i != id_col_idx and i != tipo_col_idx and i != nombre_col_idx:
-                prima_col_idx = i
-                break
+    indices = {
+        columna: columnas.index(columna)
+        for columna in COLUMNAS_HDI_REQUERIDAS
+    }
+    df = df.dropna(axis=0, how="all")
+    if df.empty:
+        raise ErrorEstructuraNomina(f"Hoja '{sheet_name}': no contiene filas de datos.")
 
     valid_rows = []
-    for _, row in df.iterrows():
-        if id_col_idx >= len(row): continue
-        raw_id = str(row.iloc[id_col_idx]).strip().split(".")[0]
-        id_val = re.sub(r"[^0-9]", "", raw_id)
-        if not id_val or len(id_val) < 5: continue
+    for posicion, (_, row) in enumerate(df.iterrows()):
+        fila_excel = first_data_row + posicion
 
-        # Validación estricta de TIPO (P=Titular, D=Dependiente)
-        tipo = None
-        if tipo_col_idx != -1 and tipo_col_idx < len(row):
-            val_tipo = str(row.iloc[tipo_col_idx]).strip().upper()
-            if val_tipo in ["P", "TITULAR", "PRINCIPAL"]:
-                tipo = "P"
-            elif val_tipo in ["D", "DEPENDIENTE", "BENEFICIARIO"]:
-                tipo = "D"
-
-        if not tipo:
-            raw_tipo = (
-                str(row.iloc[tipo_col_idx]).strip()
-                if tipo_col_idx != -1 and tipo_col_idx < len(row)
-                else "Ausente"
-            )
-            raise ValueError(
-                f"TIPO inválido para la cédula '{id_val}': '{raw_tipo}'. "
-                "Se requiere P (Titular) o D (Dependiente)."
+        def error(campo: str, motivo: str) -> ErrorEstructuraNomina:
+            return ErrorEstructuraNomina(
+                f"Hoja '{sheet_name}', fila {fila_excel}: {campo} {motivo}."
             )
 
-        nombre = ""
-        if nombre_col_idx != -1 and nombre_col_idx < len(row):
-            nombre = str(row.iloc[nombre_col_idx]).strip().split("  ")[0]
+        cert_raw = row.iloc[indices["CERT"]]
+        if pd.isna(cert_raw) or str(cert_raw).strip() == "":
+            raise error("CERT", "es obligatorio")
+        cert_texto = str(cert_raw).strip()
+        if not re.fullmatch(r"\d+(?:\.0)?", cert_texto):
+            raise error("CERT", "debe ser numérico")
+        cert_val = cert_texto.split(".")[0]
 
-        prima_anual = 0.0
-        if prima_col_idx != -1 and prima_col_idx < len(row):
-            prima_anual = _limpiar_numero(row.iloc[prima_col_idx])
-        if prima_anual <= 0: continue
+        tipo = str(row.iloc[indices["TIPO"]]).strip().upper()
+        if tipo not in ("P", "D"):
+            raise error("TIPO", "debe ser P o D")
 
-        cert_val = ""
-        if cert_col_idx < len(row):
-            cert_raw = str(row.iloc[cert_col_idx]).strip().split(".")[0]
-            cert_val = re.sub(r"[^0-9]", "", cert_raw)
+        id_raw = row.iloc[indices["IDENTIFICACION"]]
+        if pd.isna(id_raw) or str(id_raw).strip() == "":
+            raise error("IDENTIFICACION", "es obligatoria")
+        id_texto = str(id_raw).strip()
+        if not re.fullmatch(r"\d{5,12}(?:\.0)?", id_texto):
+            raise error("IDENTIFICACION", "debe contener entre 5 y 12 dígitos")
+        id_val = id_texto.split(".")[0]
+
+        nombre_raw = row.iloc[indices["NOMBRES Y APELLIDOS"]]
+        if not isinstance(nombre_raw, str):
+            raise error("NOMBRES Y APELLIDOS", "debe ser texto")
+        if not nombre_raw.strip():
+            raise error("NOMBRES Y APELLIDOS", "es obligatorio")
+        nombre = nombre_raw.strip().split("  ")[0]
+
+        prima_raw = row.iloc[indices["PRIMA ANUAL"]]
+        if pd.isna(prima_raw) or str(prima_raw).strip() == "":
+            raise error("PRIMA ANUAL", "es obligatoria")
+        try:
+            prima_anual = _limpiar_numero(prima_raw)
+        except (TypeError, ValueError) as exc:
+            raise error("PRIMA ANUAL", "debe tener un formato monetario válido") from exc
+        if prima_anual <= 0:
+            raise error("PRIMA ANUAL", "debe ser un valor monetario mayor que cero")
 
         id_val, nombre = _aplicar_reemplazos(id_val, nombre)
         nombre = _formatear_nombre(nombre)
@@ -243,21 +238,29 @@ def extraer_hdi(
             raise ValueError("El libro excede los límites de filas o columnas permitidos.")
 
         header_index = None
+        mejor_coincidencia = -1
         for index in range(min(6, len(df_full))):
             values = [str(value).upper().strip() for value in df_full.iloc[index]]
-            has_id = any("IDENTIF" in value or "CEDULA" in value for value in values)
-            if has_id and any("TIPO" in value for value in values):
+            coincidencias = sum(
+                columna in values for columna in COLUMNAS_HDI_REQUERIDAS
+            )
+            if coincidencias > mejor_coincidencia:
+                mejor_coincidencia = coincidencias
                 header_index = index
-                break
 
-        if header_index is None:
-            raise ValueError(
+        if header_index is None or mejor_coincidencia == 0:
+            raise ErrorEstructuraNomina(
                 f"La hoja '{sheet_name}' no contiene encabezados válidos de Seguros HDI."
             )
 
         df_sheet = df_full.iloc[header_index + 1:].copy()
         df_sheet.columns = df_full.iloc[header_index].tolist()
-        df_norm = normalizar_df(df_sheet, warnings_out=warnings)
+        df_norm = normalizar_df(
+            df_sheet,
+            warnings_out=warnings,
+            sheet_name=sheet_name,
+            first_data_row=header_index + 2,
+        )
 
         for _, row in df_norm.iterrows():
             row_dict = dict(row)

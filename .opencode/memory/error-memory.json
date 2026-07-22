@@ -46,12 +46,39 @@
       "prioridad": "CRITICA",
       "estado": "RESUELTO",
       "publicacion": "commit y push pendientes de instrucción explícita"
+    },
+    {
+      "operation": "record error",
+      "id": "ERR-004",
+      "titulo": "PR #22 HDI: HdiPreview omitía Authorization tras proteger GET/POST con RBAC",
+      "timestamp": "2026-07-22T00:00:00Z",
+      "prioridad": "ALTA",
+      "estado": "RESUELTO",
+      "publicacion": "resuelto localmente; commit y push pendientes"
+    },
+    {
+      "operation": "update final evidence",
+      "ids": [
+        "ERR-003",
+        "ERR-004"
+      ],
+      "timestamp": "2026-07-22T00:00:00Z",
+      "evidencia": "PR #22 HDI: 70 pruebas backend focalizadas, 5 frontend, health 4 passed/4 skipped y gates aprobados; ERR-004 incluye errores GET/POST."
+    },
+    {
+      "operation": "record error",
+      "id": "ERR-005",
+      "titulo": "Novedades de nómina: catálogo devolvía 401 por consultas frontend sin Authorization",
+      "timestamp": "2026-07-22T00:00:00Z",
+      "prioridad": "ALTA",
+      "estado": "RESUELTO",
+      "evidencia": "6 pruebas frontend focalizadas y build aprobados"
     }
   ],
   "stats": {
-    "total_operations": 3,
-    "last_operation": "record error (ERR-003) — 2026-07-22T00:00:00Z",
-    "errors_recorded": 2,
+    "total_operations": 6,
+    "last_operation": "record error ERR-005 — 2026-07-22T00:00:00Z",
+    "errors_recorded": 4,
     "decisions_recorded": 1,
     "memory_persistence_enabled": true,
     "permission_grant_date": "2026-06-03"

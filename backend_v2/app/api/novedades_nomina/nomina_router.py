@@ -1,8 +1,8 @@
 import os
 import hashlib
 import logging
-import traceback
 from datetime import datetime
+from pathlib import Path
 
 from typing import List, Optional
 from fastapi import APIRouter, Depends, UploadFile, File, Form, HTTPException, Query
@@ -17,6 +17,7 @@ from ...models.novedades_nomina.nomina import (
 )
 from ...services.novedades_nomina.extractor import NominaExtractor
 from ...services.novedades_nomina.processor import NominaProcessor
+from .dependencies import requiere_permiso_nomina_novedades
 from .routers import (
     cooperativas_router, libranzas_router, funebres_router, otros_router,
     descuentos_router, excepciones_router, novedades_router,
@@ -42,7 +43,10 @@ STORAGE_DIR = "uploads/nomina"
 os.makedirs(STORAGE_DIR, exist_ok=True)
 
 
-@router.get("/catalogo")
+@router.get(
+    "/catalogo",
+    dependencies=[Depends(requiere_permiso_nomina_novedades)],
+)
 async def obtener_catalogo():
     """Devuelve el catálogo de categorías y subcategorías"""
     return {
@@ -54,7 +58,11 @@ async def obtener_catalogo():
         "NOVEDADES": ["PLANILLAS REGIONALES 1Q", "PLANILLAS REGIONALES 2Q"]
     }
 
-@router.post("/archivos", response_model=NominaUploadResponse)
+@router.post(
+    "/archivos",
+    response_model=NominaUploadResponse,
+    dependencies=[Depends(requiere_permiso_nomina_novedades)],
+)
 async def cargar_archivo(
     mes: int = Form(...),
     año: int = Form(...),
@@ -114,9 +122,13 @@ async def cargar_archivo(
         return archivo
     except Exception as e:
         await session.rollback()
-        raise HTTPException(status_code=500, detail=f"Error al guardar metadatos del archivo: {str(e)}")
+        logger.exception("Error al guardar metadatos del archivo")
+        raise HTTPException(status_code=500, detail="No fue posible guardar el archivo.") from e
 
-@router.post("/archivos/{archivo_id}/procesar")
+@router.post(
+    "/archivos/{archivo_id}/procesar",
+    dependencies=[Depends(requiere_permiso_nomina_novedades)],
+)
 async def procesar_archivo(
     archivo_id: int, 
     session: AsyncSession = Depends(obtener_db),
@@ -126,7 +138,8 @@ async def procesar_archivo(
     try:
         archivo = await session.get(NominaArchivo, archivo_id)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al obtener archivo de la base de datos: {str(e)}")
+        logger.exception("Error al obtener el archivo %s", archivo_id)
+        raise HTTPException(status_code=500, detail="No fue posible consultar el archivo.") from e
 
     if not archivo:
         raise HTTPException(status_code=404, detail="Archivo no encontrado")
@@ -139,7 +152,8 @@ async def procesar_archivo(
         await session.commit()
     except Exception as e:
         await session.rollback()
-        raise HTTPException(status_code=500, detail=f"Error al limpiar registros previos: {str(e)}")
+        logger.exception("Error al limpiar registros del archivo %s", archivo_id)
+        raise HTTPException(status_code=500, detail="No fue posible preparar el procesamiento.") from e
     
     try:
         with open(archivo.ruta_almacenamiento, "rb") as f:
@@ -173,13 +187,16 @@ async def procesar_archivo(
     except Exception as e:
         archivo.estado = "Error"
         archivo.error_log = str(e)
-        import traceback
-        logger.error(f"Error procesando archivo {archivo_id}: {traceback.format_exc()}")
+        logger.exception("Error procesando archivo %s", archivo_id)
         await session.commit()
-        raise HTTPException(status_code=500, detail=f"Error al procesar: {str(e)}")
+        raise HTTPException(status_code=500, detail="No fue posible procesar el archivo.") from e
 
 
-@router.get("/archivos/{archivo_id}/preview", response_model=List[NominaRegistroNormalizado])
+@router.get(
+    "/archivos/{archivo_id}/preview",
+    response_model=List[NominaRegistroNormalizado],
+    dependencies=[Depends(requiere_permiso_nomina_novedades)],
+)
 async def obtener_preview(
     archivo_id: int, 
     skip: int = 0, 
@@ -192,9 +209,13 @@ async def obtener_preview(
         result = await session.execute(statement)
         return result.scalars().all()
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al consultar preview del archivo: {str(e)}")
+        logger.exception("Error al consultar preview del archivo %s", archivo_id)
+        raise HTTPException(status_code=500, detail="No fue posible consultar el archivo.") from e
 
-@router.get("/archivos/{archivo_id}/descargar")
+@router.get(
+    "/archivos/{archivo_id}/descargar",
+    dependencies=[Depends(requiere_permiso_nomina_novedades)],
+)
 async def descargar_archivo(
     archivo_id: int, 
     session: AsyncSession = Depends(obtener_db)
@@ -203,21 +224,33 @@ async def descargar_archivo(
     try:
         archivo = await session.get(NominaArchivo, archivo_id)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al obtener archivo: {str(e)}")
+        logger.exception("Error al obtener el archivo %s para descarga", archivo_id)
+        raise HTTPException(status_code=500, detail="No fue posible consultar el archivo.") from e
 
     if not archivo:
         raise HTTPException(status_code=404, detail="Archivo no encontrado en base de datos")
     
-    if not os.path.exists(archivo.ruta_almacenamiento):
+    try:
+        storage_root = Path(STORAGE_DIR).resolve(strict=True)
+        ruta_archivo = Path(archivo.ruta_almacenamiento).resolve(strict=True)
+    except (OSError, RuntimeError):
+        raise HTTPException(status_code=404, detail="El archivo físico no se encuentra en el servidor")
+
+    if ruta_archivo.parent != storage_root or not ruta_archivo.is_file():
+        logger.warning("Ruta de descarga inválida para archivo %s", archivo_id)
         raise HTTPException(status_code=404, detail="El archivo físico no se encuentra en el servidor")
     
     return FileResponse(
-        path=archivo.ruta_almacenamiento,
+        path=str(ruta_archivo),
         filename=archivo.nombre_archivo,
         media_type='application/octet-stream'
     )
 
-@router.get("/subcategorias/resumen", response_model=List[NominaResumenSubcat])
+@router.get(
+    "/subcategorias/resumen",
+    response_model=List[NominaResumenSubcat],
+    dependencies=[Depends(requiere_permiso_nomina_novedades)],
+)
 async def obtener_resumen_mensual(
     mes: int, 
     año: int, 
@@ -239,9 +272,13 @@ async def obtener_resumen_mensual(
         results = result.all()
         return [{"subcategoria": r[0], "total_registros": r[1], "total_valor": r[2]} for r in results]
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al consultar resumen mensual: {str(e)}")
+        logger.exception("Error al consultar resumen mensual de nómina")
+        raise HTTPException(status_code=500, detail="No fue posible consultar el resumen mensual.") from e
 
-@router.get("/subcategorias/{subcat}")
+@router.get(
+    "/subcategorias/{subcat}",
+    dependencies=[Depends(requiere_permiso_nomina_novedades)],
+)
 async def obtener_detalles_subcategoria(
     subcat: str, 
     mes: int, 
@@ -261,9 +298,13 @@ async def obtener_detalles_subcategoria(
         result = await session.execute(statement)
         return result.scalars().all()
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al consultar detalles de subcategoría: {str(e)}")
+        logger.exception("Error al consultar la subcategoría %s", subcat)
+        raise HTTPException(status_code=500, detail="No fue posible consultar la subcategoría.") from e
 
-@router.get("/historial")
+@router.get(
+    "/historial",
+    dependencies=[Depends(requiere_permiso_nomina_novedades)],
+)
 async def obtener_historial(
     mes: Optional[int] = None,
     año: Optional[int] = None,
@@ -303,7 +344,8 @@ async def obtener_historial(
         total_result = await session.execute(count_stmt)
         total = total_result.scalar() or 0
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al contar archivos para historial: {str(e)}")
+        logger.exception("Error al contar archivos del historial")
+        raise HTTPException(status_code=500, detail="No fue posible consultar el historial.") from e
 
     # Ordenar y paginar
     statement = statement.order_by(NominaArchivo.creado_en.desc()).offset(skip).limit(limit)
@@ -311,7 +353,8 @@ async def obtener_historial(
         result = await session.execute(statement)
         rows = result.all()
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al consultar historial de archivos: {str(e)}")
+        logger.exception("Error al consultar archivos del historial")
+        raise HTTPException(status_code=500, detail="No fue posible consultar el historial.") from e
 
     archivos = []
     for archivo, total_registros in rows:
@@ -332,7 +375,10 @@ async def obtener_historial(
     return {"archivos": archivos, "total": total}
 
 
-@router.post("/exportar-solid")
+@router.post(
+    "/exportar-solid",
+    dependencies=[Depends(requiere_permiso_nomina_novedades)],
+)
 async def exportar_a_solid(
     mes: int,
     año: int,
@@ -347,7 +393,8 @@ async def exportar_a_solid(
         result = await session.execute(statement)
         registros = result.scalars().all()
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al consultar registros para exportación: {str(e)}")
+        logger.exception("Error al consultar registros para exportación")
+        raise HTTPException(status_code=500, detail="No fue posible preparar la exportación.") from e
     
     # Agrupar por subcategoría
     payload = {}

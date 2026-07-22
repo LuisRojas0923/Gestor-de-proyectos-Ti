@@ -127,8 +127,93 @@ def test_hdi_tipo_invalido_omitido():
         "PRIMA ANUAL": ["$ 391,085", "$ 354,310"]
     }
     df = pd.DataFrame(data)
-    with pytest.raises(ValueError, match="TIPO inválido"):
+    with pytest.raises(ValueError, match="TIPO.*P o D"):
         normalizar_df(df, warnings_out=warnings_out)
+
+
+@pytest.mark.parametrize(
+    "columna_faltante",
+    ["CERT", "TIPO", "IDENTIFICACION", "NOMBRES Y APELLIDOS", "PRIMA ANUAL"],
+)
+def test_hdi_rechaza_cualquier_columna_obligatoria_faltante(columna_faltante):
+    data = {
+        "CERT": ["10"],
+        "TIPO": ["P"],
+        "IDENTIFICACION": ["94416010"],
+        "NOMBRES Y APELLIDOS": ["JOSE ROBINSON PRECIADO"],
+        "PRIMA ANUAL": ["391.085,00"],
+    }
+    data.pop(columna_faltante)
+
+    with pytest.raises(ValueError, match="columnas obligatorias"):
+        normalizar_df(pd.DataFrame(data))
+
+
+def test_hdi_rechaza_columna_obligatoria_duplicada():
+    df = pd.DataFrame([
+        ["10", "P", "94416010", "JOSE ROBINSON PRECIADO", "391.085,00", "1"],
+    ])
+    df.columns = [
+        "CERT", "TIPO", "IDENTIFICACION", "NOMBRES Y APELLIDOS",
+        "PRIMA ANUAL", "PRIMA ANUAL",
+    ]
+
+    with pytest.raises(ValueError, match="duplicada"):
+        normalizar_df(df)
+
+
+@pytest.mark.parametrize(
+    ("campo", "valor", "mensaje"),
+    [
+        ("CERT", "", "CERT"),
+        ("IDENTIFICACION", "abc", "IDENTIFICACION"),
+        ("NOMBRES Y APELLIDOS", "", "NOMBRES Y APELLIDOS"),
+        ("PRIMA ANUAL", "valor-invalido", "PRIMA ANUAL"),
+    ],
+)
+def test_hdi_rechaza_archivo_completo_si_una_fila_es_invalida(campo, valor, mensaje):
+    data = {
+        "CERT": ["10", "11"],
+        "TIPO": ["P", "P"],
+        "IDENTIFICACION": ["94416010", "59661342"],
+        "NOMBRES Y APELLIDOS": ["JOSE ROBINSON PRECIADO", "FELIZA DUENAS"],
+        "PRIMA ANUAL": ["391.085,00", "354.310,00"],
+    }
+    data[campo][1] = valor
+
+    with pytest.raises(ValueError, match=mensaje):
+        normalizar_df(pd.DataFrame(data), sheet_name="HDI", first_data_row=2)
+
+
+@pytest.mark.parametrize("nombre", [12345, True, 12.5])
+def test_hdi_rechaza_nombre_que_no_sea_texto(nombre):
+    data = {
+        "CERT": ["10"],
+        "TIPO": ["P"],
+        "IDENTIFICACION": ["94416010"],
+        "NOMBRES Y APELLIDOS": [nombre],
+        "PRIMA ANUAL": ["391.085,00"],
+    }
+
+    with pytest.raises(ValueError, match="NOMBRES Y APELLIDOS.*texto"):
+        normalizar_df(pd.DataFrame(data), sheet_name="HDI")
+
+
+@pytest.mark.parametrize(
+    "prima",
+    ["COP 391.085,00", "abc123", "12.34.56", True],
+)
+def test_hdi_rechaza_prima_malformada_aunque_contenga_digitos(prima):
+    data = {
+        "CERT": ["10"],
+        "TIPO": ["P"],
+        "IDENTIFICACION": ["94416010"],
+        "NOMBRES Y APELLIDOS": ["JOSE ROBINSON PRECIADO"],
+        "PRIMA ANUAL": [prima],
+    }
+
+    with pytest.raises(ValueError, match="PRIMA ANUAL"):
+        normalizar_df(pd.DataFrame(data), sheet_name="HDI")
 
 
 @pytest.mark.parametrize("tipos", [["D", "D"], ["P", "P"]])

@@ -2,9 +2,8 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { Title, Text, Button, Select, Input, Badge } from '../../../../components/atoms';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Upload, FileText, AlertTriangle, Search, History, ChevronRight, Database } from 'lucide-react';
-import axios from 'axios';
-import { API_CONFIG } from '../../../../config/api';
 import { useNotifications } from '../../../../components/notifications/NotificationsContext';
+import { useApi } from '../../../../hooks/useApi';
 import SubcategorySummaryCard from './components/SubcategorySummaryCard';
 import { FilterDropdown } from '../../../../components/molecules/FilterDropdown';
 
@@ -33,8 +32,8 @@ interface HdiResponse {
         total_asociados: number;
         total_filas: number;
         total_valor: number;
-        archivos_procesados: number;
-        total_warnings: number;
+        archivos_procesados?: number;
+        total_warnings?: number;
         mes: number;
         anio: number;
     };
@@ -47,6 +46,8 @@ const MESES = [
     "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
 ];
 
+const HDI_DATOS_ENDPOINT = '/novedades-nomina/hdi/datos';
+const HDI_PREVIEW_ENDPOINT = '/novedades-nomina/hdi/preview';
 
 const CURRENCY_FORMATTER = new Intl.NumberFormat('es-CO', {
     style: 'currency',
@@ -57,6 +58,7 @@ const CURRENCY_FORMATTER = new Intl.NumberFormat('es-CO', {
 const HdiPreview: React.FC = () => {
     const navigate = useNavigate();
     const { addNotification } = useNotifications();
+    const { get, post } = useApi<HdiResponse>();
 
     const [mes, setMes] = useState(new Date().getMonth() + 1);
     const [anio, setAnio] = useState(new Date().getFullYear());
@@ -80,25 +82,28 @@ const HdiPreview: React.FC = () => {
         const fetchSaved = async () => {
             setIsLoading(true);
             try {
-                const res = await axios.get(
-                    `${API_CONFIG.BASE_URL}/novedades-nomina/hdi/datos`,
-                    { params: { mes, anio } }
+                const savedData = await get(
+                    `${HDI_DATOS_ENDPOINT}?mes=${mes}&anio=${anio}`
                 );
-                if (res.data.rows && res.data.rows.length > 0) {
-                    setData({ rows: res.data.rows, summary: res.data.summary, warnings: [], warnings_detalle: res.data.warnings_detalle || [] });
-                    setWarningsDetalle(res.data.warnings_detalle || []);
+                if (savedData?.rows && savedData.rows.length > 0) {
+                    setData({ rows: savedData.rows, summary: savedData.summary, warnings: [], warnings_detalle: savedData.warnings_detalle || [] });
+                    setWarningsDetalle(savedData.warnings_detalle || []);
                 } else {
                     setData(null);
                     setWarningsDetalle([]);
                 }
             } catch (err) {
                 console.error('Error cargando datos SEGUROS HDI:', err);
+                addNotification(
+                    'error',
+                    err instanceof Error ? err.message : 'Error al consultar los datos guardados.'
+                );
             } finally {
                 setIsLoading(false);
             }
         };
         fetchSaved();
-    }, [mes, anio]);
+    }, [mes, anio, get, addNotification]);
 
     const handleFilesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const selectedFiles = Array.from(e.currentTarget.files ?? []);
@@ -122,16 +127,20 @@ const HdiPreview: React.FC = () => {
             formData.append('mes', mes.toString());
             formData.append('anio', anio.toString());
 
-            const res = await axios.post(
-                `${API_CONFIG.BASE_URL}/novedades-nomina/hdi/preview`,
-                formData,
+            const result = await post(
+                HDI_PREVIEW_ENDPOINT,
+                formData
             );
-            setData(res.data);
-            setWarningsDetalle(res.data.warnings_detalle || []);
-            addNotification('success', `Procesados ${res.data.summary.total_asociados} asociados.`);
+            if (!result) return;
+            setData(result);
+            setWarningsDetalle(result.warnings_detalle || []);
+            addNotification('success', `Procesados ${result.summary.total_asociados} asociados.`);
         } catch (err) {
             console.error(err);
-            addNotification('error', 'Error al procesar los archivos.');
+            addNotification(
+                'error',
+                err instanceof Error ? err.message : 'Error al procesar el archivo.'
+            );
         } finally {
             setIsProcessing(false);
         }
@@ -247,17 +256,18 @@ const HdiPreview: React.FC = () => {
                         />
                     </div>
                     <div className="flex-1 min-w-0 space-y-1">
-                        <Text as="label" variant="body2" weight="medium" color="text-primary" className="block">
-                            Archivos Excel ({files.length} seleccionados)
+                        <Text as="label" htmlFor="file-upload" variant="body2" weight="medium" color="text-primary" className="block">
+                            Archivo Excel ({files.length} seleccionados)
                         </Text>
                         <div className="relative group">
                             <input id="file-upload" // @audit-ok
                                 type="file"
+                                aria-label="Archivo Excel"
                                 accept=".xlsx,.xls"
-                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                                className="peer absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                                 onChange={handleFilesChange}
                             />
-                            <div className="flex items-center gap-2 px-4 h-[42px] rounded-xl border border-dashed border-slate-300 dark:border-slate-600 group-hover:border-[var(--color-primary)] transition-colors cursor-pointer bg-slate-50 dark:bg-slate-900/50">
+                            <div className="flex items-center gap-2 px-4 h-[42px] rounded-xl border border-dashed border-slate-300 dark:border-slate-600 group-hover:border-[var(--color-primary)] peer-focus-visible:ring-2 peer-focus-visible:ring-[var(--color-primary)] peer-focus-visible:ring-offset-2 transition-colors cursor-pointer bg-slate-50 dark:bg-slate-900/50">
                                 <Upload className="w-4 h-4 text-slate-400 group-hover:text-[var(--color-primary)]" />
                                 <Text size="sm" color="text-secondary" className="truncate">
                                     {files.length > 0

@@ -3,7 +3,8 @@ import base64
 import asyncio
 import gzip
 import zipfile
-from unittest.mock import AsyncMock, patch
+from types import SimpleNamespace
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import openpyxl
 import pytest
@@ -194,7 +195,7 @@ async def test_procesar_flujo_limpia_archivo_si_falla_despues_de_escribir(
 ):
     monkeypatch.chdir(tmp_path)
     session = AsyncMock()
-    session.execute.side_effect = error
+    session.execute.side_effect = [MagicMock(), error]
     upload = AsyncMock()
     upload.filename = "hdi.xlsx"
     upload.read = AsyncMock(return_value=b"contenido valido")
@@ -224,3 +225,76 @@ async def test_procesar_flujo_limpia_archivo_si_falla_despues_de_escribir(
     storage = tmp_path / "uploads" / "nomina"
     assert storage.exists()
     assert list(storage.iterdir()) == []
+
+
+@pytest.mark.asyncio
+async def test_cancelacion_durante_commit_no_elimina_archivo_confirmado(
+    tmp_path, monkeypatch
+):
+    monkeypatch.chdir(tmp_path)
+    session = AsyncMock()
+    session.execute.side_effect = [MagicMock(), MagicMock()]
+    commit_iniciado = asyncio.Event()
+    permitir_commit = asyncio.Event()
+
+    async def commit_demorado():
+        commit_iniciado.set()
+        await permitir_commit.wait()
+
+    session.commit.side_effect = commit_demorado
+    upload = AsyncMock()
+    upload.filename = "hdi.xlsx"
+    upload.read = AsyncMock(return_value=b"contenido valido")
+    registro = SimpleNamespace(
+        cedula="94416010",
+        nombre_asociado="PRECIADO JOSE",
+        valor=100.0,
+        valor_rdc=24.0,
+        valor_colaborador=76.0,
+        empresa="REFRIDCOL",
+        concepto="SEGURO DE VIDA",
+        ciudad=None,
+        observaciones=None,
+        horas=0,
+        dias=0,
+        estado_validacion="OK",
+    )
+
+    with (
+        patch(
+            "app.services.novedades_nomina.nomina_service.ExcepcionService.obtener_excepciones_activas",
+            new=AsyncMock(return_value=[]),
+        ),
+        patch.object(NominaService, "get_mapa_erp", new=AsyncMock(return_value={})),
+        patch.object(
+            NominaService,
+            "crear_archivo_procesado",
+            new=AsyncMock(return_value=SimpleNamespace(id=7)),
+        ),
+        patch.object(
+            NominaService,
+            "persistir_registros_normalizados",
+            new=AsyncMock(return_value=[registro]),
+        ),
+    ):
+        tarea = asyncio.create_task(
+            NominaService.procesar_flujo(
+                session=session,
+                db_erp=AsyncMock(),
+                files=[upload],
+                categoria="OTROS",
+                subcategoria="SEGUROS HDI",
+                extractor_fn=lambda _archivos: ([{"cedula": "94416010"}], {}, []),
+                extension="xlsx",
+                mes=7,
+                anio=2026,
+            )
+        )
+        await commit_iniciado.wait()
+        tarea.cancel()
+        permitir_commit.set()
+        with pytest.raises(asyncio.CancelledError):
+            await tarea
+
+    storage = tmp_path / "uploads" / "nomina"
+    assert len(list(storage.iterdir())) == 1

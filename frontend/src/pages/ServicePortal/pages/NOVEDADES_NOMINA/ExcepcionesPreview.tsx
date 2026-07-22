@@ -5,6 +5,7 @@ import { ArrowLeft, Save, Plus, Minus, Trash2, History, AlertTriangle, User, Cal
 import axios from 'axios';
 import { API_CONFIG } from '../../../../config/api';
 import { useNotifications } from '../../../../components/notifications/NotificationsContext';
+import { useApi } from '../../../../hooks/useApi';
 import { NominaTable, ColumnDef } from '../../../../components/organisms/NominaTable';
 import ExcepcionesIcon from '../../../../assets/images/categories/EXCEPCIONES.png';
 
@@ -42,6 +43,7 @@ const CURRENCY_FORMATTER = new Intl.NumberFormat('es-CO', {
 const ExcepcionesPreview: React.FC = () => {
     const navigate = useNavigate();
     const { addNotification } = useNotifications();
+    const { get: getCatalogo } = useApi<Record<string, string[]>>();
     const [excepciones, setExcepciones] = useState<Excepcion[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [showForm, setShowForm] = useState(false);
@@ -85,9 +87,9 @@ const ExcepcionesPreview: React.FC = () => {
 
     const fetchCatalog = async () => {
         try {
-            const res = await axios.get(`${API_CONFIG.BASE_URL}/novedades-nomina/catalogo`);
-            if (res.data) {
-                const subs = Object.values(res.data).flat().filter(s => typeof s === 'string') as string[];
+            const catalogo = await getCatalogo('/novedades-nomina/catalogo');
+            if (catalogo) {
+                const subs = Object.values(catalogo).flat().filter(s => typeof s === 'string') as string[];
                 const filteredSubs = subs.filter(s => 
                     s !== 'GESTION EXCEPCIONES' && 
                     s !== 'PLANILLAS REGIONALES 1Q' && 

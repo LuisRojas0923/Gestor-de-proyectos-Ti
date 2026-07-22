@@ -107,10 +107,34 @@
         "low": 1
       },
       "test_coverage_observations": "La implementación local reporta 25 passed backend HDI, 2 passed frontend y 4 passed/4 skipped en health; cubre BIFF8 real, límites, archivos disfrazados, rollback/limpieza, preservación y contrato frontend. No hay blocker local. El remoto aún no contiene el working tree, pero commit/push es un paso de publicación separado y no bloquea la aprobación técnica local sin solicitud Git explícita."
+    },
+    {
+      "date": "2026-07-22",
+      "scope": "cierre de hallazgos PR #22: RBAC genérico, contrato HDI, lock PostgreSQL, NominaService compartido y accesibilidad frontend",
+      "outcome": "blocked",
+      "finding_count_by_severity": {
+        "blocking": 2,
+        "high": 1,
+        "medium": 4,
+        "low": 2
+      },
+      "test_coverage_observations": "Se reportan 48 backend focalizados, 4 passed/4 skipped health y 3 frontend. La inspección confirma 401/403 en historial/preview/descarga, 422 seguro, lock real con dos sesiones PostgreSQL, éxito/fallo/rollback/cancelación del servicio compartido y accesibilidad con useApi. Bloquean tipos HDI aún permisivos sin casos de nombre numérico/booleano ni prima mal formada con dígitos, y el gate Security/RBAC sobre rutas genéricas restantes. El catálogo frontend y el reporte final canónico también requieren reconciliación; collect-only no pudo repetirse porque el host carece de pytest."
+    },
+    {
+      "date": "2026-07-22",
+      "scope": "cierre final local de pruebas y documentación PR #22 HDI con evidencia 70 backend focalizadas y 5 frontend",
+      "outcome": "approved_with_risks",
+      "finding_count_by_severity": {
+        "blocking": 0,
+        "high": 0,
+        "medium": 3,
+        "low": 8
+      },
+      "test_coverage_observations": "Se reportan 70 backend focalizados, 4 passed/4 skipped health y 5 frontend, con ESLint focalizado, build, py_compile y diff-check PASS. Los tests y los reportes finales backend/security/frontend cubren tipos HDI estrictos, ocho rutas sensibles con 401/403, 500 seguro, confinamiento, cancelación durante commit y errores frontend GET/POST. ERR-003 y ERR-004 quedaron reconciliados con esta evidencia final; collect-only no pudo repetirse porque el host carece de pytest. Riesgos bajos: lock temporal, ruta externa inexistente, ramas 500, carreras frontend, catálogo público y logging genérico."
     }
   ],
   "stats": {
-    "total_reviews": 8,
+    "total_reviews": 10,
     "last_review": "2026-07-22"
   }
 }

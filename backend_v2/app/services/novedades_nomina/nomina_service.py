@@ -2,16 +2,31 @@ import logging
 import hashlib
 from typing import List, Dict, Any, Optional
 from sqlmodel import select, delete
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 from ...models.novedades_nomina.nomina import (
     NominaArchivo, NominaRegistroNormalizado, NominaExcepcion
 )
 from .excepcion_service import ExcepcionService
+from .errores import ErrorEstructuraNomina
 from .nomina_helper import NominaHelper
 
 logger = logging.getLogger(__name__)
 
 class NominaService:
+    @staticmethod
+    async def _bloquear_periodo(
+        session: AsyncSession,
+        subcategoria: str,
+        mes: int,
+        anio: int,
+    ) -> None:
+        scope = f"nomina:{subcategoria.strip().upper()}:{anio}:{mes}"
+        await session.execute(
+            text("SELECT pg_advisory_xact_lock(hashtextextended(:scope, 0))"),
+            {"scope": scope},
+        )
+
     @staticmethod
     async def get_mapa_erp(db_erp, rows: List[Dict[str, Any]], excepciones: List[NominaExcepcion] = []) -> Dict[str, Any]:
         """Obtiene un mapa de empleados desde el ERP delegando en NominaHelper."""
@@ -99,6 +114,8 @@ class NominaService:
             rows, summary, warnings_txt = await asyncio.to_thread(
                 extractor_fn, archivos_binarios
             )
+        except ErrorEstructuraNomina as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
         except ValueError as exc:
             raise HTTPException(
                 status_code=422,
@@ -157,6 +174,12 @@ class NominaService:
                 raise
 
         try:
+            await NominaService._bloquear_periodo(
+                session,
+                subcategoria=subcategoria_clean,
+                mes=mes,
+                anio=anio,
+            )
             tarea_guardado = asyncio.create_task(asyncio.to_thread(_guardar_archivo))
             try:
                 await asyncio.shield(tarea_guardado)
@@ -179,8 +202,14 @@ class NominaService:
                 session, archivo.id, mes, anio, rows, categoria, subcategoria_clean, mapa_erp, excepciones
             )
             
-            await session.commit()
-            transaccion_confirmada = True
+            tarea_commit = asyncio.create_task(session.commit())
+            try:
+                await asyncio.shield(tarea_commit)
+                transaccion_confirmada = True
+            except asyncio.CancelledError:
+                await tarea_commit
+                transaccion_confirmada = True
+                raise
             
             # 8. Formatear respuesta para el frontend (Compatible con múltiples versiones)
             filas_frontend = []
