@@ -281,7 +281,10 @@ def extraer_hdi(
 
             except Exception as e:
                 logger.error(f"Error procesando HDI: {e}")
-                warnings.append(str(e))
+                warnings.append(f"Error al leer el archivo: {e}")
+
+    if len(all_raw_rows) == 0:
+        warnings.append("El archivo no contiene la estructura ni columnas válidas asociadas al formato de Seguros HDI.")
 
     # Agrupar por CERT
     grupos_cert = collections.defaultdict(list)

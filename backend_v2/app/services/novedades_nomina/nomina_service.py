@@ -115,6 +115,16 @@ class NominaService:
         rows, summary, warnings_txt = await asyncio.to_thread(extractor_fn, archivos_binarios)
         summary.update({"mes": mes, "anio": anio})
 
+        # 2b. Protección contra pérdida de datos: si la extracción falla o devuelve 0 filas válidas,
+        # se aborta la operación ANTES de eliminar registros existentes en el periodo.
+        if not rows:
+            from fastapi import HTTPException
+            detalle = f" Detalle: {'; '.join(warnings_txt)}" if warnings_txt else ""
+            raise HTTPException(
+                status_code=400,
+                detail=f"No se pudieron extraer registros válidos del archivo proporcionado. La operación ha sido cancelada para preservar los datos existentes del periodo.{detalle}"
+            )
+
         # 3. Obtener info ERP y Excepciones
         excepciones = await ExcepcionService.obtener_excepciones_activas(session, subcategoria)
         mapa_erp = await NominaService.get_mapa_erp(db_erp, rows, excepciones)
