@@ -313,6 +313,13 @@ CREATE INDEX idx_milestones_dev_status ON milestones(development_id, status);
 
 
 
+## Restricciones De Integridad De Nómina
+
+- `uq_excepcion_historial_periodo`: garantiza un único registro en
+  `nomina_excepciones_historial` por `(excepcion_id, mes, anio)`.
+- El arranque aplica esta restricción mediante la migración idempotente
+  `nomina_excepciones_migration.py`.
+
 ## 🔄 Detalles Técnicos (Auto-generado)
 > [!NOTE]
 > Esta sección es generada automáticamente por `scripts/sync_docs.py`. No editar manualmente.

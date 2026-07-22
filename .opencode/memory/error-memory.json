@@ -63,7 +63,7 @@
         "ERR-004"
       ],
       "timestamp": "2026-07-22T00:00:00Z",
-      "evidencia": "PR #22 HDI: 70 pruebas backend focalizadas, 5 frontend, health 4 passed/4 skipped y gates aprobados; ERR-004 incluye errores GET/POST."
+      "evidencia": "PR #22 HDI: 98 pruebas backend focalizadas, 12 frontend, health 4 passed/4 skipped y gates ESLint focal, build, py_compile y diff-check aprobados; ERR-003 a ERR-009 reconciliados con el cierre local posterior a 0c222f67."
     },
     {
       "operation": "record error",
@@ -73,12 +73,30 @@
       "prioridad": "ALTA",
       "estado": "RESUELTO",
       "evidencia": "6 pruebas frontend focalizadas y build aprobados"
+    },
+    {
+      "operation": "cierre local posterior a SHA base",
+      "ids_actualizados": [
+        "ERR-003",
+        "ERR-004",
+        "ERR-005"
+      ],
+      "ids_registrados": [
+        "ERR-006",
+        "ERR-007",
+        "ERR-008",
+        "ERR-009"
+      ],
+      "timestamp": "2026-07-22T00:00:00Z",
+      "sha_base_local": "0c222f67",
+      "estado": "RESUELTO",
+      "evidencia": "98 backend focalizadas PASS; health 4 passed/4 skipped; 12 frontend PASS; ESLint focal, build, py_compile y diff-check PASS"
     }
   ],
   "stats": {
-    "total_operations": 6,
-    "last_operation": "record error ERR-005 — 2026-07-22T00:00:00Z",
-    "errors_recorded": 4,
+    "total_operations": 7,
+    "last_operation": "cierre local ERR-003 a ERR-009 posterior a 0c222f67 — 2026-07-22T00:00:00Z",
+    "errors_recorded": 8,
     "decisions_recorded": 1,
     "memory_persistence_enabled": true,
     "permission_grant_date": "2026-06-03"

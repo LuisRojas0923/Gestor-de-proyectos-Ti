@@ -5,6 +5,7 @@ from app.core.migrations.structural_blindaje import ejecutar_blindaje_estructura
 from app.core.migrations.saneamiento_secuencias import reparar_todas_las_secuencias
 from app.core.migrations.auditoria_evento_migration import crear_tabla_auditoria_evento
 from app.core.migrations.auditoria_acciones_migration import crear_tabla_auditoria_acciones
+from app.core.migrations.nomina_excepciones_migration import asegurar_historial_excepcion_unico
 
 logger = logging.getLogger(__name__)
 
@@ -47,6 +48,10 @@ async def init_db_process(async_engine, AsyncSessionLocal):
             await crear_tabla_auditoria_acciones(conn)
         except Exception as e:
             logger.error(f"Error en migración auditoria_acciones_usuario: {e}")
+
+    # 3.7 Garantizar idempotencia del historial de excepciones de nómina
+    async with async_engine.begin() as conn:
+        await asegurar_historial_excepcion_unico(conn)
 
     # 4. Saneamiento de Datos (Inventario y otros)
     saneamientos = [

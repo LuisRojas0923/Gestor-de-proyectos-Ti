@@ -17,7 +17,7 @@ from ...models.novedades_nomina.nomina import (
 )
 from ...services.novedades_nomina.extractor import NominaExtractor
 from ...services.novedades_nomina.processor import NominaProcessor
-from .dependencies import requiere_permiso_nomina_novedades
+from .dependencies import requiere_permiso_comisiones, requiere_permiso_nomina_novedades
 from .routers import (
     cooperativas_router, libranzas_router, funebres_router, otros_router,
     descuentos_router, excepciones_router, novedades_router,
@@ -28,15 +28,20 @@ from .routers import (
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
-router.include_router(excepciones_router)
-router.include_router(descuentos_router)
-router.include_router(comisiones_router, prefix="/comisiones")
-router.include_router(otros_router)
-router.include_router(cooperativas_router)
-router.include_router(funebres_router)
-router.include_router(libranzas_router)
-router.include_router(novedades_router)
-router.include_router(tabla_maestra_router)
+dependencia_nomina = [Depends(requiere_permiso_nomina_novedades)]
+router.include_router(excepciones_router, dependencies=dependencia_nomina)
+router.include_router(descuentos_router, dependencies=dependencia_nomina)
+router.include_router(
+    comisiones_router,
+    prefix="/comisiones",
+    dependencies=[Depends(requiere_permiso_comisiones)],
+)
+router.include_router(otros_router, dependencies=dependencia_nomina)
+router.include_router(cooperativas_router, dependencies=dependencia_nomina)
+router.include_router(funebres_router, dependencies=dependencia_nomina)
+router.include_router(libranzas_router, dependencies=dependencia_nomina)
+router.include_router(novedades_router, dependencies=dependencia_nomina)
+router.include_router(tabla_maestra_router, dependencies=dependencia_nomina)
 
 
 STORAGE_DIR = "uploads/nomina"
@@ -144,30 +149,55 @@ async def procesar_archivo(
     if not archivo:
         raise HTTPException(status_code=404, detail="Archivo no encontrado")
     
-    archivo.estado = "Procesando"
-    # Limpiar registros previos por si se está reprocesando
     try:
-        await session.execute(delete(NominaRegistroNormalizado).where(NominaRegistroNormalizado.archivo_id == archivo_id))
-        await session.execute(delete(NominaRegistroCrudo).where(NominaRegistroCrudo.archivo_id == archivo_id))
-        await session.commit()
-    except Exception as e:
-        await session.rollback()
-        logger.exception("Error al limpiar registros del archivo %s", archivo_id)
-        raise HTTPException(status_code=500, detail="No fue posible preparar el procesamiento.") from e
-    
+        def leer_archivo() -> bytes:
+            with open(archivo.ruta_almacenamiento, "rb") as f:
+                return f.read()
+
+        import asyncio
+
+        content = await asyncio.to_thread(leer_archivo)
+        raw_records = await asyncio.to_thread(
+            NominaExtractor.extract_from_binary,
+            content,
+            archivo.tipo_archivo,
+        )
+    except (OSError, ValueError) as e:
+        raise HTTPException(
+            status_code=422,
+            detail="El archivo no se puede leer o no cumple la estructura requerida.",
+        ) from e
+
+    if not raw_records:
+        raise HTTPException(
+            status_code=422,
+            detail="El archivo no contiene registros válidos; se conservaron los datos anteriores.",
+        )
+
+    subcat_clean = str(archivo.subcategoria or "").strip().upper()
     try:
-        with open(archivo.ruta_almacenamiento, "rb") as f:
-            content = f.read()
-        
+        from ...services.novedades_nomina.nomina_service import NominaService
+
+        await NominaService._bloquear_periodo(
+            session,
+            subcategoria=subcat_clean,
+            mes=archivo.mes_fact,
+            anio=archivo.año_fact,
+        )
+        archivo.estado = "Procesando"
+        await session.execute(
+            delete(NominaRegistroNormalizado).where(
+                NominaRegistroNormalizado.archivo_id == archivo_id
+            )
+        )
+        await session.execute(
+            delete(NominaRegistroCrudo).where(
+                NominaRegistroCrudo.archivo_id == archivo_id
+            )
+        )
         registros_normalizados = []
-        raw_count = 0
-
-        subcat_clean = str(archivo.subcategoria or "").strip().upper()
-        logger.info(f"Procesando archivo ID {archivo.id} con subcategoria limpia: '{subcat_clean}'")
-
-        # FLUJO GENÉRICO
-        raw_records = NominaExtractor.extract_from_binary(content, archivo.tipo_archivo)
         raw_count = len(raw_records)
+        logger.info(f"Procesando archivo ID {archivo.id} con subcategoria limpia: '{subcat_clean}'")
         processor = NominaProcessor(session)
         
         for i, raw in enumerate(raw_records):
@@ -185,10 +215,17 @@ async def procesar_archivo(
         return {"mensaje": f"Procesados {raw_count} registros", "archivo_id": archivo.id}
         
     except Exception as e:
-        archivo.estado = "Error"
-        archivo.error_log = str(e)
+        await session.rollback()
         logger.exception("Error procesando archivo %s", archivo_id)
-        await session.commit()
+        try:
+            archivo_error = await session.get(NominaArchivo, archivo_id)
+            if archivo_error:
+                archivo_error.estado = "Error"
+                archivo_error.error_log = str(e)
+                await session.commit()
+        except Exception:
+            await session.rollback()
+            logger.exception("No se pudo registrar el error del archivo %s", archivo_id)
         raise HTTPException(status_code=500, detail="No fue posible procesar el archivo.") from e
 
 

@@ -112,13 +112,14 @@
         "frontend/ (flujo y pruebas HDI)",
         "testing/ (regresiones HDI)"
       ],
-      "causa_raiz": "Faltaba importar Optional; la extracción aceptaba resultados parciales o vacíos, con validación ZIP/OLE débil y truncamiento silencioso; el parseo COP, la cardinalidad TIPO/CERT del titular y los metadatos multifile eran incorrectos o ambiguos; además se almacenaba antes de validar con una carrera de filesystem, y las pruebas frontend no ejercían el flujo real.",
+      "causa_raiz": "Faltaba importar Optional; la extracción aceptaba resultados parciales o vacíos, con validación ZIP/OLE débil y truncamiento silencioso; el parseo COP, la cardinalidad TIPO/CERT del titular y los metadatos multifile eran incorrectos o ambiguos. El flujo podía conservar estado HDI obsoleto, borrar resultados antes de terminar la validación y evaluar excepciones antes de adquirir el lock PostgreSQL, haciendo destructivo o inconsistente el reproceso concurrente. Las pruebas frontend tampoco ejercían el flujo real.",
       "solucion_propuesta": [
         "Contrato de un único archivo XLS/XLSX con validación estructural y de recursos estricta, incluido BIFF8 real.",
         "Extracción atómica fail-closed, sin truncamiento silencioso, con parseo COP correcto y exactamente un titular.",
         "Errores externos genéricos 422, RBAC y rate limit.",
         "Almacenamiento staged posterior a validación mediante SHA256+UUID y limpieza protegida ante cancelación.",
-        "Regresiones backend y frontend reales para los casos corregidos."
+        "Reproceso genérico no destructivo, invalidación explícita del estado HDI obsoleto y serialización PostgreSQL antes de evaluar excepciones o saldo.",
+        "Migración de unicidad y regresiones backend/frontend reales para los casos corregidos, incluida concurrencia con saldo agotado y flujo manual."
       ],
       "impacto": "Evita aceptar, interpretar o persistir archivos HDI inválidos o ambiguos, elimina carreras y metadatos engañosos, y mejora la seguridad y confiabilidad del flujo de carga.",
       "estado": "RESUELTO",
@@ -138,12 +139,13 @@
         "regresion"
       ],
       "evidencia": [
-        "70 pruebas backend focalizadas HDI aprobadas",
-        "4 health aprobadas y 4 omitidas",
-        "5 pruebas frontend aprobadas",
+        "98 pruebas backend focalizadas aprobadas: árbol RBAC completo, reproceso genérico no destructivo, concurrencia PostgreSQL con saldo agotado, migración de unicidad y flujo manual",
+        "Health: 4 passed y 4 skipped",
+        "12 pruebas frontend aprobadas: JWT en JSON/FormData/Blob, refresh tras 401, origen externo, catálogo y carrera HDI",
         "ESLint focalizado, build, py_compile y diff-check aprobados"
       ],
-      "nota_publicacion": "Resuelto localmente; commit y push pendientes de instrucción explícita del usuario."
+      "sha_base_local": "0c222f67",
+      "nota_publicacion": "Cierre resuelto localmente posterior a SHA base 0c222f67; commit y push pendientes de instrucción explícita del usuario."
     },
     {
       "id": "ERR-004",
@@ -177,11 +179,12 @@
         "regresion"
       ],
       "evidencia": [
-        "5 pruebas Vitest aprobadas, incluida cobertura de errores GET y POST",
-        "ESLint focalizado aprobado",
-        "Build frontend aprobado"
+        "12 pruebas frontend focalizadas aprobadas para JWT en JSON/FormData/Blob, refresh 401, origen externo, catálogo y carrera HDI",
+        "ESLint focalizado y build frontend aprobados",
+        "Suite backend focalizada: 98 aprobadas; health: 4 passed y 4 skipped"
       ],
-      "nota_publicacion": "Resuelto localmente; commit y push pendientes."
+      "sha_base_local": "0c222f67",
+      "nota_publicacion": "Cierre resuelto localmente posterior a SHA base 0c222f67; commit y push pendientes."
     },
     {
       "id": "ERR-005",
@@ -215,9 +218,146 @@
         "regresion"
       ],
       "evidencia": [
-        "6 pruebas frontend focalizadas aprobadas",
-        "Build frontend aprobado"
-      ]
+        "12 pruebas frontend focalizadas aprobadas para JWT en JSON/FormData/Blob, refresh 401, origen externo, catálogo y carrera HDI",
+        "ESLint focalizado y build frontend aprobados",
+        "Suite backend focalizada: 98 aprobadas; health: 4 passed y 4 skipped"
+      ],
+      "sha_base_local": "0c222f67",
+      "nota_publicacion": "Cierre resuelto localmente posterior a SHA base 0c222f67; commit y push pendientes."
+    },
+    {
+      "id": "ERR-006",
+      "titulo": "RBAC incompleto: routers hijos quedaban públicos bajo un router padre protegido",
+      "archivos_afectados": [
+        "backend_v2/app/api/ (árbol de routers de novedades de nómina)",
+        "backend_v2/app/core/rbac_manifest.py",
+        "testing/backend/ (regresiones del árbol RBAC completo)"
+      ],
+      "causa_raiz": "La protección RBAC no se propagaba de forma efectiva a todos los routers hijos; algunas rutas anidadas podían quedar públicas aunque el router padre aparentara estar protegido.",
+      "solucion_propuesta": [
+        "Aplicar la dependencia RBAC en el árbol completo de routers y verificar cada endpoint hijo.",
+        "Mantener el módulo registrado en el manifiesto central y cubrir acceso anónimo, autenticado sin permiso y autorizado."
+      ],
+      "impacto": "Endpoints hijos de novedades de nómina podían exponerse sin la autorización esperada.",
+      "estado": "RESUELTO",
+      "prioridad": "CRITICA",
+      "componente": "backend",
+      "fecha_deteccion": "2026-07-22",
+      "tags": [
+        "RBAC",
+        "routers-hijos",
+        "autorizacion",
+        "seguridad",
+        "regresion"
+      ],
+      "evidencia": [
+        "98 pruebas backend focalizadas aprobadas, incluida la cobertura del árbol RBAC completo",
+        "Health: 4 passed y 4 skipped",
+        "py_compile y diff-check aprobados"
+      ],
+      "sha_base_local": "0c222f67",
+      "nota_publicacion": "Resuelto localmente posterior a SHA base 0c222f67; commit y push pendientes."
+    },
+    {
+      "id": "ERR-007",
+      "titulo": "HDI reutilizaba estado obsoleto durante cargas y reprocesos",
+      "archivos_afectados": [
+        "backend_v2/ (estado y reproceso HDI)",
+        "frontend/src/pages/ServicePortal/pages/NOVEDADES_NOMINA/ (flujo HDI)",
+        "testing/ (regresiones de carrera HDI)"
+      ],
+      "causa_raiz": "El estado derivado de una ejecución HDI anterior podía permanecer vigente y competir con una nueva carga o reproceso, mostrando o aplicando resultados obsoletos.",
+      "solucion_propuesta": [
+        "Invalidar el estado previo al iniciar una operación nueva y aceptar resultados sólo de la ejecución vigente.",
+        "Cubrir la carrera HDI en frontend y el reproceso genérico no destructivo en backend."
+      ],
+      "impacto": "El usuario podía ver resultados HDI antiguos o una respuesta de una ejecución desplazada por otra más reciente.",
+      "estado": "RESUELTO",
+      "prioridad": "ALTA",
+      "componente": "multi",
+      "fecha_deteccion": "2026-07-22",
+      "tags": [
+        "HDI",
+        "estado-obsoleto",
+        "race-condition",
+        "reproceso",
+        "frontend"
+      ],
+      "evidencia": [
+        "98 pruebas backend focalizadas aprobadas, incluido reproceso genérico no destructivo",
+        "12 pruebas frontend focalizadas aprobadas, incluida la carrera HDI",
+        "ESLint focalizado, build, py_compile y diff-check aprobados"
+      ],
+      "sha_base_local": "0c222f67",
+      "nota_publicacion": "Resuelto localmente posterior a SHA base 0c222f67; commit y push pendientes."
+    },
+    {
+      "id": "ERR-008",
+      "titulo": "Reproceso eliminaba datos previos antes de completar la validación",
+      "archivos_afectados": [
+        "backend_v2/ (flujo genérico de reproceso de novedades de nómina)",
+        "testing/backend/ (regresiones de reproceso y flujo manual)"
+      ],
+      "causa_raiz": "El flujo borraba el resultado persistido antes de saber si la nueva entrada era válida; un error posterior dejaba al usuario sin el resultado anterior.",
+      "solucion_propuesta": [
+        "Validar y preparar el nuevo resultado antes de sustituir el anterior.",
+        "Hacer el reproceso genérico no destructivo y conservar el estado previo ante fallos.",
+        "Cubrir tanto el flujo automático como el manual."
+      ],
+      "impacto": "Una carga inválida o fallida podía destruir información previamente válida.",
+      "estado": "RESUELTO",
+      "prioridad": "CRITICA",
+      "componente": "backend",
+      "fecha_deteccion": "2026-07-22",
+      "tags": [
+        "reproceso",
+        "no-destructivo",
+        "validacion",
+        "persistencia",
+        "flujo-manual"
+      ],
+      "evidencia": [
+        "98 pruebas backend focalizadas aprobadas, incluidos reproceso genérico no destructivo y flujo manual",
+        "Health: 4 passed y 4 skipped",
+        "py_compile y diff-check aprobados"
+      ],
+      "sha_base_local": "0c222f67",
+      "nota_publicacion": "Resuelto localmente posterior a SHA base 0c222f67; commit y push pendientes."
+    },
+    {
+      "id": "ERR-009",
+      "titulo": "Concurrencia de novedades evaluaba excepciones y saldo antes del lock PostgreSQL",
+      "archivos_afectados": [
+        "backend_v2/ (persistencia concurrente de novedades de nómina)",
+        "backend_v2/ (migración de unicidad)",
+        "testing/backend/ (concurrencia PostgreSQL con saldo agotado)"
+      ],
+      "causa_raiz": "Las excepciones y la disponibilidad de saldo se evaluaban antes de adquirir el lock de base de datos; dos transacciones podían observar el mismo estado y vulnerar la unicidad o consumir un saldo ya agotado.",
+      "solucion_propuesta": [
+        "Adquirir el lock PostgreSQL antes de evaluar excepciones, unicidad y saldo.",
+        "Respaldar la exclusión con una migración de unicidad.",
+        "Probar concurrencia real en PostgreSQL cuando el saldo está agotado."
+      ],
+      "impacto": "Operaciones concurrentes podían duplicarse o aprobar consumos incompatibles con el saldo disponible.",
+      "estado": "RESUELTO",
+      "prioridad": "CRITICA",
+      "componente": "backend",
+      "fecha_deteccion": "2026-07-22",
+      "tags": [
+        "PostgreSQL",
+        "concurrencia",
+        "lock",
+        "saldo-agotado",
+        "unicidad",
+        "migracion"
+      ],
+      "evidencia": [
+        "98 pruebas backend focalizadas aprobadas, incluida concurrencia PostgreSQL con saldo agotado y migración de unicidad",
+        "Health: 4 passed y 4 skipped",
+        "py_compile y diff-check aprobados"
+      ],
+      "sha_base_local": "0c222f67",
+      "nota_publicacion": "Resuelto localmente posterior a SHA base 0c222f67; commit y push pendientes."
     }
   ],
   "decisions": [

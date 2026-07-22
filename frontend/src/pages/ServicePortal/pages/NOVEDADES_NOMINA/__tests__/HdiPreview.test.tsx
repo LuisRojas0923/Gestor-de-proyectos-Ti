@@ -138,4 +138,36 @@ describe('HdiPreview', () => {
       'No fue posible consultar los datos HDI.',
     ));
   });
+
+  it('descarta respuestas obsoletas al cambiar de periodo', async () => {
+    let resolveFirst!: (value: unknown) => void;
+    let resolveSecond!: (value: unknown) => void;
+    mocks.apiGet
+      .mockReturnValueOnce(new Promise(resolve => { resolveFirst = resolve; }))
+      .mockReturnValueOnce(new Promise(resolve => { resolveSecond = resolve; }));
+    renderComponent();
+    await waitFor(() => expect(mocks.apiGet).toHaveBeenCalledTimes(1));
+
+    const month = screen.getAllByRole('combobox')[0] as HTMLSelectElement;
+    fireEvent.change(month, { target: { value: month.value === '1' ? '2' : '1' } });
+    await waitFor(() => expect(mocks.apiGet).toHaveBeenCalledTimes(2));
+
+    const response = (nombre: string) => ({
+      rows: [{
+        cedula: nombre === 'PERIODO NUEVO' ? '2' : '1',
+        nombre_asociado: nombre,
+        empresa: 'REFRIDCOL',
+        valor: 100,
+        concepto: 'SEGURO DE VIDA',
+      }],
+      summary: { total_asociados: 1, total_filas: 1, total_valor: 100 },
+      warnings_detalle: [],
+    });
+    resolveSecond(response('PERIODO NUEVO'));
+    expect(await screen.findByText('PERIODO NUEVO')).toBeInTheDocument();
+
+    resolveFirst(response('PERIODO ANTERIOR'));
+    await waitFor(() => expect(screen.queryByText('PERIODO ANTERIOR')).not.toBeInTheDocument());
+    expect(screen.getByText('PERIODO NUEVO')).toBeInTheDocument();
+  });
 });

@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Title, Text, Button, Select, Input, Badge } from '../../../../components/atoms';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Upload, FileText, AlertTriangle, Search, History, ChevronRight, Database } from 'lucide-react';
@@ -76,15 +76,21 @@ const HdiPreview: React.FC = () => {
     // Warnings ERP
     const [warningsDetalle, setWarningsDetalle] = useState<WarningDetalle[]>([]);
     const [showWarnings, setShowWarnings] = useState(false);
+    const latestRequestId = useRef(0);
 
     // ── Cargar datos guardados al montar o cambiar periodo ──
     useEffect(() => {
+        const requestId = ++latestRequestId.current;
         const fetchSaved = async () => {
             setIsLoading(true);
+            setData(null);
+            setWarningsDetalle([]);
+            setShowWarnings(false);
             try {
                 const savedData = await get(
                     `${HDI_DATOS_ENDPOINT}?mes=${mes}&anio=${anio}`
                 );
+                if (requestId !== latestRequestId.current) return;
                 if (savedData?.rows && savedData.rows.length > 0) {
                     setData({ rows: savedData.rows, summary: savedData.summary, warnings: [], warnings_detalle: savedData.warnings_detalle || [] });
                     setWarningsDetalle(savedData.warnings_detalle || []);
@@ -93,13 +99,14 @@ const HdiPreview: React.FC = () => {
                     setWarningsDetalle([]);
                 }
             } catch (err) {
+                if (requestId !== latestRequestId.current) return;
                 console.error('Error cargando datos SEGUROS HDI:', err);
                 addNotification(
                     'error',
                     err instanceof Error ? err.message : 'Error al consultar los datos guardados.'
                 );
             } finally {
-                setIsLoading(false);
+                if (requestId === latestRequestId.current) setIsLoading(false);
             }
         };
         fetchSaved();

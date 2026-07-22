@@ -9,16 +9,36 @@ logger = logging.getLogger(__name__)
 
 class ExcepcionService:
     @staticmethod
-    async def obtener_excepciones_activas(session: AsyncSession, subcategoria: Optional[str] = None) -> List[NominaExcepcion]:
+    async def obtener_excepciones_activas(
+        session: AsyncSession,
+        subcategoria: Optional[str] = None,
+        bloquear: bool = False,
+        mes: Optional[int] = None,
+        anio: Optional[int] = None,
+    ) -> List[NominaExcepcion]:
         """Obtiene las excepciones vigentes para una subcategoría."""
         now = datetime.now()
+        estado_vigente = NominaExcepcion.estado == "ACTIVO"
+        if mes is not None and anio is not None:
+            aplicado_periodo = select(NominaExcepcionHistorial.id).where(
+                NominaExcepcionHistorial.excepcion_id == NominaExcepcion.id,
+                NominaExcepcionHistorial.mes == mes,
+                NominaExcepcionHistorial.anio == anio,
+            ).exists()
+            estado_vigente = or_(
+                estado_vigente,
+                and_(NominaExcepcion.estado == "AGOTADO", aplicado_periodo),
+            )
+
         stmt = select(NominaExcepcion).where(
-            NominaExcepcion.estado == "ACTIVO",
+            estado_vigente,
             NominaExcepcion.fecha_inicio <= now,
             or_(NominaExcepcion.fecha_fin == None, NominaExcepcion.fecha_fin >= now)
         )
         if subcategoria:
             stmt = stmt.where(NominaExcepcion.subcategoria == subcategoria)
+        if bloquear:
+            stmt = stmt.with_for_update()
         
         result = await session.execute(stmt)
         return result.scalars().all()
@@ -83,6 +103,7 @@ class ExcepcionService:
             excepcion.saldo_actual += historial_previo.valor_aplicado
             # Borrar historial previo para reemplazarlo
             await session.delete(historial_previo)
+            await session.flush()
         
         # 2. Calcular descuento (Opción A: Restar lo que se pueda hasta llegar a 0)
         descuento = min(valor_cobro, excepcion.saldo_actual)

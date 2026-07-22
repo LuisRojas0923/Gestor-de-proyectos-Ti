@@ -1,22 +1,28 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Title, Text, Button, Select, Input } from '../../../../components/atoms';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Download, Send, RefreshCw, Layers } from 'lucide-react';
+import { ArrowLeft, Send, RefreshCw, Layers } from 'lucide-react';
 import axios from 'axios';
 import { API_CONFIG } from '../../../../config/api';
 import { useNotifications } from '../../../../components/notifications/NotificationsContext';
+
+interface NominaResumen {
+    subcategoria: string;
+    total_registros: number;
+    total_valor: number;
+}
 
 const NominaSummaryView: React.FC = () => {
     const navigate = useNavigate();
     const { addNotification } = useNotifications();
 
-    const [resumen, setResumen] = useState<any[]>([]);
+    const [resumen, setResumen] = useState<NominaResumen[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [mes, setMes] = useState(new Date().getMonth() + 1);
     const [año, setAño] = useState(new Date().getFullYear());
     const [isExporting, setIsExporting] = useState(false);
 
-    const fetchSummary = async () => {
+    const fetchSummary = useCallback(async () => {
         setIsLoading(true);
         try {
             const res = await axios.get(`${API_CONFIG.BASE_URL}/novedades-nomina/subcategorias/resumen?mes=${mes}&año=${año}`);
@@ -27,19 +33,18 @@ const NominaSummaryView: React.FC = () => {
         } finally {
             setIsLoading(false);
         }
-    };
+    }, [addNotification, año, mes]);
 
     useEffect(() => {
         fetchSummary();
-    }, [mes, año]);
+    }, [fetchSummary]);
 
     const handleExport = async () => {
         setIsExporting(true);
         try {
-            const res = await axios.post(`${API_CONFIG.BASE_URL}/novedades-nomina/exportar-solid`, {
-                mes,
-                año
-            });
+            const res = await axios.post(
+                `${API_CONFIG.BASE_URL}/novedades-nomina/exportar-solid?mes=${mes}&año=${año}`
+            );
 
             // Simulación de descarga de archivo si fuera necesario, 
             // por ahora la API solo devuelve el JSON para SOLID.
@@ -132,12 +137,12 @@ const NominaSummaryView: React.FC = () => {
                                     </td>
                                 </tr>
                             ) : resumen.map((item) => (
-                                <tr key={item.subcategoria_final} className="hover:bg-slate-50/50 dark:hover:bg-slate-700/50 transition-colors">
-                                    <td className="p-4 font-bold">{item.subcategoria_final}</td>
+                                <tr key={item.subcategoria} className="hover:bg-slate-50/50 dark:hover:bg-slate-700/50 transition-colors">
+                                    <td className="p-4 font-bold">{item.subcategoria}</td>
                                     <td className="p-4 text-center">{item.total_registros}</td>
                                     <td className="p-4 text-right font-mono font-bold text-blue-600">${item.total_valor.toLocaleString()}</td>
                                     <td className="p-4 text-center">
-                                        <Button variant="ghost" size="sm" onClick={() => navigate(`/service-portal/novedades-nomina/detalle/${item.subcategoria_final}`)}>
+                                        <Button variant="ghost" size="sm" onClick={() => navigate(`/service-portal/novedades-nomina/detalle/${item.subcategoria}`)}>
                                             <Layers className="w-4 h-4 mr-1" /> Detalles
                                         </Button>
                                     </td>

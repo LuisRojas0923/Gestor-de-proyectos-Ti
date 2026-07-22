@@ -122,7 +122,7 @@
     },
     {
       "date": "2026-07-22",
-      "scope": "cierre final local de pruebas y documentación PR #22 HDI con evidencia 70 backend focalizadas y 5 frontend",
+      "scope": "cierre final local de pruebas y documentación PR #22 HDI con evidencia 98 backend focalizadas y 12 frontend",
       "outcome": "approved_with_risks",
       "finding_count_by_severity": {
         "blocking": 0,
@@ -130,7 +130,7 @@
         "medium": 3,
         "low": 8
       },
-      "test_coverage_observations": "Se reportan 70 backend focalizados, 4 passed/4 skipped health y 5 frontend, con ESLint focalizado, build, py_compile y diff-check PASS. Los tests y los reportes finales backend/security/frontend cubren tipos HDI estrictos, ocho rutas sensibles con 401/403, 500 seguro, confinamiento, cancelación durante commit y errores frontend GET/POST. ERR-003 y ERR-004 quedaron reconciliados con esta evidencia final; collect-only no pudo repetirse porque el host carece de pytest. Riesgos bajos: lock temporal, ruta externa inexistente, ramas 500, carreras frontend, catálogo público y logging genérico."
+      "test_coverage_observations": "Se reportan 98 backend focalizados, 4 passed/4 skipped health y 12 frontend, con ESLint focalizado, build, py_compile y diff-check PASS. Los tests y los reportes finales backend/security/frontend cubren árbol RBAC completo, reproceso genérico no destructivo, concurrencia PostgreSQL con saldo agotado, migración de unicidad, flujo manual, JWT en JSON/FormData/Blob, refresh 401, origen externo, catálogo y carrera HDI. ERR-003 a ERR-009 quedaron reconciliados con esta evidencia final posterior a SHA base 0c222f67."
     }
   ],
   "stats": {

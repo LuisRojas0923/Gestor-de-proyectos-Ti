@@ -4,6 +4,7 @@ Modelos de Nómina - Backend V2 (SQLModel)
 from typing import Optional, List, Any
 from datetime import datetime, date
 from sqlmodel import SQLModel, Field, Relationship, JSON, Column
+from sqlalchemy import UniqueConstraint
 
 
 class NominaArchivo(SQLModel, table=True):
@@ -181,6 +182,14 @@ class NominaExcepcion(SQLModel, table=True):
 class NominaExcepcionHistorial(SQLModel, table=True):
     """Histórico de aplicaciones de una excepción"""
     __tablename__ = "nomina_excepciones_historial"
+    __table_args__ = (
+        UniqueConstraint(
+            "excepcion_id",
+            "mes",
+            "anio",
+            name="uq_excepcion_historial_periodo",
+        ),
+    )
 
     id: Optional[int] = Field(default=None, primary_key=True)
     excepcion_id: int = Field(foreign_key="nomina_excepciones.id")

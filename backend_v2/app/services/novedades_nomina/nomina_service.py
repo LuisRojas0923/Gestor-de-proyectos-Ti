@@ -132,10 +132,6 @@ class NominaService:
                 detail=f"No se pudieron extraer registros válidos del archivo proporcionado. La operación ha sido cancelada para preservar los datos existentes del periodo.{detalle}"
             )
 
-        # 3. Obtener info ERP y Excepciones
-        excepciones = await ExcepcionService.obtener_excepciones_activas(session, subcategoria)
-        mapa_erp = await NominaService.get_mapa_erp(db_erp, rows, excepciones)
-
         import os
         from uuid import uuid4
 
@@ -179,6 +175,18 @@ class NominaService:
                 subcategoria=subcategoria_clean,
                 mes=mes,
                 anio=anio,
+            )
+            excepciones = await ExcepcionService.obtener_excepciones_activas(
+                session,
+                subcategoria,
+                bloquear=True,
+                mes=mes,
+                anio=anio,
+            )
+            mapa_erp = await NominaService.get_mapa_erp(
+                db_erp,
+                rows,
+                excepciones,
             )
             tarea_guardado = asyncio.create_task(asyncio.to_thread(_guardar_archivo))
             try:

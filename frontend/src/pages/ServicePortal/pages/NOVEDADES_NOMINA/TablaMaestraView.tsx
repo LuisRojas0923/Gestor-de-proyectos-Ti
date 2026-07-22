@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Title, Text, Button, Badge, Select, MaterialCard } from '../../../../components/atoms';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, CheckCircle, XCircle, Loader2, Download, Table2, Search, Send } from 'lucide-react';
+import { ArrowLeft, CheckCircle, XCircle, Loader2, Table2, Search, Send } from 'lucide-react';
 import { NominaTable, ColumnDef } from '../../../../components/organisms/NominaTable';
 import axios from 'axios';
 import { API_CONFIG } from '../../../../config/api';
@@ -93,7 +93,7 @@ const TablaMaestraView: React.FC = () => {
             } else {
                 addNotification('warning', `Faltan ${res.data.total_faltantes} subcategoría(s) por cargar.`);
             }
-        } catch (err) {
+        } catch {
             addNotification('error', 'Error al validar la disponibilidad.');
         } finally {
             setIsValidating(false);
@@ -115,8 +115,8 @@ const TablaMaestraView: React.FC = () => {
             setSummary(res.data.summary);
             setShowValidation(false); // Colapsar al generar la tabla
             addNotification('success', `Tabla maestra generada: ${res.data.filas.length} registros.`);
-        } catch (err: any) {
-            const detail = err?.response?.data?.detail;
+        } catch (err: unknown) {
+            const detail = axios.isAxiosError(err) ? err.response?.data?.detail : undefined;
             if (detail?.faltantes) {
                 addNotification('error', `Faltan subcategorías: ${detail.faltantes.join(', ')}`);
             } else {
@@ -131,10 +131,9 @@ const TablaMaestraView: React.FC = () => {
     const handleExportSolid = async () => {
         setIsExporting(true);
         try {
-            await axios.post(`${API_CONFIG.BASE_URL}/novedades-nomina/exportar-solid`, {
-                mes,
-                año: anio
-            });
+            await axios.post(
+                `${API_CONFIG.BASE_URL}/novedades-nomina/exportar-solid?mes=${mes}&año=${anio}`
+            );
             addNotification('success', 'Datos exportados correctamente a SOLID ERP.');
         } catch (err) {
             console.error("Error exporting to SOLID:", err);
