@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Title, Text, Button, Select, Input, Badge } from '../../../../components/atoms';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Upload, FileText, AlertTriangle, Search, Filter, History, ChevronRight, Database } from 'lucide-react';
+import { ArrowLeft, Upload, FileText, AlertTriangle, Search, History, ChevronRight, Database } from 'lucide-react';
 import axios from 'axios';
 import { API_CONFIG } from '../../../../config/api';
 import { useNotifications } from '../../../../components/notifications/NotificationsContext';
@@ -144,7 +144,7 @@ const HdiPreview: React.FC = () => {
                 // Filtros por columna
                 for (const [key, values] of Object.entries(activeFilters)) {
                     if (values.length === 0) continue;
-                    const rowValue = String((r as any)[key] || '').toUpperCase();
+                    const rowValue = String((r as Record<string, unknown>)[key] || '').toUpperCase();
                     if (!values.includes(rowValue)) return false;
                 }
 

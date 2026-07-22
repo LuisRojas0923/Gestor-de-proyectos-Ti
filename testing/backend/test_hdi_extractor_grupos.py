@@ -1,7 +1,18 @@
 import pytest
 from unittest.mock import patch, MagicMock
 import pandas as pd
-from app.services.novedades_nomina.hdi_extractor import extraer_hdi, normalizar_df
+from app.services.novedades_nomina.hdi_extractor import extraer_hdi, normalizar_df, _limpiar_numero
+
+def test_limpiar_numero_formato_colombiano():
+    """Valida la conversión de cadenas de texto con distintos formatos de notación monetaria."""
+    assert _limpiar_numero("391.085,00") == 391085.0
+    assert _limpiar_numero("1.234.567,89") == 1234567.89
+    assert _limpiar_numero("$ 354.310") == 354310.0
+    assert _limpiar_numero("$ 920,200") == 920200.0
+    assert _limpiar_numero(391085.0) == 391085.0
+    assert _limpiar_numero(None) == 0.0
+    assert _limpiar_numero("") == 0.0
+
 
 def test_hdi_normalizar_df():
     # Columnas de HDI: CERT, NOV, TIPO, IDENTIFICACION, NOMBRES Y APELLIDOS, EDAD, PLAN, VALOR ASEGURADO, PRIMA ANUAL, EXTRAPRIMA, PRIMA COBRO
@@ -41,40 +52,30 @@ def test_hdi_normalizar_df():
     assert rows[2]["cert"] == "2"
 
 def test_hdi_extractor_calculations():
-    # Simular la salida para probar la consolidación y cálculos
     # CERT 2 tiene 3 miembros:
     # 1. Jose (P, prima_anual=391085)
-    #    prima_mensual = 391085 / 12 = 32590.416
-    #    valor_rdc = 32590.416 * 0.24 = 7821.70
-    #    valor_colaborador = 32590.416 * 0.76 = 24768.72
     # 2. Feliza (D, prima_anual=354310)
-    #    prima_mensual = 354310 / 12 = 29525.83
-    #    valor_colaborador = 29525.83
     # 3. Maribel (D, prima_anual=920200)
-    #    prima_mensual = 920200 / 12 = 76683.33
-    #    valor_colaborador = 76683.33
-    #
-    # Total valor_colaborador = 24768.72 + 29525.83 + 76683.33 = 130977.88
-    # Total valor_rdc = 7821.70
-    # Total valor_total = 138799.58 (los decimales sumados y redondeados dan .59)
+    import io
+    data = {
+        "CERT": ["2", "2", "2"],
+        "NOV": ["CAR", "CAR", "CAR"],
+        "TIPO": ["D", "D", "P"],
+        "IDENTIFICACION": ["59661342", "1116235786", "94416010"],
+        "NOMBRES Y APELLIDOS": ["FELIZA DUENAS", "HECTOR PAUL CRUZ", "JOSE ROBINSON PRECIADO"],
+        "EDAD": [71, 39, 52],
+        "PLAN": [1, 1, 1],
+        "VALOR ASEGURADO": ["$ 55,000,000", "$ 200,000,000", "$ 85,000,000"],
+        "PRIMA ANUAL": ["$ 354,310", "$ 920,200", "$ 391,085"],
+        "EXTRAPRIMA": ["$ 0", "$ 0", "$ 0"],
+        "PRIMA COBRO": ["$ 72,447", "$ 72,447", "$ 72,447"]
+    }
+    df = pd.DataFrame(data)
+    excel_buffer = io.BytesIO()
+    with pd.ExcelWriter(excel_buffer, engine="openpyxl") as writer:
+        df.to_excel(writer, index=False)
     
-    mock_table = [
-        ["CERT", "NOV", "TIPO", "IDENTIFICACION", "NOMBRES Y APELLIDOS", "EDAD", "PLAN", "VALOR ASEGURADO", "PRIMA ANUAL", "EXTRAPRIMA", "PRIMA COBRO"],
-        ["2", "CAR", "D", "59661342", "FELIZA DUENAS", "71", "1", "$ 55,000,000", "$ 354,310", "$ 0", "$ 72,447"],
-        ["2", "CAR", "D", "1116235786", "HECTOR PAUL CRUZ", "39", "1", "$ 200,000,000", "$ 920,200", "$ 0", "$ 72,447"],
-        ["2", "CAR", "P", "94416010", "JOSE ROBINSON PRECIADO", "52", "1", "$ 85,000,000", "$ 391,085", "$ 0", "$ 72,447"]
-    ]
-    
-    mock_page = MagicMock()
-    mock_page.extract_tables.return_value = [mock_table]
-    mock_page.extract_text.return_value = ""
-    
-    mock_pdf = MagicMock()
-    mock_pdf.__enter__.return_value = mock_pdf
-    mock_pdf.pages = [mock_page]
-    
-    with patch("pdfplumber.open", return_value=mock_pdf):
-        rows, summary, warnings = extraer_hdi([b"dummy_pdf_content"])
+    rows, summary, warnings = extraer_hdi([excel_buffer.getvalue()])
         
     # Debe consolidarse bajo la cédula del titular
     assert len(rows) == 1
@@ -113,4 +114,173 @@ def test_hdi_excel_extractor():
     assert res["nombre_asociado"] == "ROBINSON PRECIADO JOSE"
     assert summary["archivos_procesados"] == 1
     assert summary["total_asociados"] == 1
+
+
+def test_hdi_tipo_invalido_omitido():
+    """Prueba que los registros con TIPO vacío o inválido no se asuman como Titular ('P') y sean omitidos con advertencia."""
+    warnings_out = []
+    data = {
+        "CERT": [1, 2],
+        "TIPO": ["X", None],  # Ambas son inválidas
+        "IDENTIFICACION": ["94416010", "59661342"],
+        "NOMBRES Y APELLIDOS": ["JOSE ROBINSON PRECIADO", "FELIZA DUENAS"],
+        "PRIMA ANUAL": ["$ 391,085", "$ 354,310"]
+    }
+    df = pd.DataFrame(data)
+    df_res = normalizar_df(df, warnings_out=warnings_out)
+    
+    assert len(df_res) == 0
+    assert len(warnings_out) == 2
+    assert "TIPO inválido" in warnings_out[0]
+
+
+def test_hdi_multi_sheet_and_multi_file():
+    """Verifica el procesamiento completo de múltiples hojas en un archivo y múltiples archivos simultáneos."""
+    import io
+    data_hoja1 = {
+        "CERT": ["10"], "TIPO": ["P"], "IDENTIFICACION": ["94416010"],
+        "NOMBRES Y APELLIDOS": ["JOSE ROBINSON PRECIADO"], "PRIMA ANUAL": ["$ 391,085"]
+    }
+    data_hoja2 = {
+        "CERT": ["11"], "TIPO": ["P"], "IDENTIFICACION": ["59661342"],
+        "NOMBRES Y APELLIDOS": ["FELIZA DUENAS"], "PRIMA ANUAL": ["$ 354.310"]
+    }
+    
+    buf1 = io.BytesIO()
+    with pd.ExcelWriter(buf1, engine="openpyxl") as w1:
+        pd.DataFrame(data_hoja1).to_excel(w1, index=False, sheet_name="PLAN_A")
+        pd.DataFrame(data_hoja2).to_excel(w1, index=False, sheet_name="PLAN_B")
+        
+    rows, summary, warnings = extraer_hdi([buf1.getvalue()])
+    
+    assert summary["archivos_procesados"] == 1
+    assert summary["total_asociados"] == 2
+    assert len(rows) == 2
+
+
+def test_hdi_row_header_offset():
+    """Verifica que el extractor encuentre los encabezados HDI cuando están desplazados varias filas (skiprows 1..5)."""
+    import io
+    # Encabezados vacíos o irrelevantes en filas 0 y 1
+    data_matrix = [
+        ["REFRIDCOL S.A.", "", "", "", ""],
+        ["REPORTE MENSUAL SEGUROS HDI", "", "", "", ""],
+        ["CERT", "TIPO", "IDENTIFICACION", "NOMBRES Y APELLIDOS", "PRIMA ANUAL"],
+        ["10", "P", "94416010", "JOSE ROBINSON PRECIADO", "$ 391.085,00"]
+    ]
+    df_raw = pd.DataFrame(data_matrix)
+    
+    buf = io.BytesIO()
+    with pd.ExcelWriter(buf, engine="openpyxl") as w:
+        df_raw.to_excel(w, index=False, header=False)
+        
+    rows, summary, warnings = extraer_hdi([buf.getvalue()])
+    
+    assert len(rows) == 1
+    assert rows[0]["cedula"] == "94416010"
+    assert rows[0]["valor"] > 0
+
+
+def test_hdi_corrupt_or_empty_excel():
+    """Verifica el comportamiento seguro ante bytes corruptos o sin registros válidos."""
+    # Bytes corruptos que no son Excel
+    corrupt_bytes = b"ESTO_NO_ES_UN_EXCEL_VALIDO_12345"
+    rows, summary, warnings = extraer_hdi([corrupt_bytes])
+    
+    assert len(rows) == 0
+    assert summary["archivos_procesados"] == 0
+    assert len(warnings) > 0
+
+
+def test_hdi_cop_currency_formatting():
+    """Prueba la extracción precisa de valores en formato COP complejo (puntos de miles y comas decimales)."""
+    import io
+    data = {
+        "CERT": ["1", "2"],
+        "TIPO": ["P", "P"],
+        "IDENTIFICACION": ["94416010", "59661342"],
+        "NOMBRES Y APELLIDOS": ["JOSE ROBINSON PRECIADO", "FELIZA DUENAS"],
+        "PRIMA ANUAL": ["1.234.567,89", "391.085,00"]
+    }
+    buf = io.BytesIO()
+    with pd.ExcelWriter(buf, engine="openpyxl") as w:
+        pd.DataFrame(data).to_excel(w, index=False)
+        
+    rows, summary, warnings = extraer_hdi([buf.getvalue()])
+    assert len(rows) == 2
+    cedulas = {r["cedula"]: r for r in rows}
+    
+    # 1.234.567,89 / 12 = 102880.6575 -> 24% subsidio RDC = 24691.36
+    assert cedulas["94416010"]["valor"] > 100000
+    # 391.085,00 / 12 = 32590.416 -> 24% subsidio RDC = 7821.70
+    assert cedulas["59661342"]["valor_rdc"] == 7821.70
+
+
+def test_hdi_api_pdf_rejected_415():
+    """Prueba de API: Un archivo PDF subido a /hdi/preview debe ser rechazado con HTTP 415."""
+    from fastapi.testclient import TestClient
+    from app.main import app
+    from app.core.rate_limiter import limiter
+    
+    limiter.enabled = False
+    client = TestClient(app)
+    # PDF Magic bytes b"%PDF-1.4..."
+    pdf_content = b"%PDF-1.4 contenido de prueba pdf"
+    
+    # Mock de autenticación/dependencias para simular permisos
+    from app.api.novedades_nomina.dependencies import requiere_permiso_nomina_novedades
+    app.dependency_overrides[requiere_permiso_nomina_novedades] = lambda: {"sub": "test_user"}
+    
+    try:
+        response = client.post(
+            "/api/v2/novedades-nomina/hdi/preview",
+            data={"mes": 7, "anio": 2026},
+            files=[("files", ("factura.pdf", pdf_content, "application/pdf"))]
+        )
+        assert response.status_code == 415
+        detail = response.json()["detail"]
+        assert "factura.pdf" in detail or "Excel" in detail
+    finally:
+        limiter.enabled = True
+        app.dependency_overrides.clear()
+
+
+def test_hdi_api_data_preservation_on_empty_extraction():
+    """Verifica que una extracción vacía o fallida eleve HTTP 400 sin borrar los datos existentes en la BD."""
+    import pytest
+    from fastapi import HTTPException
+    from unittest.mock import AsyncMock
+    from app.services.novedades_nomina.nomina_service import NominaService
+    
+    mock_session = AsyncMock()
+    mock_db_erp = AsyncMock()
+    
+    mock_file = AsyncMock()
+    mock_file.read = AsyncMock(return_value=b"dummy content")
+    mock_file.filename = "test.xlsx"
+    
+    # Función extractora que devuelve 0 filas
+    mock_extractor_vacio = lambda files: ([], {"total_asociados": 0}, ["Advertencia: 0 filas"])
+    
+    with pytest.raises(HTTPException) as exc_info:
+        import asyncio
+        asyncio.run(NominaService.procesar_flujo(
+            session=mock_session,
+            db_erp=mock_db_erp,
+            files=[mock_file],
+            categoria="OTROS",
+            subcategoria="SEGUROS HDI",
+            extractor_fn=mock_extractor_vacio,
+            extension="xlsx",
+            mes=7,
+            anio=2026
+        ))
+        
+    assert exc_info.value.status_code == 400
+    assert "No se pudieron extraer registros válidos" in exc_info.value.detail
+    # Verificar que mock_session.execute (que ejecuta el delete de registros) NUNCA se invocó
+    assert mock_session.execute.call_count == 0
+
+
+
 

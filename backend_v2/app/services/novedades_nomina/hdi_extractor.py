@@ -28,14 +28,50 @@ def _formatear_nombre(nombre: str) -> str:
     return nombre.upper()
 
 def _limpiar_numero(valor: Any) -> float:
-    """Limpia strings con $, comas y otros caracteres para convertir a float."""
-    if valor is None or valor == "":
+    """
+    Soporta notación numérico-monetaria colombiana (391.085,00 / 1.234.567,89 / 354.310),
+    notación estadounidense ($354,310.00) y numéricos nativos int/float de pandas.
+    """
+    if valor is None or pd.isna(valor) or valor == "":
         return 0.0
-    s = str(valor).replace("$", "").replace(",", "").replace("\u00A0", " ").strip()
+
+    if isinstance(valor, (int, float)):
+        return float(valor)
+
+    s = str(valor).replace("$", "").replace("\u00A0", " ").strip()
+    if not s:
+        return 0.0
+
+    # Notación mixta (punto y coma presentes)
+    if "." in s and "," in s:
+        # En Colombia, la coma es el separador decimal (ej: 391.085,00 / 1.234.567,89)
+        if s.rfind(",") > s.rfind("."):
+            s = s.replace(".", "").replace(",", ".")
+        else:
+            # En EE.UU., el punto es decimal (ej: 1,234,567.89)
+            s = s.replace(",", "")
+    elif "," in s:
+        # Notación con solo coma (ej: 391085,00 o 391085,5)
+        parts = s.split(",")
+        if len(parts) == 2 and len(parts[1]) in (1, 2):
+            s = s.replace(",", ".")
+        else:
+            s = s.replace(",", "")
+    elif "." in s:
+        # Notación con solo punto (ej: 391.085 o 1.234.567 o float string "391085.0")
+        parts = s.split(".")
+        if len(parts) > 2:
+            # Múltiples puntos como 1.234.567 -> separadores de miles colombianos
+            s = s.replace(".", "")
+        elif len(parts) == 2:
+            # Un solo punto. Si tiene 3 dígitos tras el punto y la parte entera es corta (<=3 dígitos),
+            # ej: "391.085" o "354.310" o "920.200", es separador de miles colombiano.
+            if len(parts[1]) == 3 and len(parts[0]) <= 3:
+                s = s.replace(".", "")
+
     s = re.sub(r"[^0-9\.\-]", "", s)
     try:
-        if not s: return 0.0
-        return float(s)
+        return float(s) if s else 0.0
     except ValueError:
         return 0.0
 
@@ -100,9 +136,19 @@ def _aplicar_reemplazos(cedula: str, nombre: str) -> Tuple[str, str]:
     return cedula, nombre
 
 
-def normalizar_df(df: pd.DataFrame) -> pd.DataFrame:
-    """Normaliza el DataFrame (de Excel o Tabla PDF) siguiendo la estructura de HDI."""
+MAX_EXCEL_SHEETS = 10
+MAX_EXCEL_ROWS = 5000
+MAX_EXCEL_COLS = 50
+
+
+def normalizar_df(df: pd.DataFrame, warnings_out: Optional[List[str]] = None) -> pd.DataFrame:
+    """Normaliza el DataFrame (de Excel) siguiendo la estructura de HDI exigiendo TIPO estrictamente ('P' o 'D')."""
     df = df.copy()
+    if len(df.columns) > MAX_EXCEL_COLS:
+        df = df.iloc[:, :MAX_EXCEL_COLS]
+    if len(df) > MAX_EXCEL_ROWS:
+        df = df.iloc[:MAX_EXCEL_ROWS, :]
+
     df = df.dropna(axis=1, how='all').dropna(axis=0, how='all')
     if len(df.columns) < 2 or len(df) == 0:
         return pd.DataFrame()
@@ -176,16 +222,27 @@ def normalizar_df(df: pd.DataFrame) -> pd.DataFrame:
 
     valid_rows = []
     for _, row in df.iterrows():
-        tipo = "P"
-        if tipo_col_idx != -1 and tipo_col_idx < len(row):
-            val_tipo = str(row.iloc[tipo_col_idx]).strip().upper()
-            if val_tipo in ["P", "D"]:
-                tipo = val_tipo
-
         if id_col_idx >= len(row): continue
         raw_id = str(row.iloc[id_col_idx]).strip().split(".")[0]
         id_val = re.sub(r"[^0-9]", "", raw_id)
         if not id_val or len(id_val) < 5: continue
+
+        # Validación estricta de TIPO (P=Titular, D=Dependiente)
+        tipo = None
+        if tipo_col_idx != -1 and tipo_col_idx < len(row):
+            val_tipo = str(row.iloc[tipo_col_idx]).strip().upper()
+            if val_tipo in ["P", "TITULAR", "PRINCIPAL"]:
+                tipo = "P"
+            elif val_tipo in ["D", "DEPENDIENTE", "BENEFICIARIO"]:
+                tipo = "D"
+
+        if not tipo:
+            if warnings_out is not None:
+                raw_tipo_str = str(row.iloc[tipo_col_idx]).strip() if (tipo_col_idx != -1 and tipo_col_idx < len(row)) else "Ausente"
+                warnings_out.append(
+                    f"Fila con Cédula '{id_val}' ignorada: TIPO inválido o no reconocido ('{raw_tipo_str}'). Se requiere 'P' (Titular) o 'D' (Dependiente)."
+                )
+            continue
 
         nombre = ""
         if nombre_col_idx != -1 and nombre_col_idx < len(row):
@@ -220,21 +277,27 @@ def normalizar_df(df: pd.DataFrame) -> pd.DataFrame:
 def extraer_hdi(
     archivos_binarios: List[bytes]
 ) -> Tuple[List[Dict[str, Any]], Dict[str, Any], List[str]]:
-    """Procesa archivos Excel (.xlsx, .xls) de HDI con la lógica de 7 pasos y consolidación (con fallback a PDF si aplica)."""
+    """Procesa de manera exclusiva archivos Excel (.xlsx, .xls) de HDI con la lógica de 7 pasos y consolidación."""
     all_raw_rows: List[Dict[str, Any]] = []
     warnings: List[str] = []
+    archivos_procesados_exitosamente = 0
 
-    for contenido in archivos_binarios:
-        procesado_excel = False
-        # 1. Intentar procesar como Excel (.xlsx / .xls)
+    for idx, contenido in enumerate(archivos_binarios):
+        filas_archivo = []
         try:
             excel_file = pd.ExcelFile(io.BytesIO(contenido))
-            for sheet_name in excel_file.sheet_names:
+            sheets = excel_file.sheet_names[:MAX_EXCEL_SHEETS]
+            for sheet_name in sheets:
                 df_norm = pd.DataFrame()
                 for skip in range(6):
                     try:
-                        df_sheet = pd.read_excel(excel_file, sheet_name=sheet_name, skiprows=skip)
-                        df_candidate = normalizar_df(df_sheet)
+                        df_sheet = pd.read_excel(
+                            excel_file,
+                            sheet_name=sheet_name,
+                            skiprows=skip,
+                            nrows=MAX_EXCEL_ROWS
+                        )
+                        df_candidate = normalizar_df(df_sheet, warnings_out=warnings)
                         if not df_candidate.empty:
                             df_norm = df_candidate
                             break
@@ -242,60 +305,41 @@ def extraer_hdi(
                         continue
 
                 for _, r in df_norm.iterrows():
-                    all_raw_rows.append(dict(r))
+                    row_dict = dict(r)
+                    row_dict["_origin_file"] = idx
+                    row_dict["_origin_sheet"] = sheet_name
+                    filas_archivo.append(row_dict)
 
-            if len(all_raw_rows) > 0:
-                procesado_excel = True
-        except Exception:
-            procesado_excel = False
+            if len(filas_archivo) > 0:
+                archivos_procesados_exitosamente += 1
+                all_raw_rows.extend(filas_archivo)
+            else:
+                num_archivo = f" #{idx + 1}" if len(archivos_binarios) > 1 else ""
+                warnings.append(f"El archivo{num_archivo} no contiene filas o columnas válidas del formato Seguros HDI.")
 
-        # 2. Fallback a PDF si no se procesó como Excel
-        if not procesado_excel:
-            try:
-                with pdfplumber.open(io.BytesIO(contenido)) as pdf:
-                    for page in pdf.pages:
-                        page_table_rows = []
-                        tables = page.extract_tables()
-                        if not tables:
-                            tables = page.extract_tables(table_settings={
-                                "vertical_strategy": "text", "horizontal_strategy": "text"
-                            })
-                        
-                        for table in tables:
-                            df_norm = normalizar_df(pd.DataFrame(table))
-                            for _, row in df_norm.iterrows():
-                                page_table_rows.append(dict(row))
-                        
-                        all_raw_rows.extend(page_table_rows)
-
-                        text = page.extract_text()
-                        if text:
-                            table_counts = collections.Counter((r["cedula"], r["prima_anual"]) for r in page_table_rows)
-                            regex_counts = collections.Counter()
-                            
-                            for row in _extraer_por_regex(text):
-                                key = (row["cedula"], row["prima_anual"])
-                                if regex_counts[key] >= table_counts[key]:
-                                    all_raw_rows.append(row)
-                                regex_counts[key] += 1
-
-            except Exception as e:
-                logger.error(f"Error procesando HDI: {e}")
-                warnings.append(f"Error al leer el archivo: {e}")
+        except Exception as e:
+            logger.error(f"Error procesando archivo Excel de HDI #{idx + 1}: {e}")
+            num_archivo = f" #{idx + 1}" if len(archivos_binarios) > 1 else ""
+            warnings.append(f"Error al leer el archivo Excel{num_archivo}: {e}")
 
     if len(all_raw_rows) == 0:
-        warnings.append("El archivo no contiene la estructura ni columnas válidas asociadas al formato de Seguros HDI.")
+        warnings.append("Ninguno de los archivos adjuntos contiene la estructura ni columnas válidas asociadas al formato Excel de Seguros HDI.")
 
-    # Agrupar por CERT
+    # Agrupar por CERT dentro del mismo origen (archivo y hoja)
     grupos_cert = collections.defaultdict(list)
-    for idx, r in enumerate(all_raw_rows):
+    for idx_r, r in enumerate(all_raw_rows):
+        file_idx = r.get("_origin_file", 0)
+        sheet_name = r.get("_origin_sheet", "")
         cert_val = r.get("cert")
         if not cert_val:
-            cert_val = f"dummy_{idx}"
-        grupos_cert[cert_val].append(r)
+            group_key = (file_idx, sheet_name, f"dummy_{idx_r}")
+        else:
+            group_key = (file_idx, sheet_name, cert_val)
+        grupos_cert[group_key].append(r)
 
     consolidated_rows: List[Dict[str, Any]] = []
-    for cert_val, members in grupos_cert.items():
+    for group_key, members in grupos_cert.items():
+        cert_display = group_key[2] if isinstance(group_key, tuple) else group_key
         # Encontrar el titular (tipo == "P")
         titular = None
         for m in members:
@@ -307,7 +351,7 @@ def extraer_hdi(
         if not titular:
             titular = members[0]
             warnings.append(
-                f"No se detectó un Titular (TIPO = 'P') para el grupo CERT '{cert_val}'. "
+                f"No se detectó un Titular (TIPO = 'P') para el grupo CERT '{cert_display}'. "
                 f"Se asumirá como titular a '{titular['nombre_asociado']}' y no se aplicará subsidio de empresa."
             )
             total_empleado = sum(m["prima_anual"] / 12 for m in members)
@@ -328,7 +372,7 @@ def extraer_hdi(
             valor_total = round(valor_rdc + valor_colaborador, 2)
             
         # Crear la fila consolidada asociada al Titular
-        obs = f"Grupo CERT {cert_val}"
+        obs = f"Grupo CERT {cert_display}"
         if len(members) > 1:
             nombres_dep = ", ".join(m["nombre_asociado"] for m in members if m is not titular)
             obs += f" | Incluye dependientes: {nombres_dep}"
@@ -374,7 +418,8 @@ def extraer_hdi(
         "total_asociados": len(final_rows),
         "total_filas_consolidadas": len(final_rows),
         "total_valor": round(total_valor, 2),
-        "archivos_procesados": len(archivos_binarios),
+        "archivos_procesados": archivos_procesados_exitosamente,
+        "archivos_recibidos": len(archivos_binarios),
     }
     
     return final_rows, summary, warnings
