@@ -3,7 +3,7 @@
 **Fecha:** 2026-07-22
 **Rama:** `fix/frontend-syntax`
 **Base:** `origin/main`
-**SHA funcional validado:** `563c6f4fb2155a71e242562ee5fbd488d6269f4b`
+**SHA funcional validado:** `04be1f4d1f019e1e9ee5765da63de6c95532147d`
 **Modo:** build
 **Estado técnico:** candidato a aprobación
 
