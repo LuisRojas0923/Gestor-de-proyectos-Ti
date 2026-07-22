@@ -292,11 +292,17 @@ def _registrar_fallo_cedula(cedula: str) -> None:
         logger.warning("No se pudo registrar fallo de lockout")
 
 
+def _opciones_storage_redis(settings) -> dict[str, str]:
+    """Entrega credenciales a Redis sin incluirlas en la URI ni en logs."""
+    return {"password": settings.redis_password} if settings.redis_password else {}
+
+
 limiter = Limiter(
     key_func=_verify_admin_key_func,
     default_limits=[],
     headers_enabled=False,
     storage_uri=_settings.redis_url,
+    storage_options=_opciones_storage_redis(_settings),
     # SlowAPI por defecto intenta leer .env con Starlette Config. En
     # Windows + UTF-8 con tildes eso falla con UnicodeDecodeError. No
     # necesitamos esa config (pasamos todos los flags directo), asi que

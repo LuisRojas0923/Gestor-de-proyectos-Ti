@@ -48,6 +48,7 @@ class Settings(BaseSettings):
 
     # Rate limiting (SlowAPI). Redis-backed para compartir bucket entre workers.
     redis_url: str = "redis://localhost:6379/0"
+    redis_password: str | None = None
 
     storage_path: str = "/app/storage/attachments"
     storage_max_size_mb: int = Field(default=25, gt=0, le=100)

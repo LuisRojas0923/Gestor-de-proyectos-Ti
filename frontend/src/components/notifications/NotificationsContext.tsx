@@ -1,6 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { useAppContext } from '../../context/AppContext';
-import { API_CONFIG } from '../../config/api';
+import { API_CONFIG, API_ENDPOINTS } from '../../config/api';
+import { solicitarTicketWebSocket } from '../../services/notificacionesService';
 
 export type NotificationType = 'success' | 'info' | 'error' | 'warning';
 
@@ -52,10 +53,31 @@ export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({
     if (!userId) return;
 
     let socket: WebSocket | null = null;
-    let reconnectTimeout: NodeJS.Timeout;
+    let reconnectTimeout: ReturnType<typeof setTimeout>;
+    let stableConnectionTimeout: ReturnType<typeof setTimeout>;
     let isMounted = true;
+    let reconnectAttempt = 0;
 
-    const connect = () => {
+    const scheduleReconnect = () => {
+      if (!isMounted || !localStorage.getItem('token')) return;
+      clearTimeout(reconnectTimeout);
+      const exponentialDelay = Math.min(30000, 1000 * (2 ** reconnectAttempt));
+      const jitter = Math.floor(Math.random() * 250);
+      reconnectAttempt += 1;
+      reconnectTimeout = setTimeout(() => void connect(), exponentialDelay + jitter);
+    };
+
+    const connect = async () => {
+      clearTimeout(reconnectTimeout);
+      let ticket: string;
+      try {
+        ({ ticket } = await solicitarTicketWebSocket());
+      } catch {
+        scheduleReconnect();
+        return;
+      }
+      if (!isMounted) return;
+
       const baseUrl = API_CONFIG.BASE_URL;
       let wsUrl = "";
       
@@ -66,9 +88,26 @@ export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({
         wsUrl = `${protocol}//${window.location.host}${baseUrl}`;
       }
 
-      socket = new WebSocket(`${wsUrl}/notificaciones/ws/${userId}`);
+      let nextSocket: WebSocket;
+      try {
+        nextSocket = new WebSocket(
+          `${wsUrl}${API_ENDPOINTS.NOTIFICATIONS_WS}`,
+          ['notificaciones.v1', `ticket.${ticket}`],
+        );
+      } catch {
+        scheduleReconnect();
+        return;
+      }
+      socket = nextSocket;
 
-      socket.onmessage = (event) => {
+      nextSocket.onopen = () => {
+        clearTimeout(stableConnectionTimeout);
+        stableConnectionTimeout = setTimeout(() => {
+          reconnectAttempt = 0;
+        }, 10000);
+      };
+
+      nextSocket.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
           
@@ -91,14 +130,16 @@ export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({
         }
       };
 
-      socket.onclose = () => {
-        if (isMounted) {
-          reconnectTimeout = setTimeout(connect, 5000); // Reintentar en 5 segundos
+      nextSocket.onclose = () => {
+        clearTimeout(stableConnectionTimeout);
+        if (socket === nextSocket) {
+          socket = null;
+          scheduleReconnect();
         }
       };
 
-      socket.onerror = () => {
-        if (socket) socket.close();
+      nextSocket.onerror = () => {
+        nextSocket.close();
       };
     };
 
@@ -108,6 +149,7 @@ export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({
       isMounted = false;
       if (socket) socket.close();
       clearTimeout(reconnectTimeout);
+      clearTimeout(stableConnectionTimeout);
     };
   }, [userId, addNotification]);
 

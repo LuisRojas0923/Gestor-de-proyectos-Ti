@@ -130,6 +130,7 @@ AUDITORIA_COBERTURA: dict[str, CoberturaAuditoriaModulo] = {
     "admin_usuarios": {
         "tipo": "middleware",
         "rutas_api": ["/api/v2/auth"],
+        "notas": "Incluye sincronizacion ERP y preview GET allowlisted sin PII objetivo",
     },
     "user-admin": {
         "tipo": "middleware",

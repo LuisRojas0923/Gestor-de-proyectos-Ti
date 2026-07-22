@@ -308,6 +308,19 @@ class TestLimiterStorageURI:
         assert settings.redis_url
         assert settings.redis_url.startswith("redis://")
 
+    def test_password_redis_se_pasa_como_opcion_separada(self):
+        from app.core.config import Settings
+        from app.core.rate_limiter import _opciones_storage_redis
+
+        settings = Settings(
+            redis_url="redis://redis:6379/0",
+            redis_password="secreto-con-@-y-:",
+        )
+
+        assert _opciones_storage_redis(settings) == {
+            "password": "secreto-con-@-y-:",
+        }
+
 
 class TestLimiterSingleton:
     """El limiter sigue siendo singleton y reseteable."""

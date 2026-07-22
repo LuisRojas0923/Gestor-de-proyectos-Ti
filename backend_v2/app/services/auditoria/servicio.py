@@ -115,6 +115,25 @@ def inferir_resultado_desde_codigo(codigo: int) -> str:
 
 class ServicioAuditoria:
     @staticmethod
+    def _crear_insert(evento: Dict[str, Any]):
+        datos = dict(evento)
+        accion = datos.pop("accion")
+        accion_val = accion.value if isinstance(accion, AccionAuditoria) else accion
+        modulo = datos["modulo"]
+        entidad_id, ruta = _anonimizar_identidad_entidad(
+            modulo,
+            datos.get("entidad_tipo"),
+            datos.get("entidad_id"),
+            datos.get("ruta"),
+        )
+        datos["accion"] = accion_val
+        datos["entidad_id"] = entidad_id
+        datos["ruta"] = ruta
+        for clave in ("datos_anteriores", "datos_nuevos", "metadatos"):
+            datos[clave] = _enmascarar_datos(datos.get(clave), modulo=modulo)
+        return insert(AuditoriaAccionUsuario).values(**datos)
+
+    @staticmethod
     async def registrar(
         db: AsyncSession,
         *,
@@ -138,16 +157,12 @@ class ServicioAuditoria:
     ) -> None:
         """Inserta un evento de auditoría. Nunca propaga excepciones."""
         try:
-            accion_val = accion.value if isinstance(accion, AccionAuditoria) else accion
-            entidad_id, ruta = _anonimizar_identidad_entidad(
-                modulo, entidad_tipo, entidad_id, ruta
-            )
-            stmt = insert(AuditoriaAccionUsuario).values(
+            stmt = ServicioAuditoria._crear_insert(dict(
                 usuario_id=usuario_id,
                 usuario_nombre=usuario_nombre,
                 rol=rol,
                 modulo=modulo,
-                accion=accion_val,
+                accion=accion,
                 entidad_tipo=entidad_tipo,
                 entidad_id=entidad_id,
                 metodo_http=metodo_http,
@@ -157,10 +172,10 @@ class ServicioAuditoria:
                 direccion_ip=direccion_ip,
                 agente_usuario=agente_usuario,
                 correlacion_id=correlacion_id,
-                datos_anteriores=_enmascarar_datos(datos_anteriores, modulo=modulo),
-                datos_nuevos=_enmascarar_datos(datos_nuevos, modulo=modulo),
-                metadatos=_enmascarar_datos(metadatos, modulo=modulo),
-            )
+                datos_anteriores=datos_anteriores,
+                datos_nuevos=datos_nuevos,
+                metadatos=metadatos,
+            ))
             await db.execute(stmt)
             await db.commit()
         except Exception:
@@ -169,6 +184,51 @@ class ServicioAuditoria:
                 await db.rollback()
             except Exception:
                 pass
+
+    @staticmethod
+    async def registrar_sin_commit(
+        db: AsyncSession,
+        *,
+        usuario_id: str,
+        modulo: str,
+        accion: AccionAuditoria | str,
+        resultado: str = "exito",
+        usuario_nombre: Optional[str] = None,
+        rol: Optional[str] = None,
+        entidad_tipo: Optional[str] = None,
+        entidad_id: Optional[str] = None,
+        metodo_http: Optional[str] = None,
+        ruta: Optional[str] = None,
+        codigo_respuesta: Optional[int] = None,
+        direccion_ip: Optional[str] = None,
+        agente_usuario: Optional[str] = None,
+        correlacion_id: Optional[str] = None,
+        datos_anteriores: Optional[Dict[str, Any]] = None,
+        datos_nuevos: Optional[Dict[str, Any]] = None,
+        metadatos: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        """Inserta el evento dentro de la transaccion del caso de uso."""
+        stmt = ServicioAuditoria._crear_insert(dict(
+            usuario_id=usuario_id,
+            usuario_nombre=usuario_nombre,
+            rol=rol,
+            modulo=modulo,
+            accion=accion,
+            entidad_tipo=entidad_tipo,
+            entidad_id=entidad_id,
+            metodo_http=metodo_http,
+            ruta=ruta,
+            codigo_respuesta=codigo_respuesta,
+            resultado=resultado,
+            direccion_ip=direccion_ip,
+            agente_usuario=agente_usuario,
+            correlacion_id=correlacion_id,
+            datos_anteriores=datos_anteriores,
+            datos_nuevos=datos_nuevos,
+            metadatos=metadatos,
+        ))
+        await db.execute(stmt)
+        await db.flush()
 
     @staticmethod
     async def listar_eventos(

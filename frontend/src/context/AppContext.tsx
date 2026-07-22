@@ -1,6 +1,6 @@
 import React, { createContext, ReactNode, useContext, useEffect, useMemo, useReducer } from 'react';
 import axios from 'axios';
-import { API_CONFIG } from '../config/api';
+import { API_CONFIG, API_ENDPOINTS } from '../config/api';
 import { AuthService } from '../services/AuthService';
 
 // Constante: minutos desde el login hasta el refresh proactivo. El JWT
@@ -26,6 +26,30 @@ interface User {
   emailVerified?: boolean;
   passwordSet?: boolean;
   permissions?: string[];
+}
+
+interface BackendUserResponse {
+  id: string;
+  cedula: string;
+  nombre?: string;
+  name?: string;
+  email?: string;
+  correo?: string;
+  rol?: string;
+  role?: string;
+  avatar?: string;
+  area?: string;
+  cargo?: string;
+  sede?: string;
+  centrocosto?: string;
+  centro_costo?: string;
+  viaticante?: boolean | string;
+  email_needs_update?: boolean;
+  correo_actualizado?: boolean;
+  correo_verificado?: boolean;
+  password_set?: boolean;
+  permissions?: string[];
+  permisos?: string[];
 }
 
 interface Requirement {
@@ -64,6 +88,7 @@ interface Notification {
 
 interface AppState {
   user: User | null;
+  sessionValidated: boolean;
   darkMode: boolean;
   sidebarOpen: boolean;
   requirements: Requirement[];
@@ -77,6 +102,7 @@ interface AppState {
 
 type AppAction =
   | { type: 'SET_USER'; payload: User | null }
+  | { type: 'SET_SESSION_VALIDATED'; payload: boolean }
   | { type: 'LOGIN'; payload: User }
   | { type: 'LOGOUT' }
   | { type: 'TOGGLE_DARK_MODE' }
@@ -124,6 +150,7 @@ const getInitialViaticosVerified = (): boolean => {
 
 const initialState: AppState = {
   user: getInitialUser(),
+  sessionValidated: !localStorage.getItem('token'),
   darkMode: getInitialDarkMode(),
   sidebarOpen: true,
   requirements: [],
@@ -139,16 +166,18 @@ function appReducer(state: AppState, action: AppAction): AppState {
   switch (action.type) {
     case 'SET_USER':
       return { ...state, user: action.payload };
+    case 'SET_SESSION_VALIDATED':
+      return { ...state, sessionValidated: action.payload };
     case 'LOGIN':
       localStorage.setItem('user', JSON.stringify(action.payload));
-      return { ...state, user: action.payload };
+      return { ...state, user: action.payload, sessionValidated: true };
     case 'LOGOUT':
       localStorage.removeItem('user');
       localStorage.removeItem('token');
       localStorage.removeItem('theme');
       localStorage.removeItem('viaticosVerified');
       sessionStorage.removeItem('fromAdmin');
-      return { ...state, user: null, isViaticosVerified: true };
+      return { ...state, user: null, sessionValidated: true, isViaticosVerified: true };
     case 'TOGGLE_DARK_MODE': {
       const newDarkMode = !state.darkMode;
       // Guardar en localStorage
@@ -234,23 +263,32 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   // Sincronización global de sesión al cargar la app
   React.useEffect(() => {
+    let retryTimeout: ReturnType<typeof setTimeout> | undefined;
+    let active = true;
+
     const validateSession = async () => {
       const token = localStorage.getItem('token');
-      if (!token) return;
+      if (!token) {
+        dispatch({ type: 'SET_SESSION_VALIDATED', payload: true });
+        return;
+      }
 
       try {
         // Verificar validez del token y obtener datos frescos (incluyendo permisos actualizados)
-        const response = await axios.get(`${API_CONFIG.BASE_URL}/auth/yo`, {
+        const response = await axios.get<BackendUserResponse>(
+          `${API_CONFIG.BASE_URL}${API_ENDPOINTS.AUTH_ME}`,
+          {
           headers: { Authorization: `Bearer ${token}` }
-        });
+          },
+        );
 
         if (response.data) {
           // Función de mapeo (adaptador) para normalizar datos del backend (español) a frontend interface (inglés)
-          const normalizeUser = (data: any): User => ({
+          const normalizeUser = (data: BackendUserResponse): User => ({
             id: data.id,
             cedula: data.cedula,
             name: data.nombre || data.name || '', // Adaptar 'nombre' a 'name'
-            email: data.email || data.correo,  // /yo devuelve 'correo', /portal-login devuelve 'email'
+            email: data.email || data.correo || '',  // /yo devuelve 'correo', /portal-login devuelve 'email'
             role: data.rol || data.role || 'usuario', // Adaptar 'rol' a 'role'
             avatar: data.avatar,
             area: data.area,
@@ -269,7 +307,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           const normalizedUser = normalizeUser(response.data);
 
           // Actualizar estado global con datos frescos y normalizados
-          dispatch({ type: 'LOGIN', payload: normalizedUser });
+          if (active) dispatch({ type: 'LOGIN', payload: normalizedUser });
         }
       } catch (error) {
         // Solo LOGOUT en 401 (token invalido/expirado y refresh ya fallo).
@@ -280,17 +318,25 @@ export function AppProvider({ children }: { children: ReactNode }) {
         // original: el usuario volvia al panel tras 5 min de estar en el
         // portal, Redis estaba arrancando, /auth/yo devolvia 503, y se
         // quedaba en el login.
-        const status = (error as any)?.response?.status;
+        const status = axios.isAxiosError(error) ? error.response?.status : undefined;
         if (status === 401) {
           console.warn('Sesion invalida o expirada (401). Limpiando estado.');
-          dispatch({ type: 'LOGOUT' });
+          if (active) dispatch({ type: 'LOGOUT' });
         } else {
-          console.warn('Validacion de sesion fallo transitoriamente; se mantiene el estado hidratado.', error);
+          console.warn('Validacion de sesion fallo transitoriamente; acceso protegido en espera.', error);
+          if (active) {
+            dispatch({ type: 'SET_SESSION_VALIDATED', payload: false });
+            retryTimeout = setTimeout(() => void validateSession(), 5000);
+          }
         }
       }
     };
 
-    validateSession();
+    void validateSession();
+    return () => {
+      active = false;
+      if (retryTimeout) clearTimeout(retryTimeout);
+    };
   }, []); // Solo al montar la app
 
   // Refresh proactivo: a los 45 min desde el login, refresca el JWT para

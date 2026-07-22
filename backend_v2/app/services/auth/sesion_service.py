@@ -106,6 +106,26 @@ async def validar_sesion_activa(
     return sesion
 
 
+async def validar_sesion_hash_activa(db: AsyncSession, token_hash: str):
+    """Valida una sesion web a partir del hash ya calculado del JWT."""
+    from app.models.auth.usuario import Sesion
+
+    sesion = (
+        await db.execute(
+            select(Sesion).where(
+                Sesion.token_sesion == token_hash,
+                Sesion.tipo_sesion == "web",
+            )
+        )
+    ).scalars().first()
+    if not sesion or sesion.fin_sesion is not None:
+        return None
+    expira = sesion.expira_en.replace(tzinfo=None) if sesion.expira_en else None
+    if expira and expira < get_bogota_now():
+        return None
+    return sesion
+
+
 async def rotar_sesion_web(
     db: AsyncSession,
     token_anterior: str,

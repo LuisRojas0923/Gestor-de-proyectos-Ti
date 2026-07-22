@@ -9,6 +9,7 @@ from app.models.ticket.ticket import TicketCrear, TicketActualizar, ComentarioCr
 async def test_crear_ticket_uses_background_tasks():
     # Setup
     db = AsyncMock()
+    db.add = MagicMock()
     bg_tasks = MagicMock(spec=BackgroundTasks)
     ticket_data = TicketCrear(
         categoria_id="soporte_it",
@@ -53,6 +54,7 @@ async def test_crear_ticket_uses_background_tasks():
 @pytest.mark.asyncio
 async def test_actualizar_ticket_uses_background_tasks():
     db = AsyncMock()
+    db.add = MagicMock()
     bg_tasks = MagicMock(spec=BackgroundTasks)
     ticket_id = "TKT-0001"
     update_data = TicketActualizar(estado="Resuelto", resolucion="Fixed")
@@ -71,9 +73,23 @@ async def test_actualizar_ticket_uses_background_tasks():
     db.execute.return_value = mock_result
 
     with patch("app.services.ticket.servicio.ServicioTicket.registrar_historial", return_value=AsyncMock()), \
-         patch("app.services.notifications.email_service.EmailService.enviar_notificacion_cambio_estado", new_callable=AsyncMock):
+         patch("app.services.notifications.email_service.EmailService.enviar_notificacion_cambio_estado", new_callable=AsyncMock), \
+         patch(
+             "app.services.auth.servicio.ServicioAuth.obtener_permisos_por_rol",
+             new=AsyncMock(return_value=["ticket-management"]),
+         ):
         
-        await ServicioTicket.actualizar_ticket(db, ticket_id, update_data, background_tasks=bg_tasks)
+        await ServicioTicket.actualizar_ticket(
+            db,
+            ticket_id,
+            update_data,
+            background_tasks=bg_tasks,
+            usuario_actual=MagicMock(
+                id="USR-ANALISTA",
+                nombre="Analista",
+                rol="analyst",
+            ),
+        )
 
         found = False
         for call in bg_tasks.add_task.call_args_list:
@@ -84,6 +100,7 @@ async def test_actualizar_ticket_uses_background_tasks():
 @pytest.mark.asyncio
 async def test_agregar_comentario_uses_background_tasks():
     db = AsyncMock()
+    db.add = MagicMock()
     bg_tasks = MagicMock(spec=BackgroundTasks)
     ticket_id = "TKT-0001"
     com_data = ComentarioCrear(
@@ -101,13 +118,20 @@ async def test_agregar_comentario_uses_background_tasks():
     ticket.nombre_creador = "Creator"
     ticket.asunto = "Problem"
     
-    # Mock para obtener_ticket_por_id
-    with patch("app.services.ticket.servicio.ServicioTicket.obtener_ticket_por_id", new_callable=AsyncMock) as mock_obtener:
+    # Mock para aislar la consulta de detalle del servicio delegado.
+    with patch(
+        "app.services.ticket.comment_service.CommentService._obtener_ticket_con_detalles",
+        new_callable=AsyncMock,
+    ) as mock_obtener:
         mock_obtener.return_value = ticket
         
-        with patch("app.services.ticket.servicio.global_cache.get", return_value=None), \
-             patch("app.services.ticket.servicio.global_cache.set"), \
-             patch("app.services.notifications.email_service.EmailService.enviar_notificacion_chat", new_callable=AsyncMock):
+        with (
+            patch("app.services.ticket.servicio.global_cache.get", return_value=None),
+            patch("app.services.ticket.servicio.global_cache.set"),
+            patch("app.services.notifications.email_service.EmailService.enviar_notificacion_chat", new_callable=AsyncMock),
+            patch("app.services.notificacion.servicio.ServicioNotificacion.crear_notificacion", new_callable=AsyncMock),
+            patch("app.services.ticket.comment_service.manager.broadcast_to_ticket", new_callable=AsyncMock),
+        ):
             
             await ServicioTicket.agregar_comentario(db, ticket_id, com_data, background_tasks=bg_tasks)
 
@@ -125,6 +149,7 @@ async def test_agregar_comentario_uses_background_tasks():
 @pytest.mark.asyncio
 async def test_agregar_comentario_analista_routing():
     db = AsyncMock()
+    db.add = MagicMock()
     bg_tasks = MagicMock(spec=BackgroundTasks)
     ticket_id = "TKT-0001"
     com_data = ComentarioCrear(
@@ -147,15 +172,24 @@ async def test_agregar_comentario_analista_routing():
     mock_analista.correo = "analista@test.com"
     mock_analista.nombre = "Analista Asignado"
 
-    # Mock para obtener_ticket_por_id y obtener_usuario_por_nombre
-    with patch("app.services.ticket.servicio.ServicioTicket.obtener_ticket_por_id", new_callable=AsyncMock) as mock_obtener, \
-         patch("app.services.ticket.servicio.ServicioTicket._obtener_usuario_por_nombre", new_callable=AsyncMock) as mock_obtener_analista:
+    # Mock para aislar consultas del servicio delegado.
+    with patch(
+        "app.services.ticket.comment_service.CommentService._obtener_ticket_con_detalles",
+        new_callable=AsyncMock,
+    ) as mock_obtener, patch(
+        "app.services.ticket.comment_service.CommentService._obtener_usuario_por_nombre",
+        new_callable=AsyncMock,
+    ) as mock_obtener_analista:
         mock_obtener.return_value = ticket
         mock_obtener_analista.return_value = mock_analista
         
-        with patch("app.services.ticket.servicio.global_cache.get", return_value=None), \
-             patch("app.services.ticket.servicio.global_cache.set"), \
-             patch("app.services.notifications.email_service.EmailService.enviar_notificacion_chat", new_callable=AsyncMock):
+        with (
+            patch("app.services.ticket.servicio.global_cache.get", return_value=None),
+            patch("app.services.ticket.servicio.global_cache.set"),
+            patch("app.services.notifications.email_service.EmailService.enviar_notificacion_chat", new_callable=AsyncMock),
+            patch("app.services.notificacion.servicio.ServicioNotificacion.crear_notificacion", new_callable=AsyncMock),
+            patch("app.services.ticket.comment_service.manager.broadcast_to_ticket", new_callable=AsyncMock),
+        ):
             
             await ServicioTicket.agregar_comentario(db, ticket_id, com_data, background_tasks=bg_tasks)
 

@@ -4,7 +4,7 @@ Router de Tickets - Backend V2 (Async + SQLModel)
 
 import logging
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from fastapi.responses import FileResponse
 from pathlib import Path
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -32,9 +32,10 @@ from app.services.ticket.servicio import ServicioTicket
 from app.services.ticket.bi_service import TicketBIService
 from app.utils_cache import global_cache
 from app.core.config import obtener_configuracion
-from app.services.ticket.ws_manager import manager
+from app.api.tickets.websocket_router import router as websocket_router
 
 router = APIRouter()
+router.include_router(websocket_router)
 logger = logging.getLogger(__name__)
 config = obtener_configuracion()
 
@@ -279,25 +280,6 @@ async def obtener_comentarios_ticket(
         )
 
 
-@router.websocket("/ws/{ticket_id}")
-async def websocket_ticket_chat(websocket: WebSocket, ticket_id: str):
-    """
-    Endpoint de WebSocket para chat en tiempo real por ticket.
-    Mantiene la conexión abierta y notifica eventos.
-    """
-    await manager.connect(websocket, ticket_id)
-    try:
-        while True:
-            # Mantener la conexión abierta escuchando mensajes (opcional)
-            # Por ahora solo escuchamos para detectar desconexión (Heartbeat)
-            _ = await websocket.receive_text()
-            # Si el cliente envía algo, podríamos procesarlo aquí
-    except WebSocketDisconnect:
-        manager.disconnect(websocket, ticket_id)
-    except Exception:
-        manager.disconnect(websocket, ticket_id)
-
-
 @router.post("/{ticket_id}/comentarios", response_model=ComentarioTicket)
 async def agregar_comentario(
     ticket_id: str,
@@ -353,11 +335,18 @@ async def actualizar_ticket(
     ticket_id: str, 
     ticket_in: TicketActualizar, 
     background_tasks: BackgroundTasks,
-    db: AsyncSession = Depends(obtener_db)
+    usuario_actual: Usuario = Depends(obtener_usuario_actual_db),
+    db: AsyncSession = Depends(obtener_db),
 ):
     """Actualiza campos de un ticket existente delegando al servicio"""
     try:
-        return await ServicioTicket.actualizar_ticket(db, ticket_id, ticket_in, background_tasks)
+        return await ServicioTicket.actualizar_ticket(
+            db,
+            ticket_id,
+            ticket_in,
+            background_tasks,
+            usuario_actual=usuario_actual,
+        )
     except HTTPException:
         raise
     except Exception:

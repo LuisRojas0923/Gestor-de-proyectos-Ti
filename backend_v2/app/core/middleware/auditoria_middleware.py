@@ -116,6 +116,37 @@ def _debe_auditar(request: Request) -> bool:
     return False
 
 
+def _debe_registrar_automaticamente(request: Request) -> bool:
+    """Evita duplicar un evento que la ruta ya agrego a su transaccion."""
+    return not bool(getattr(request.state, "auditoria_evento_manual", False))
+
+
+def _resolver_correlacion_id(request: Request) -> str:
+
+    valor = (request.headers.get("X-Request-ID") or "").strip()
+
+    try:
+
+        return str(uuid.UUID(valor))
+
+    except (ValueError, AttributeError, TypeError):
+
+        return str(uuid.uuid4())
+
+
+def _permite_auditar_body(path: str) -> bool:
+
+    ruta = path.rstrip("/") or "/"
+
+    return not (
+
+        ruta == "/api/v2/bitacoras-operacionales"
+
+        or ruta.startswith("/api/v2/bitacoras-operacionales/")
+
+    )
+
+
 
 
 
@@ -153,7 +184,7 @@ async def _leer_body_json(request: Request) -> dict | None:
 
 async def auditoria_http_middleware(request: Request, call_next) -> Response:
 
-    correlacion_id = request.headers.get("X-Request-ID") or str(uuid.uuid4())
+    correlacion_id = _resolver_correlacion_id(request)
 
     request.state.correlacion_id = correlacion_id
 
@@ -161,7 +192,11 @@ async def auditoria_http_middleware(request: Request, call_next) -> Response:
 
     body_json = None
 
-    if _debe_auditar(request) and request.method in ("POST", "PUT", "PATCH"):
+    if (
+        _debe_auditar(request)
+        and request.method in ("POST", "PUT", "PATCH")
+        and _permite_auditar_body(request.url.path)
+    ):
 
         body_json = await _leer_body_json(request)
 
@@ -175,6 +210,10 @@ async def auditoria_http_middleware(request: Request, call_next) -> Response:
 
 
     if not _debe_auditar(request):
+
+        return response
+
+    if not _debe_registrar_automaticamente(request):
 
         return response
 

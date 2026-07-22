@@ -51,6 +51,12 @@ export const API_ENDPOINTS = {
   ALERTS_ACTIVITIES: '/alertas/actividades',
   ALERT_ACTIVITY_BY_ID: (id: number) => `/alertas/actividades/${id}`,
 
+  // Notificaciones privadas
+  NOTIFICATIONS_MINE: '/notificaciones/mias',
+  NOTIFICATIONS_MARK_READ: (id: number) => `/notificaciones/mias/${id}/leido`,
+  NOTIFICATIONS_WS_TICKET: '/notificaciones/ws-ticket',
+  NOTIFICATIONS_WS: '/notificaciones/ws',
+
   // Chat
   CHAT_SESSIONS: '/chat/sesiones',
   CHAT_SESSION_BY_ID: (id: number) => `/chat/sesiones/${id}`,
@@ -98,6 +104,7 @@ export const API_ENDPOINTS = {
   TICKET_UPDATE: (id: string) => `/soporte/${id}`,
   TICKET_CREATE_COMMENT: (id: string) => `/soporte/${id}/comentarios`,
   TICKET_GET_COMMENTS: (id: string) => `/soporte/${id}/comentarios`,
+  TICKET_WS: (id: string) => `/soporte/ws/${id}`,
   TICKET_STATS_SUMMARY: '/soporte/estadisticas/resumen',
   TICKET_STATS_PERFORMANCE: '/soporte/estadisticas/rendimiento',
   TICKET_STATS_ADVANCED: '/soporte/estadisticas/avanzadas',

@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
-import { API_CONFIG } from '../config/api';
+import { API_CONFIG, API_ENDPOINTS } from '../config/api';
 import { useAppContext } from '../context/AppContext';
 import { useNotifications } from '../components/notifications/NotificationsContext';
+import { solicitarTicketWebSocket } from '../services/notificacionesService';
 
 const API_BASE_URL = API_CONFIG.BASE_URL;
 
@@ -33,7 +34,7 @@ export interface Ticket {
     fecha_creacion: string;
     fecha_cierre?: string;
     fecha_entrega_ideal?: string;
-    datos_extra?: Record<string, any>;
+    datos_extra?: Record<string, unknown>;
     desarrollo_id?: string;
     solicitud_activo?: {
         id: number;
@@ -130,7 +131,16 @@ export const useTicketDetail = (ticketId: string | undefined) => {
         let reconnectTimeout: NodeJS.Timeout;
         let isMounted = true;
 
-        const connect = () => {
+        const connect = async () => {
+            let ticketWebSocket: string;
+            try {
+                ({ ticket: ticketWebSocket } = await solicitarTicketWebSocket());
+            } catch {
+                if (isMounted) reconnectTimeout = setTimeout(() => void connect(), 5000);
+                return;
+            }
+            if (!isMounted) return;
+
             const baseUrl = API_BASE_URL;
             let wsUrl = "";
             
@@ -141,7 +151,10 @@ export const useTicketDetail = (ticketId: string | undefined) => {
                 wsUrl = `${protocol}//${window.location.host}${baseUrl}`;
             }
 
-            socket = new WebSocket(`${wsUrl}/soporte/ws/${ticketId}`);
+            socket = new WebSocket(
+                `${wsUrl}${API_ENDPOINTS.TICKET_WS(ticketId)}`,
+                ['tickets.v1', `ticket.${ticketWebSocket}`],
+            );
 
             socket.onopen = () => {
                 if (!isMounted) {
@@ -162,7 +175,7 @@ export const useTicketDetail = (ticketId: string | undefined) => {
                             if (prev.some(c => c.id === message.data.id)) return prev;
                             return [...prev, message.data];
                         });
-                        notify('info', `Nuevo comentario de ${message.data.usuario_nombre || 'un analista'}`);
+                        addNotification('info', `Nuevo comentario de ${message.data.usuario_nombre || 'un analista'}`);
                     } else if (message.type === 'ticket_updated') {
                         // Actualizar campos dinámicos del ticket
                         setTicket(current => {
@@ -188,7 +201,7 @@ export const useTicketDetail = (ticketId: string | undefined) => {
                 if (!isMounted) return;
                 if (!event.wasClean) {
                     console.log(`WebSocket cerrado inesperadamente (${event.code}). Reintentando en 5s...`);
-                    reconnectTimeout = setTimeout(connect, 5000);
+                    reconnectTimeout = setTimeout(() => void connect(), 5000);
                 } else {
                     console.log("WebSocket cerrado de forma limpia.");
                 }
@@ -200,7 +213,7 @@ export const useTicketDetail = (ticketId: string | undefined) => {
             };
         };
 
-        connect();
+        void connect();
 
         return () => {
             isMounted = false;
@@ -216,7 +229,7 @@ export const useTicketDetail = (ticketId: string | undefined) => {
                 }
             }
         };
-    }, [ticketId]);
+    }, [addNotification, ticketId]);
 
     const updateTicket = async (updateData: Partial<Ticket>) => {
         if (!ticketId) return;
@@ -309,7 +322,9 @@ export const useTicketDetail = (ticketId: string | undefined) => {
         setIsSaving(true);
         try {
             const currentExtra = ticket.datos_extra || {};
-            const history = currentExtra.historial_ampliaciones || [];
+            const history = Array.isArray(currentExtra.historial_ampliaciones)
+                ? currentExtra.historial_ampliaciones
+                : [];
             
             const newDetail = {
                 texto: text,

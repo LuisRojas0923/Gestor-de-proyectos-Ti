@@ -15,7 +15,12 @@ IdentificadorRol = Annotated[
     str, StringConstraints(min_length=1, max_length=50, pattern=r"^[a-z0-9_]+$")
 ]
 IdentificadorModulo = Annotated[
-    str, StringConstraints(min_length=1, max_length=100, pattern=r"^[A-Za-z0-9_-]+$")
+    str,
+    StringConstraints(
+        min_length=1,
+        max_length=100,
+        pattern=r"^[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)*$",
+    ),
 ]
 
 

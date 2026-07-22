@@ -1,25 +1,39 @@
-"""
-Servicio de Notificaciones de Usuario - Backend V2
-"""
+"""Servicio de notificaciones de usuario."""
+import logging
 from typing import List, Optional
+
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+
 from app.models.alerta.notificacion import (
     NotificacionUsuario,
     NotificacionUsuarioCrear,
-    NotificacionUsuarioActualizar
 )
 
+logger = logging.getLogger(__name__)
+
 class ServicioNotificacion:
+    @staticmethod
+    async def crear_notificacion_sin_commit(
+        db: AsyncSession,
+        notificacion_in: NotificacionUsuarioCrear,
+    ) -> NotificacionUsuario:
+        """Inserta y deja el commit en manos del orquestador exterior."""
+        db_notif = NotificacionUsuario(**notificacion_in.model_dump())
+        db.add(db_notif)
+        await db.flush()
+        await db.refresh(db_notif)
+        return db_notif
+
     @staticmethod
     async def crear_notificacion(
         db: AsyncSession,
         notificacion_in: NotificacionUsuarioCrear
     ) -> NotificacionUsuario:
-        db_notif = NotificacionUsuario(**notificacion_in.model_dump())
-        db.add(db_notif)
+        db_notif = await ServicioNotificacion.crear_notificacion_sin_commit(
+            db, notificacion_in
+        )
         await db.commit()
-        await db.refresh(db_notif)
         
         # Opcional: Enviar por WebSocket si está conectado
         try:
@@ -36,37 +50,42 @@ class ServicioNotificacion:
                     "creado_en": db_notif.creado_en.isoformat() if db_notif.creado_en else None
                 }
             )
-        except Exception as e:
-            # Silenciar errores del broadcast para no interrumpir la transacción principal
-            import logging
-            logging.getLogger(__name__).warning(f"Error enviando websocket de notificación: {e}")
+        except Exception:
+            logger.warning("No se pudo emitir la notificacion por WebSocket")
 
         return db_notif
 
     @staticmethod
     async def listar_notificaciones_usuario(
         db: AsyncSession,
-        usuario_id: str
+        usuario_id: str,
+        *,
+        limit: int = 50,
     ) -> List[NotificacionUsuario]:
         stmt = select(NotificacionUsuario).where(
             NotificacionUsuario.usuario_id == usuario_id
-        ).order_by(NotificacionUsuario.creado_en.desc())
+        ).order_by(NotificacionUsuario.creado_en.desc()).limit(limit)
         result = await db.execute(stmt)
         return list(result.scalars().all())
 
-    @staticmethod
-    async def actualizar_estado_leido(
+    async def actualizar_estado_leido_propio(
         db: AsyncSession,
+        *,
         notificacion_id: int,
-        actualizar_in: NotificacionUsuarioActualizar
+        usuario_id: str,
+        leido: bool,
     ) -> Optional[NotificacionUsuario]:
-        stmt = select(NotificacionUsuario).where(NotificacionUsuario.id == notificacion_id)
+        """Actualiza una notificacion solo cuando pertenece al usuario actual."""
+        stmt = select(NotificacionUsuario).where(
+            NotificacionUsuario.id == notificacion_id,
+            NotificacionUsuario.usuario_id == usuario_id,
+        )
         result = await db.execute(stmt)
         db_notif = result.scalar_one_or_none()
         if not db_notif:
             return None
-        db_notif.leido = actualizar_in.leido
+        db_notif.leido = leido
         db.add(db_notif)
-        await db.commit()
+        await db.flush()
         await db.refresh(db_notif)
         return db_notif

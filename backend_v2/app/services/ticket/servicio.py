@@ -33,6 +33,7 @@ from ..notifications.email_service import EmailService
 from ...models.ticket.ticket import CategoriaTicket
 from ...utils_cache import global_cache
 from .ws_manager import manager
+from .access_service import usuario_puede_acceder_ticket
 
 
 class ServicioTicket:
@@ -55,6 +56,7 @@ class ServicioTicket:
 
     # Delegación de comentarios
     agregar_comentario = CommentService.agregar_comentario
+    usuario_puede_acceder_ticket = staticmethod(usuario_puede_acceder_ticket)
 
     @staticmethod
     async def _obtener_usuario_por_nombre(db: AsyncSession, nombre: str) -> Optional[Usuario]:
@@ -289,17 +291,31 @@ class ServicioTicket:
 
     @classmethod
     async def actualizar_ticket(
-        cls, db: AsyncSession, ticket_id: str, ticket_in: TicketActualizar, background_tasks: Optional[BackgroundTasks] = None
+        cls,
+        db: AsyncSession,
+        ticket_id: str,
+        ticket_in: TicketActualizar,
+        background_tasks: Optional[BackgroundTasks] = None,
+        *,
+        usuario_actual: Usuario,
     ) -> Ticket:
         """Actualiza un ticket existente (Async)"""
+        from app.services.auth.servicio import ServicioAuth
+
+        permisos = await ServicioAuth.obtener_permisos_por_rol(db, usuario_actual.rol)
+        if "ticket-management" not in permisos:
+            raise HTTPException(status_code=403, detail="No autorizado para actualizar tickets")
+
         result = await db.execute(select(Ticket).where(Ticket.id == ticket_id))
         db_ticket = result.scalars().first()
         if not db_ticket:
             raise HTTPException(status_code=404, detail="Ticket no encontrado")
 
         update_data = ticket_in.model_dump(exclude_unset=True)
-        user_id = update_data.pop("usuario_id", None)
-        user_name = update_data.pop("usuario_nombre", None)
+        update_data.pop("usuario_id", None)
+        update_data.pop("usuario_nombre", None)
+        user_id = usuario_actual.id
+        user_name = usuario_actual.nombre
 
         for field, value in update_data.items():
             old_value = getattr(db_ticket, field)
@@ -460,9 +476,6 @@ class ServicioTicket:
             # Fallback a búsqueda simple sin join si falla la extendida
             res_simple = await db.execute(select(Ticket).where(Ticket.id == ticket_id))
             return res_simple.scalars().first()
-
-
-
 
     @staticmethod
     async def listar_tickets_por_usuario(
