@@ -31,26 +31,37 @@ export const ColumnFilterPopover: React.FC<ColumnFilterPopoverProps> = ({
   const popoverRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (anchorRef.current) {
-      const rect = anchorRef.current.getBoundingClientRect();
-      const POPOVER_HEIGHT = 350;
-      const POPOVER_WIDTH = 250;
+    const updatePosition = () => {
+      if (anchorRef.current) {
+        const rect = anchorRef.current.getBoundingClientRect();
+        const POPOVER_HEIGHT = 350;
+        const POPOVER_WIDTH = 250;
 
-      let top = rect.bottom + window.scrollY + 4;
-      let left = rect.left + window.scrollX;
-      let opensUpward = false;
+        let top = rect.bottom + window.scrollY + 4;
+        let left = rect.left + window.scrollX;
+        let opensUpward = false;
 
-      if (rect.bottom + POPOVER_HEIGHT > window.innerHeight) {
-        top = rect.top + window.scrollY - POPOVER_HEIGHT - 4;
-        opensUpward = true;
+        if (rect.bottom + POPOVER_HEIGHT > window.innerHeight) {
+          top = rect.top + window.scrollY - POPOVER_HEIGHT - 4;
+          opensUpward = true;
+        }
+
+        if (left + POPOVER_WIDTH > window.innerWidth) {
+          left = rect.right + window.scrollX - POPOVER_WIDTH;
+        }
+
+        setCoords({ top, left, opensUpward });
       }
+    };
 
-      if (left + POPOVER_WIDTH > window.innerWidth) {
-        left = rect.right + window.scrollX - POPOVER_WIDTH;
-      }
-
-      setCoords({ top, left, opensUpward });
-    }
+    updatePosition();
+    window.addEventListener('scroll', updatePosition, true);
+    window.addEventListener('resize', updatePosition);
+    
+    return () => {
+      window.removeEventListener('scroll', updatePosition, true);
+      window.removeEventListener('resize', updatePosition);
+    };
   }, [anchorRef]);
 
   useEffect(() => {
@@ -67,8 +78,17 @@ export const ColumnFilterPopover: React.FC<ColumnFilterPopoverProps> = ({
         onClose();
       }
     };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        onClose();
+      }
+    };
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
   }, [onClose, anchorRef]);
 
   const filteredOptions = options.filter(opt => 
@@ -78,6 +98,8 @@ export const ColumnFilterPopover: React.FC<ColumnFilterPopoverProps> = ({
   return createPortal(
     <div
       ref={popoverRef}
+      role="dialog"
+      aria-modal="true"
       className={`
         fixed z-[9999] w-[250px]
         bg-white/90 dark:bg-neutral-800/95

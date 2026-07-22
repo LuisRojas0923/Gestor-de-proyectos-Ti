@@ -2,6 +2,7 @@ import React, { useEffect, useState, useMemo, useRef } from 'react';
 import { Calendar } from 'lucide-react';
 import { API_CONFIG } from '../config/api';
 import { Text, Title, Button, Badge, Icon } from './atoms';
+import { ColumnFilterPopover } from './molecules';
 import { ActivityEvidenceButton } from '../pages/DevelopmentDetail/components/ActivityEvidenceButton';
 
 type Actividad = {
@@ -28,19 +29,29 @@ type DesarrolloCon = {
 
 const COLUMNS = [
     { key: 'tarea', label: 'Tarea', width: 'flex-1 min-w-[260px]' },
-    { key: 'estado', label: 'Estado', width: 'md:w-24' },
-    { key: 'progreso', label: 'Progreso', width: 'md:w-28' },
+    { key: 'estado', label: 'Estado', width: 'md:w-24', isFilterable: true },
+    { key: 'progreso', label: 'Progreso', width: 'md:w-28', isFilterable: true },
     { key: 'fechas', label: 'Fechas', width: 'md:w-28' },
     { key: 'seguimiento', label: 'Seguimiento', width: 'md:w-40' },
     { key: 'acciones', label: 'Acciones', width: 'md:w-24', isActions: true },
 ];
 
 const getStatusVariant = (estado: string): 'error' | 'warning' | 'success' | 'default' => {
+    if (!estado) return 'default';
     const lower = estado.toLowerCase();
     if (lower.includes('pendiente')) return 'error';
     if (lower.includes('progreso') || lower.includes('curso')) return 'warning';
     if (lower.includes('complet')) return 'success';
     return 'default';
+};
+
+const getProgressBucket = (pct: number): string => {
+    if (pct === 0) return 'Sin progreso (0%)';
+    if (pct <= 25) return '0-25%';
+    if (pct <= 50) return '26-50%';
+    if (pct <= 75) return '51-75%';
+    if (pct < 100) return '76-99%';
+    return 'Completado (100%)';
 };
 
 
@@ -93,34 +104,15 @@ const ConsolidatedTableById: React.FC<{ desarrolloId: string }> = ({ desarrolloI
 
     const uniqueValues = useMemo(() => {
         if (!data) return {};
-        const estadoSet = new Set(data.actividades.map((a) => a.estado));
+        const estadoSet = new Set(data.actividades.map((a) => a.estado || 'Sin estado'));
         const progresoSet = new Set(
-            data.actividades.map((a) => {
-                const pct = a.porcentaje_avance ?? 0;
-                if (pct === 0) return 'Sin progreso (0%)';
-                if (pct <= 25) return '0-25%';
-                if (pct <= 50) return '26-50%';
-                if (pct <= 75) return '51-75%';
-                if (pct < 100) return '76-99%';
-                return 'Completado (100%)';
-            })
+            data.actividades.map((a) => getProgressBucket(a.porcentaje_avance ?? 0))
         );
         return {
             estado: Array.from(estadoSet).sort(),
             progreso: Array.from(progresoSet),
         };
     }, [data]);
-
-
-
-    const getProgressBucket = (pct: number): string => {
-        if (pct === 0) return 'Sin progreso (0%)';
-        if (pct <= 25) return '0-25%';
-        if (pct <= 50) return '26-50%';
-        if (pct <= 75) return '51-75%';
-        if (pct < 100) return '76-99%';
-        return 'Completado (100%)';
-    };
 
     const filteredActividades = useMemo(() => {
         if (!data) return [];
@@ -129,7 +121,7 @@ const ConsolidatedTableById: React.FC<{ desarrolloId: string }> = ({ desarrolloI
                 if (selected.size === 0) continue;
                 let value: string;
                 if (key === 'estado') {
-                    value = a.estado;
+                    value = a.estado || 'Sin estado';
                 } else if (key === 'progreso') {
                     value = getProgressBucket(a.porcentaje_avance ?? 0);
                 } else {
@@ -148,6 +140,10 @@ const ConsolidatedTableById: React.FC<{ desarrolloId: string }> = ({ desarrolloI
             setActiveFilter(null);
             setAnchorRect(null);
             setFilterSearchTerm('');
+            const ref = filterRefs.current[key];
+            if (ref) {
+                ref.focus();
+            }
         } else {
             setActiveFilter(key);
             setFilterSearchTerm('');
@@ -243,21 +239,38 @@ const ConsolidatedTableById: React.FC<{ desarrolloId: string }> = ({ desarrolloI
                                     ) : (
                                         <th
                                             key={col.key}
-                                            className={`${col.width} shrink-0 py-2.5 px-4 ${idx === 0 ? 'bg-blue-500/20' : 'hover:bg-white/5'} transition-colors cursor-pointer group`}
-                                            onClick={() => toggleFilter(col.key)}
-                                            ref={(el) => { filterRefs.current[col.key] = el; }}
+                                            className={`${col.width} shrink-0 py-2.5 px-4 ${idx === 0 ? 'bg-blue-500/20' : ''} transition-colors`}
                                         >
-                                            <div className="flex items-center justify-between">
-                                                <Text as="span" variant="caption" weight="bold" color="inherit" className={`
-                                                    text-xs font-bold uppercase tracking-wider !text-[11px] transition-colors
-                                                    ${idx === 0 ? 'text-blue-300' : 'text-white/70 group-hover:text-white'}
-                                                `}>
-                                                    {col.label}
-                                                </Text>
-                                                {columnFilters[col.key]?.size > 0 && (
-                                                    <Text as="span" className="w-2 h-2 rounded-full bg-yellow-400 shrink-0" />
-                                                )}
-                                            </div>
+                                            {col.isFilterable ? (
+                                                <Button
+                                                    variant="custom"
+                                                    type="button"
+                                                    onClick={() => toggleFilter(col.key)}
+                                                    ref={(el) => { filterRefs.current[col.key] = el; }}
+                                                    aria-haspopup="dialog"
+                                                    aria-expanded={activeFilter === col.key}
+                                                    className="w-full flex items-center justify-between group rounded p-1 -m-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 hover:bg-white/5 transition-colors"
+                                                >
+                                                    <Text as="span" variant="caption" weight="bold" color="inherit" className={`
+                                                        text-xs font-bold uppercase tracking-wider !text-[11px] transition-colors
+                                                        ${idx === 0 ? 'text-blue-300' : 'text-white/70 group-hover:text-white'}
+                                                    `}>
+                                                        {col.label}
+                                                    </Text>
+                                                    {columnFilters[col.key]?.size > 0 && (
+                                                        <Text as="span" className="w-2 h-2 rounded-full bg-yellow-400 shrink-0" />
+                                                    )}
+                                                </Button>
+                                            ) : (
+                                                <div className="flex items-center justify-between p-1 -m-1">
+                                                    <Text as="span" variant="caption" weight="bold" color="inherit" className={`
+                                                        text-xs font-bold uppercase tracking-wider !text-[11px] transition-colors
+                                                        ${idx === 0 ? 'text-blue-300' : 'text-white/70'}
+                                                    `}>
+                                                        {col.label}
+                                                    </Text>
+                                                </div>
+                                            )}
                                         </th>
                                     )
                                 ))}
@@ -372,70 +385,35 @@ const ConsolidatedTableById: React.FC<{ desarrolloId: string }> = ({ desarrolloI
                     <Text variant="body2" color="text-secondary">No hay actividades registradas para este desarrollo.</Text>
                 </div>
             )}
-            {activeFilter && anchorRect && (
-                <div
-                    className="fixed z-50 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-3 shadow-xl max-w-xs"
-                    style={{
-                        top: anchorRect.bottom + 4,
-                        left: anchorRect.left,
+            {activeFilter && filterRefs.current[activeFilter] && (
+                <ColumnFilterPopover
+                    columnKey={activeFilter}
+                    title={COLUMNS.find((c) => c.key === activeFilter)?.label || ''}
+                    options={uniqueValues[activeFilter as keyof typeof uniqueValues] || []}
+                    selectedValues={columnFilters[activeFilter] || new Set()}
+                    onToggleOption={(columnKey, option) => {
+                        setColumnFilters((prev) => {
+                            const current = new Set(prev[columnKey] || []);
+                            if (current.has(option)) {
+                                current.delete(option);
+                            } else {
+                                current.add(option);
+                            }
+                            return { ...prev, [columnKey]: current };
+                        });
                     }}
-                >
-                    <input
-                        type="text"
-                        placeholder="Buscar..."
-                        value={filterSearchTerm}
-                        onChange={(e) => setFilterSearchTerm(e.target.value)}
-                        className="w-full mb-2 px-2 py-1 text-xs border border-[var(--color-border)] rounded bg-transparent text-[var(--color-text-primary)]"
-                    />
-                    <div className="max-h-40 overflow-y-auto space-y-1 text-xs">
-                        {(uniqueValues[activeFilter as keyof typeof uniqueValues] || [])
-                            .filter((val) => val.toLowerCase().includes(filterSearchTerm.toLowerCase()))
-                            .map((val) => {
-                                const isChecked = columnFilters[activeFilter]?.has(val) ?? false;
-                                return (
-                                    <label key={val} className="flex items-center gap-2 cursor-pointer text-[var(--color-text-primary)]">
-                                        <input
-                                            type="checkbox"
-                                            checked={isChecked}
-                                            onChange={() => {
-                                                setColumnFilters((prev) => {
-                                                    const current = new Set(prev[activeFilter] || []);
-                                                    if (current.has(val)) {
-                                                        current.delete(val);
-                                                    } else {
-                                                        current.add(val);
-                                                    }
-                                                    return { ...prev, [activeFilter]: current };
-                                                });
-                                            }}
-                                        />
-                                        <span>{val}</span>
-                                    </label>
-                                );
-                            })}
-                    </div>
-                    <div className="mt-2 flex justify-between gap-2 border-t border-[var(--color-border)] pt-2">
-                        <button
-                            type="button"
-                            onClick={() => {
-                                setColumnFilters((prev) => ({ ...prev, [activeFilter]: new Set() }));
-                            }}
-                            className="text-[10px] text-red-500 hover:underline"
-                        >
-                            Limpiar
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => {
-                                setActiveFilter(null);
-                                setAnchorRect(null);
-                            }}
-                            className="text-[10px] text-[var(--color-primary)] font-bold hover:underline"
-                        >
-                            Cerrar
-                        </button>
-                    </div>
-                </div>
+                    onSelectAll={(columnKey) => {
+                        setColumnFilters((prev) => ({
+                            ...prev,
+                            [columnKey]: new Set(uniqueValues[columnKey as keyof typeof uniqueValues] || [])
+                        }));
+                    }}
+                    onClear={(columnKey) => {
+                        setColumnFilters((prev) => ({ ...prev, [columnKey]: new Set() }));
+                    }}
+                    onClose={() => toggleFilter(activeFilter)}
+                    anchorRef={{ current: filterRefs.current[activeFilter] }}
+                />
             )}
         </div>
     );
