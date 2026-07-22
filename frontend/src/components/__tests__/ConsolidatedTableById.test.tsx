@@ -4,7 +4,7 @@ import ConsolidatedTableById from '../ConsolidatedTableById';
 
 const mockData = {
     id: "HO-1",
-    titulo: "Proyecto Prueba",
+    nombre: "Proyecto Prueba",
     fecha_inicio: "2024-01-01",
     fecha_fin: "2024-12-31",
     estado: "activo",
@@ -371,7 +371,7 @@ describe('ConsolidatedTableById', () => {
                     top: '10px',
                     left: '10px',
                     width: '240px',
-                    maxHeight: 'min(350px, calc(100dvh - 20px))',
+                    maxHeight: '280px',
                 });
                 assertWithinViewport(dialog);
             });
@@ -396,7 +396,7 @@ describe('ConsolidatedTableById', () => {
             });
 
             await waitFor(() => {
-                expect(dialog).toHaveStyle({ top: '40px', left: '100px', width: '250px' });
+                expect(dialog).toHaveStyle({ top: '40px', left: '100px', width: '250px', maxHeight: '350px' });
                 assertWithinViewport(dialog);
             });
 

@@ -89,20 +89,30 @@ const ConsolidatedTableById: React.FC<{ desarrolloId: string }> = ({ desarrolloI
 
     useEffect(() => {
         if (!desarrolloId) return;
+        const controller = new AbortController();
+        setColumnFilters({});
+        setActiveFilter(null);
+        setError(null);
+        setData(null);
         setLoading(true);
-        fetch(`${API_CONFIG.BASE_URL}/desarrollos_actividades/${desarrolloId}`)
+        fetch(`${API_CONFIG.BASE_URL}/desarrollos_actividades/${desarrolloId}`, {
+            signal: controller.signal,
+        })
             .then((r) => {
                 if (!r.ok) throw new Error('No encontrado');
                 return r.json();
             })
             .then((d: DesarrolloCon) => {
+                if (controller.signal.aborted) return;
                 setData(d);
                 setLoading(false);
             })
             .catch((e) => {
-                setError((e as Error).message);
+                if (controller.signal.aborted) return;
+                setError(e instanceof Error ? e.message : 'Error al cargar actividades');
                 setLoading(false);
             });
+        return () => controller.abort();
     }, [desarrolloId]);
 
     const uniqueValues = useMemo(() => {
@@ -256,6 +266,7 @@ const ConsolidatedTableById: React.FC<{ desarrolloId: string }> = ({ desarrolloI
                                                         ref={(el) => { filterRefs.current[col.key] = el; }}
                                                         aria-haspopup="dialog"
                                                         aria-expanded={activeFilter === col.key}
+                                                        aria-label={`${col.label}${isFilterActive(columnFilters[col.key]) ? ', filtro activo' : ''}`}
                                                         className="w-full flex items-center justify-between group rounded p-1 -m-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 hover:bg-white/5 transition-colors"
                                                     >
                                                         <Text as="span" variant="caption" weight="bold" color="inherit" className={`
@@ -265,7 +276,7 @@ const ConsolidatedTableById: React.FC<{ desarrolloId: string }> = ({ desarrolloI
                                                             {col.label}
                                                         </Text>
                                                         {isFilterActive(columnFilters[col.key]) && (
-                                                            <Text as="span" className="w-2 h-2 rounded-full bg-yellow-400 shrink-0" />
+                                                            <Text as="span" aria-hidden="true" className="w-2 h-2 rounded-full bg-yellow-400 shrink-0">{''}</Text>
                                                         )}
                                                     </Button>
                                                 ) : (

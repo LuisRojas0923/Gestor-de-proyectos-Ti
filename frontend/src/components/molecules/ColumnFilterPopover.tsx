@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Search, X, Check } from 'lucide-react';
 import { Button, Input, Text } from '../atoms';
@@ -27,10 +27,10 @@ export const ColumnFilterPopover: React.FC<ColumnFilterPopoverProps> = ({
   anchorEl,
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [coords, setCoords] = useState({ top: 0, left: 0, opensUpward: false, width: 250 });
+  const [coords, setCoords] = useState({ top: 0, left: 0, opensUpward: false, width: 250, maxHeight: 350 });
   const popoverRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const POPOVER_MAX_HEIGHT = 350;
     const VIEWPORT_MARGIN = 10;
     const POSITION_GAP = 4;
@@ -76,7 +76,16 @@ export const ColumnFilterPopover: React.FC<ColumnFilterPopoverProps> = ({
           Math.min(left, viewportRight - VIEWPORT_MARGIN - POPOVER_WIDTH)
         );
 
-        setCoords({ top, left, opensUpward, width: POPOVER_WIDTH });
+        setCoords((current) => {
+          const next = { top, left, opensUpward, width: POPOVER_WIDTH, maxHeight: popoverHeight };
+          return current.top === next.top &&
+            current.left === next.left &&
+            current.opensUpward === next.opensUpward &&
+            current.width === next.width &&
+            current.maxHeight === next.maxHeight
+            ? current
+            : next;
+        });
       }
     };
 
@@ -95,14 +104,6 @@ export const ColumnFilterPopover: React.FC<ColumnFilterPopoverProps> = ({
   }, [anchorEl]);
 
   useEffect(() => {
-    if (popoverRef.current) {
-      popoverRef.current.style.top = `${coords.top}px`;
-      popoverRef.current.style.left = `${coords.left}px`;
-      popoverRef.current.style.width = `${coords.width}px`;
-    }
-  }, [coords]);
-
-  useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (popoverRef.current && !popoverRef.current.contains(event.target as Node) &&
           anchorEl && !anchorEl.contains(event.target as Node)) {
@@ -114,11 +115,20 @@ export const ColumnFilterPopover: React.FC<ColumnFilterPopoverProps> = ({
         onClose();
       }
     };
+    const handleFocusIn = (event: FocusEvent) => {
+      const target = event.target as Node;
+      if (popoverRef.current && !popoverRef.current.contains(target) &&
+          anchorEl && !anchorEl.contains(target)) {
+        onClose();
+      }
+    };
     document.addEventListener('mousedown', handleClickOutside);
     document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('focusin', handleFocusIn);
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
       document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('focusin', handleFocusIn);
     };
   }, [onClose, anchorEl]);
 
@@ -131,7 +141,12 @@ export const ColumnFilterPopover: React.FC<ColumnFilterPopoverProps> = ({
         ref={popoverRef}
         role="dialog"
         aria-labelledby={`filter-title-${columnKey}`}
-        style={{ maxHeight: 'min(350px, calc(100dvh - 20px))' }}
+        style={{
+          top: `${coords.top}px`,
+          left: `${coords.left}px`,
+          width: `${coords.width}px`,
+          maxHeight: `${coords.maxHeight}px`,
+        }}
         className={`
           fixed z-[9999]
           flex flex-col
@@ -215,14 +230,14 @@ export const ColumnFilterPopover: React.FC<ColumnFilterPopoverProps> = ({
                 }}
                 className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors h-auto font-normal justify-start"
               >
-                <div className={`
+                <Text as="span" aria-hidden="true" className={`
                   w-4 h-4 rounded border flex items-center justify-center transition-all shrink-0
                   ${isChecked
                     ? 'bg-primary-500 border-primary-500 text-white'
                     : 'border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-700'}
                 `}>
                   {isChecked && <Check size={10} strokeWidth={4} />}
-                </div>
+                </Text>
                 <Text variant="caption" className="truncate dark:text-neutral-300 flex-1 text-left text-[12px] font-normal leading-none">
                   {option}
                 </Text>

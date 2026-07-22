@@ -160,7 +160,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(({
       )}
 
       {children && (
-        <Text as="span" variant={textVariantMap[size]} color="inherit">
+        <Text as="span" variant={textVariantMap[size]} color="inherit" className="contents">
           {children}
         </Text>
       )}
