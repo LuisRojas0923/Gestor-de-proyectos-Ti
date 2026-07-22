@@ -80,8 +80,6 @@ const ConsolidatedTableById: React.FC<{ desarrolloId: string }> = ({ desarrolloI
 
     const [columnFilters, setColumnFilters] = useState<Record<string, Set<string>>>({});
     const [activeFilter, setActiveFilter] = useState<string | null>(null);
-    const [anchorRect, setAnchorRect] = useState<DOMRect | null>(null);
-    const [filterSearchTerm, setFilterSearchTerm] = useState<string>('');
     const filterRefs = useRef<Record<string, HTMLButtonElement | null>>({});
 
     useEffect(() => {
@@ -138,19 +136,12 @@ const ConsolidatedTableById: React.FC<{ desarrolloId: string }> = ({ desarrolloI
     const toggleFilter = (key: string) => {
         if (activeFilter === key) {
             setActiveFilter(null);
-            setAnchorRect(null);
-            setFilterSearchTerm('');
             const ref = filterRefs.current[key];
             if (ref) {
                 ref.focus();
             }
         } else {
             setActiveFilter(key);
-            setFilterSearchTerm('');
-            const ref = filterRefs.current[key];
-            if (ref) {
-                setAnchorRect(ref.getBoundingClientRect());
-            }
         }
     };
 
@@ -218,73 +209,65 @@ const ConsolidatedTableById: React.FC<{ desarrolloId: string }> = ({ desarrolloI
 
             {data.actividades.length > 0 ? (
                 <div className="relative flex max-h-[calc(100vh-220px)] min-h-[320px] flex-col overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-sm">
-                    <table className="w-full text-left border-collapse table-fixed">
-                        <colgroup>
-                            {COLUMNS.map((col) => (
-                                <col key={col.key} className={col.width} />
-                            ))}
-                        </colgroup>
-                        <thead className="bg-[var(--deep-navy)]">
-                            <tr>
-                                {COLUMNS.map((col, idx) => (
-                                    col.isActions ? (
-                                        <th
-                                            key={col.key}
-                                            className={`${col.width} shrink-0 py-2.5 px-4 bg-white/10`}
-                                        >
-                                            <Text as="span" variant="caption" weight="bold" color="white" className="uppercase tracking-wider !text-[11px]">
-                                                {col.label}
-                                            </Text>
-                                        </th>
-                                    ) : (
-                                        <th
-                                            key={col.key}
-                                            className={`${col.width} shrink-0 py-2.5 px-4 ${idx === 0 ? 'bg-blue-500/20' : ''} transition-colors`}
-                                        >
-                                            {col.isFilterable ? (
-                                                <Button
-                                                    variant="custom"
-                                                    type="button"
-                                                    onClick={() => toggleFilter(col.key)}
-                                                    ref={(el) => { filterRefs.current[col.key] = el; }}
-                                                    aria-haspopup="dialog"
-                                                    aria-expanded={activeFilter === col.key}
-                                                    className="w-full flex items-center justify-between group rounded p-1 -m-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 hover:bg-white/5 transition-colors"
-                                                >
-                                                    <Text as="span" variant="caption" weight="bold" color="inherit" className={`
-                                                        text-xs font-bold uppercase tracking-wider !text-[11px] transition-colors
-                                                        ${idx === 0 ? 'text-blue-300' : 'text-white/70 group-hover:text-white'}
-                                                    `}>
-                                                        {col.label}
-                                                    </Text>
-                                                    {columnFilters[col.key]?.size > 0 && (
-                                                        <Text as="span" className="w-2 h-2 rounded-full bg-yellow-400 shrink-0" />
-                                                    )}
-                                                </Button>
-                                            ) : (
-                                                <div className="flex items-center justify-between p-1 -m-1">
-                                                    <Text as="span" variant="caption" weight="bold" color="inherit" className={`
-                                                        text-xs font-bold uppercase tracking-wider !text-[11px] transition-colors
-                                                        ${idx === 0 ? 'text-blue-300' : 'text-white/70'}
-                                                    `}>
-                                                        {col.label}
-                                                    </Text>
-                                                </div>
-                                            )}
-                                        </th>
-                                    )
-                                ))}
-                            </tr>
-                        </thead>
-                    </table>
-
-                    <div className="min-h-0 flex-1 overflow-y-auto custom-scrollbar">
-                        <table className="w-full text-left border-collapse table-fixed">
+                    <div className="min-h-0 flex-1 overflow-auto custom-scrollbar">
+                        <table className="w-full text-left border-collapse table-fixed min-w-[1000px]">
                             <colgroup>
                                 {COLUMNS.map((col) => (
                                     <col key={col.key} className={col.width} />
                                 ))}
                             </colgroup>
+                            <thead className="bg-[var(--deep-navy)] sticky top-0 z-10 shadow-sm">
+                                <tr>
+                                    {COLUMNS.map((col, idx) => (
+                                        col.isActions ? (
+                                            <th
+                                                key={col.key}
+                                                className={`${col.width} shrink-0 py-2.5 px-4 bg-white/10`}
+                                            >
+                                                <Text as="span" variant="caption" weight="bold" color="white" className="uppercase tracking-wider !text-[11px]">
+                                                    {col.label}
+                                                </Text>
+                                            </th>
+                                        ) : (
+                                            <th
+                                                key={col.key}
+                                                className={`${col.width} shrink-0 py-2.5 px-4 ${idx === 0 ? 'bg-blue-500/20' : 'bg-[var(--deep-navy)]'} transition-colors`}
+                                            >
+                                                {col.isFilterable ? (
+                                                    <Button
+                                                        variant="custom"
+                                                        type="button"
+                                                        onClick={() => toggleFilter(col.key)}
+                                                        ref={(el) => { filterRefs.current[col.key] = el; }}
+                                                        aria-haspopup="dialog"
+                                                        aria-expanded={activeFilter === col.key}
+                                                        className="w-full flex items-center justify-between group rounded p-1 -m-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 hover:bg-white/5 transition-colors"
+                                                    >
+                                                        <Text as="span" variant="caption" weight="bold" color="inherit" className={`
+                                                            text-xs font-bold uppercase tracking-wider !text-[11px] transition-colors
+                                                            ${idx === 0 ? 'text-blue-300' : 'text-white/70 group-hover:text-white'}
+                                                        `}>
+                                                            {col.label}
+                                                        </Text>
+                                                        {columnFilters[col.key]?.size > 0 && (
+                                                            <Text as="span" className="w-2 h-2 rounded-full bg-yellow-400 shrink-0" />
+                                                        )}
+                                                    </Button>
+                                                ) : (
+                                                    <div className="flex items-center justify-between p-1 -m-1">
+                                                        <Text as="span" variant="caption" weight="bold" color="inherit" className={`
+                                                            text-xs font-bold uppercase tracking-wider !text-[11px] transition-colors
+                                                            ${idx === 0 ? 'text-blue-300' : 'text-white/70'}
+                                                        `}>
+                                                            {col.label}
+                                                        </Text>
+                                                    </div>
+                                                )}
+                                            </th>
+                                        )
+                                    ))}
+                                </tr>
+                            </thead>
                             <tbody className="divide-y divide-[var(--color-border)]">
                                 {filteredActividades.length > 0 ? (
                                     filteredActividades.map((a) => (
@@ -393,13 +376,29 @@ const ConsolidatedTableById: React.FC<{ desarrolloId: string }> = ({ desarrolloI
                     selectedValues={columnFilters[activeFilter] || new Set()}
                     onToggleOption={(columnKey, option) => {
                         setColumnFilters((prev) => {
-                            const current = new Set(prev[columnKey] || []);
-                            if (current.has(option)) {
-                                current.delete(option);
-                            } else {
-                                current.add(option);
+                            const currentSet = prev[columnKey];
+                            const allValues = uniqueValues[columnKey as keyof typeof uniqueValues] || [];
+                            // Lógica tipo Excel: si estaba vacío, implica que todo estaba seleccionado (visible)
+                            // Al desmarcar uno, activamos el filtro con todos los demás valores seleccionados.
+                            if (!currentSet || currentSet.size === 0) {
+                                const newSet = new Set(allValues);
+                                newSet.delete(option);
+                                return { ...prev, [columnKey]: newSet };
                             }
-                            return { ...prev, [columnKey]: current };
+
+                            const newSet = new Set(currentSet);
+                            if (newSet.has(option)) {
+                                newSet.delete(option);
+                            } else {
+                                newSet.add(option);
+                            }
+
+                            // Si el usuario vuelve a seleccionarlos todos manualmente, limpiamos el filtro.
+                            if (newSet.size === allValues.length) {
+                                return { ...prev, [columnKey]: new Set() };
+                            }
+
+                            return { ...prev, [columnKey]: newSet };
                         });
                     }}
                     onSelectAll={(columnKey) => {
@@ -412,7 +411,7 @@ const ConsolidatedTableById: React.FC<{ desarrolloId: string }> = ({ desarrolloI
                         setColumnFilters((prev) => ({ ...prev, [columnKey]: new Set() }));
                     }}
                     onClose={() => toggleFilter(activeFilter)}
-                    anchorRef={{ current: filterRefs.current[activeFilter] }}
+                    anchorEl={filterRefs.current[activeFilter]}
                 />
             )}
         </div>

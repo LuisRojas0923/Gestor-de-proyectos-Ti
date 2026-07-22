@@ -63,6 +63,7 @@ Ubicación: `frontend/src/`
 | **Indicadores de Auditoría** | `pages/ServicePortal/pages/AuditoriaIndicadores/index.test.tsx` | Estados de éxito, error y actualización manual del dashboard. | ✅ PASSED |
 | **Organigrama interactivo** | `pages/OrganizationalHierarchy/*.test.tsx` y `utils.test.ts` | Expansión inicial, paneo móvil, layout aislado y controles accesibles. | ✅ PASSED |
 | **Líneas Corporativas** | `components/atoms/SearchableSelect.test.tsx`, `components/molecules/__tests__/{DataTable,Modal}.test.tsx`, `pages/CorporateLines/**/*.test.tsx` | Teclado, tabla/filtros accesibles, modales, confirmaciones, reintentos y estados de gestores. | ✅ PASSED |
+| **Tabla Consolidada** | `components/__tests__/ConsolidatedTableById.test.tsx` | Contrato ARIA, teclado, limpieza, posiciones responsivas, filtro vacío tipo Excel. | ✅ PASSED |
 
 ### 3. Arnés de agentes (Pytest)
 Ubicación: `testing/agent_harness/`
