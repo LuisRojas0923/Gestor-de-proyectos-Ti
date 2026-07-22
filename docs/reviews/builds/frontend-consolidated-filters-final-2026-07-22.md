@@ -14,7 +14,7 @@ El PR implementa filtros avanzados accesibles para `ConsolidatedTableById` y `Co
 - selección tipo Excel con estados canónicos todos, ninguno y parcial;
 - combinación de filtros por Estado y Progreso;
 - ARIA observable para diálogo, checkboxes, expansión y filtro activo;
-- operación con Enter y Espacio, Escape, cierre exterior, salida de foco y restauración de foco;
+- operación con Enter y Espacio, Escape, cierre exterior, salida de foco con Tab/Shift+Tab y restauración de foco;
 - tabla con seis encabezados y seis celdas por fila;
 - posicionamiento contenido en `visualViewport`, scroll interno y respuesta a resize/scroll;
 - reset de filtros y popover al cambiar `desarrolloId`;
@@ -76,7 +76,7 @@ npm run lint
 
 ## Documentación
 
-- `testing/CATALOGO_PRUEBAS.md` registra las dos suites de tabla consolidada y sus 21 casos.
+- `testing/CATALOGO_PRUEBAS.md` registra las dos suites de tabla consolidada y sus 22 casos.
 - Este archivo reemplaza todos los reportes intermedios de la sesión.
 - `.opencode/memory/docs-tests-reviewer.json` conserva una única entrada final autoritativa para este alcance.
 - No aplican MER, esquema de base de datos, ADR, RBAC ni infraestructura.

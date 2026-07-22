@@ -94,7 +94,7 @@
         "medium": 1,
         "low": 2
       },
-      "test_coverage_observations": "Estado final autoritativo: 21 pruebas focalizadas passed; suite frontend 156 passed/2 skipped; build y lint focalizado exitosos. Se cubren ARIA, teclado Enter/Espacio, semántica tabular, triestado todos/ninguno/parcial, filtros combinados, cambio de desarrollo, respuestas fuera de orden, visualViewport y cleanup. tsc -b conserva un fallo sintáctico preexistente fuera del diff en RequirementsTab.tsx; lint global conserva 502 errores y 56 warnings de baseline fuera de los archivos focalizados. Cuatro reparaciones de baseline ajenas se aceptan explícitamente como excepción de alcance."
+      "test_coverage_observations": "Estado en HEAD 4056743a: 22 pruebas focalizadas passed; suite frontend 157 passed/2 skipped; build y lint focalizado exitosos. Se cubren ARIA, semántica tabular, triestado todos/ninguno/parcial, filtros combinados, cambio de desarrollo, respuestas fuera de orden, visualViewport y cleanup, incluyendo userEvent para Enter/Espacio y navegación Tab/Shift+Tab. Se conserva como excepción formal de alcance que cuatro tests ajenos son reparaciones test-only. Persisten los riesgos globales baseline: tsc -b conserva un fallo sintáctico preexistente fuera del diff en RequirementsTab.tsx, y lint global conserva 502 errores y 56 warnings fuera de los archivos focalizados."
     }
   ],
   "stats": {
