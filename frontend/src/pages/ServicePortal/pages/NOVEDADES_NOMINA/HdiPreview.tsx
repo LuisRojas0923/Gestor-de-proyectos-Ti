@@ -241,13 +241,13 @@ const HdiPreview: React.FC = () => {
                     </div>
                     <div className="flex-1 min-w-0 space-y-1">
                         <Text as="label" variant="body2" weight="medium" color="text-primary" className="block">
-                            Archivos PDF ({files.length} seleccionados)
+                            Archivos Excel ({files.length} seleccionados)
                         </Text>
                         <div className="relative group">
                             <input id="file-upload" // @audit-ok
                                 type="file"
                                 multiple
-                                accept=".pdf"
+                                accept=".xlsx,.xls"
                                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                                 onChange={handleFilesChange}
                             />
@@ -256,7 +256,7 @@ const HdiPreview: React.FC = () => {
                                 <Text size="sm" color="text-secondary" className="truncate">
                                     {files.length > 0
                                         ? files.map(f => f.name).join(', ')
-                                        : 'Seleccionar PDFs...'}
+                                        : 'Seleccionar archivos Excel (.xlsx, .xls)...'}
                                 </Text>
                             </div>
                         </div>
@@ -275,7 +275,7 @@ const HdiPreview: React.FC = () => {
                                 </Text>
                             ) : (
                                 <Text as="span" color="inherit" className="flex items-center gap-2">
-                                    <FileText className="w-4 h-4" /> Procesar PDFs
+                                    <FileText className="w-4 h-4" /> Procesar Excel
                                 </Text>
                             )}
                         </Button>
@@ -514,7 +514,7 @@ const HdiPreview: React.FC = () => {
                     </div>
                     <Title variant="h5" weight="bold" className="text-slate-400 dark:text-slate-700 mb-1 uppercase tracking-widest text-xs">Sin datos procesados</Title>
                     <Text size="xs" className="text-slate-400 dark:text-slate-600 max-w-xs">
-                        Selecciona y procesa archivos PDF para ver registros de {MESES[mes-1]} {anio}.
+                        Selecciona y procesa archivos Excel (.xlsx, .xls) para ver registros de {MESES[mes-1]} {anio}.
                     </Text>
                 </div>
             )}

@@ -85,3 +85,32 @@ def test_hdi_extractor_calculations():
     assert res["valor_rdc"] == 7821.70
     assert res["valor_colaborador"] == 130977.89
     assert res["valor"] == 138799.59
+
+
+def test_hdi_excel_extractor():
+    """Prueba que extraer_hdi procese correctamente un archivo binario de Excel (.xlsx)."""
+    import io
+    data = {
+        "CERT": ["10", "10"],
+        "TIPO": ["P", "D"],
+        "IDENTIFICACION": ["94416010", "59661342"],
+        "NOMBRES Y APELLIDOS": ["JOSE ROBINSON PRECIADO", "FELIZA DUENAS"],
+        "PRIMA ANUAL": ["$ 391,085", "$ 354,310"]
+    }
+    df = pd.DataFrame(data)
+    
+    excel_buffer = io.BytesIO()
+    with pd.ExcelWriter(excel_buffer, engine="openpyxl") as writer:
+        df.to_excel(writer, index=False, sheet_name="HDI_HOJA1")
+    
+    excel_bytes = excel_buffer.getvalue()
+    
+    rows, summary, warnings = extraer_hdi([excel_bytes])
+    
+    assert len(rows) == 1
+    res = rows[0]
+    assert res["cedula"] == "94416010"
+    assert res["nombre_asociado"] == "ROBINSON PRECIADO JOSE"
+    assert summary["archivos_procesados"] == 1
+    assert summary["total_asociados"] == 1
+

@@ -24,7 +24,7 @@ async def preview_hdi(mes: int = Form(...), anio: int = Form(...), files: List[U
         categoria="OTROS",
         subcategoria="SEGUROS HDI",
         extractor_fn=extraer_hdi,
-        extension="pdf",
+        extension="xlsx",
         mes=mes,
         anio=anio
     )

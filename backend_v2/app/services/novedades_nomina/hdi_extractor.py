@@ -1,5 +1,5 @@
 """
-Extractor especializado para PDFs de SEGUROS HDI.
+Extractor especializado para archivos Excel (.xlsx, .xls) de SEGUROS HDI.
 Implementa los 7 pasos de normalización solicitados por el usuario.
 """
 
@@ -101,63 +101,106 @@ def _aplicar_reemplazos(cedula: str, nombre: str) -> Tuple[str, str]:
 
 
 def normalizar_df(df: pd.DataFrame) -> pd.DataFrame:
-    """Normaliza el DataFrame siguiendo los 7 pasos."""
+    """Normaliza el DataFrame (de Excel o Tabla PDF) siguiendo la estructura de HDI."""
     df = df.copy()
-    df = df.dropna(axis=1, how='all')
-    if len(df.columns) < 5: return pd.DataFrame()
+    df = df.dropna(axis=1, how='all').dropna(axis=0, how='all')
+    if len(df.columns) < 2 or len(df) == 0:
+        return pd.DataFrame()
 
-    # Paso 1: Encontrar encabezados
-    # Buscamos la columna de IDENTIFICACION por contenido
-    id_col_idx = -1
-    for i in range(min(6, len(df.columns))):
-        col_vals = df.iloc[:, i].astype(str).str.strip().tolist()
-        if any(re.match(r"^\d{7,12}(\.0)?$", v) for v in col_vals):
-            id_col_idx = i
-            break
-    
-    if id_col_idx == -1: return pd.DataFrame()
+    # Detectar columnas por nombre de encabezado primero (evitando sobreescrituras por coincidencias parciales)
+    col_map = {}
 
-    tipo_col_idx = id_col_idx - 1 if id_col_idx > 0 else -1
-    nombre_col_idx = id_col_idx + 1 if id_col_idx < len(df.columns) -1 else -1
-    
-    cert_col_idx = 0
-    prima_anual_col_idx = -1
-    for i, col in enumerate(df.columns):
-        col_up = str(col).upper()
-        if "ANUAL" in col_up:
-            prima_anual_col_idx = i
-            break
-    if prima_anual_col_idx == -1:
-        prima_anual_col_idx = id_col_idx + 5
+    def _mapear_columnas(columnas):
+        m = {}
+        for i, col in enumerate(columnas):
+            c_str = str(col).upper().strip()
+            if "CERT" in c_str and "cert" not in m:
+                m["cert"] = i
+            if c_str == "TIPO" or ("TIPO" in c_str and "tipo" not in m):
+                m["tipo"] = i
+            if ("IDENTIF" in c_str or "CEDULA" in c_str or "DOCUMENTO" in c_str or "NIT" in c_str or c_str == "ID") and "id" not in m:
+                m["id"] = i
+            if ("NOMBRE" in c_str or "ASOCIADO" in c_str or ("ASEGURADO" in c_str and "VALOR" not in c_str)) and "nombre" not in m:
+                m["nombre"] = i
+            
+            # Priorizar PRIMA ANUAL sobre PRIMA COBRO y VALOR ASEGURADO
+            if "PRIMA ANUAL" in c_str or "ANUAL" in c_str:
+                m["prima"] = i
+            elif "prima" not in m and ("PRIMA" in c_str and "EXTRA" not in c_str):
+                m["prima"] = i
+            elif "prima" not in m and ("VALOR" in c_str and "ASEGURADO" not in c_str):
+                m["prima"] = i
+            elif "prima" not in m and "MONTO" in c_str:
+                m["prima"] = i
+        return m
+
+    col_map = _mapear_columnas(df.columns)
+
+    # Si no se identificó "id" en df.columns, verificar si la fila 0 contiene los encabezados
+    if "id" not in col_map and len(df) > 0:
+        first_row = [str(x).upper().strip() for x in df.iloc[0]]
+        if any("IDENTIF" in x or "CEDULA" in x or "CERT" in x for x in first_row):
+            df.columns = df.iloc[0]
+            df = df.iloc[1:].reset_index(drop=True)
+            col_map = _mapear_columnas(df.columns)
+
+    # Si no se identificó por encabezado, buscar posicionalmente
+    if "id" not in col_map:
+        id_col_idx = -1
+        for i in range(min(8, len(df.columns))):
+            col_vals = df.iloc[:, i].astype(str).str.strip().tolist()
+            if any(re.match(r"^\d{5,12}(\.0)?$", v) for v in col_vals if v):
+                id_col_idx = i
+                break
+        if id_col_idx != -1:
+            col_map["id"] = id_col_idx
+            if "tipo" not in col_map and id_col_idx > 0:
+                col_map["tipo"] = id_col_idx - 1
+            if "nombre" not in col_map and id_col_idx + 1 < len(df.columns):
+                col_map["nombre"] = id_col_idx + 1
+
+    if "id" not in col_map:
+        return pd.DataFrame()
+
+    id_col_idx = col_map["id"]
+    tipo_col_idx = col_map.get("tipo", id_col_idx - 1 if id_col_idx > 0 else -1)
+    nombre_col_idx = col_map.get("nombre", id_col_idx + 1 if id_col_idx + 1 < len(df.columns) else -1)
+    cert_col_idx = col_map.get("cert", 0)
+    prima_col_idx = col_map.get("prima", -1)
+
+    if prima_col_idx == -1:
+        for i in range(len(df.columns) - 1, -1, -1):
+            if i != id_col_idx and i != tipo_col_idx and i != nombre_col_idx:
+                prima_col_idx = i
+                break
 
     valid_rows = []
     for _, row in df.iterrows():
-        # Extraer Tipo
-        tipo = ""
-        if tipo_col_idx != -1:
-            tipo = str(row.iloc[tipo_col_idx]).strip().upper()
-        # Permitir tanto P como D
-        if tipo not in ["P", "D"]: continue
+        tipo = "P"
+        if tipo_col_idx != -1 and tipo_col_idx < len(row):
+            val_tipo = str(row.iloc[tipo_col_idx]).strip().upper()
+            if val_tipo in ["P", "D"]:
+                tipo = val_tipo
 
-        # Identificación
+        if id_col_idx >= len(row): continue
         raw_id = str(row.iloc[id_col_idx]).strip().split(".")[0]
         id_val = re.sub(r"[^0-9]", "", raw_id)
         if not id_val or len(id_val) < 5: continue
 
-        # Nombre
         nombre = ""
-        if nombre_col_idx != -1:
+        if nombre_col_idx != -1 and nombre_col_idx < len(row):
             nombre = str(row.iloc[nombre_col_idx]).strip().split("  ")[0]
 
-        # Prima Anual
-        prima_anual = _limpiar_numero(row.iloc[prima_anual_col_idx])
+        prima_anual = 0.0
+        if prima_col_idx != -1 and prima_col_idx < len(row):
+            prima_anual = _limpiar_numero(row.iloc[prima_col_idx])
         if prima_anual <= 0: continue
 
-        # Certificado
-        cert_raw = str(row.iloc[cert_col_idx]).strip().split(".")[0]
-        cert_val = re.sub(r"[^0-9]", "", cert_raw)
+        cert_val = ""
+        if cert_col_idx < len(row):
+            cert_raw = str(row.iloc[cert_col_idx]).strip().split(".")[0]
+            cert_val = re.sub(r"[^0-9]", "", cert_raw)
 
-        # Aplicar reemplazos
         id_val, nombre = _aplicar_reemplazos(id_val, nombre)
         nombre = _formatear_nombre(nombre)
 
@@ -177,46 +220,68 @@ def normalizar_df(df: pd.DataFrame) -> pd.DataFrame:
 def extraer_hdi(
     archivos_binarios: List[bytes]
 ) -> Tuple[List[Dict[str, Any]], Dict[str, Any], List[str]]:
-    """Procesa PDFs de HDI con la lógica de 7 pasos y redundancia."""
+    """Procesa archivos Excel (.xlsx, .xls) de HDI con la lógica de 7 pasos y consolidación (con fallback a PDF si aplica)."""
     all_raw_rows: List[Dict[str, Any]] = []
     warnings: List[str] = []
 
     for contenido in archivos_binarios:
+        procesado_excel = False
+        # 1. Intentar procesar como Excel (.xlsx / .xls)
         try:
-            with pdfplumber.open(io.BytesIO(contenido)) as pdf:
-                for page in pdf.pages:
-                    page_table_rows = []
-                    
-                    # 1. TABLAS
-                    tables = page.extract_tables()
-                    if not tables:
-                        tables = page.extract_tables(table_settings={
-                            "vertical_strategy": "text", "horizontal_strategy": "text"
-                        })
-                    
-                    for table in tables:
-                        df_norm = normalizar_df(pd.DataFrame(table))
-                        for _, row in df_norm.iterrows():
-                            page_table_rows.append(dict(row))
-                    
-                    all_raw_rows.extend(page_table_rows)
+            excel_file = pd.ExcelFile(io.BytesIO(contenido))
+            for sheet_name in excel_file.sheet_names:
+                df_norm = pd.DataFrame()
+                for skip in range(6):
+                    try:
+                        df_sheet = pd.read_excel(excel_file, sheet_name=sheet_name, skiprows=skip)
+                        df_candidate = normalizar_df(df_sheet)
+                        if not df_candidate.empty:
+                            df_norm = df_candidate
+                            break
+                    except Exception:
+                        continue
 
-                    # 2. REGEX (Sellar lo que las tablas pierden)
-                    text = page.extract_text()
-                    if text:
-                        # Contamos qué extrajeron las tablas para no duplicar en el regex
-                        table_counts = collections.Counter((r["cedula"], r["prima_anual"]) for r in page_table_rows)
-                        regex_counts = collections.Counter()
+                for _, r in df_norm.iterrows():
+                    all_raw_rows.append(dict(r))
+
+            if len(all_raw_rows) > 0:
+                procesado_excel = True
+        except Exception:
+            procesado_excel = False
+
+        # 2. Fallback a PDF si no se procesó como Excel
+        if not procesado_excel:
+            try:
+                with pdfplumber.open(io.BytesIO(contenido)) as pdf:
+                    for page in pdf.pages:
+                        page_table_rows = []
+                        tables = page.extract_tables()
+                        if not tables:
+                            tables = page.extract_tables(table_settings={
+                                "vertical_strategy": "text", "horizontal_strategy": "text"
+                            })
                         
-                        for row in _extraer_por_regex(text):
-                            key = (row["cedula"], row["prima_anual"])
-                            if regex_counts[key] >= table_counts[key]:
-                                all_raw_rows.append(row)
-                            regex_counts[key] += 1
+                        for table in tables:
+                            df_norm = normalizar_df(pd.DataFrame(table))
+                            for _, row in df_norm.iterrows():
+                                page_table_rows.append(dict(row))
+                        
+                        all_raw_rows.extend(page_table_rows)
 
-        except Exception as e:
-            logger.error(f"Error procesando HDI: {e}")
-            warnings.append(str(e))
+                        text = page.extract_text()
+                        if text:
+                            table_counts = collections.Counter((r["cedula"], r["prima_anual"]) for r in page_table_rows)
+                            regex_counts = collections.Counter()
+                            
+                            for row in _extraer_por_regex(text):
+                                key = (row["cedula"], row["prima_anual"])
+                                if regex_counts[key] >= table_counts[key]:
+                                    all_raw_rows.append(row)
+                                regex_counts[key] += 1
+
+            except Exception as e:
+                logger.error(f"Error procesando HDI: {e}")
+                warnings.append(str(e))
 
     # Agrupar por CERT
     grupos_cert = collections.defaultdict(list)
