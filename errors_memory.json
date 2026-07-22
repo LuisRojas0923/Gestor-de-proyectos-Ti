@@ -191,21 +191,37 @@
     },
     {
       "id": "ERR-006",
-      "titulo": "PATCH de tickets permanece sin autenticación y confía en identidad de auditoría enviada por el cliente",
+      "titulo": "PATCH de tickets permitía mutaciones sin autenticación y confiaba en identidad de auditoría enviada por el cliente",
       "archivos_afectados": [
-        "backend_v2/app/api/tickets/router.py:350"
+        "backend_v2/app/api/tickets/router.py:403-428",
+        "backend_v2/app/services/ticket/servicio.py:291-337",
+        "testing/backend/test_ticket_update_errors.py:40-143"
       ],
-      "causa_raiz": "El endpoint PATCH no exige un principal autenticado y toma del payload del cliente la identidad usada para auditoría, sin vincularla a una identidad verificada por el servidor.",
+      "causa_raiz": "El endpoint PATCH no exigía un principal autenticado y tomaba del payload del cliente la identidad usada para auditoría, sin vincularla a una identidad verificada por el servidor.",
       "solucion_propuesta": [
-        "Exigir autenticación y autorización en el endpoint PATCH de tickets.",
-        "Derivar la identidad de auditoría exclusivamente del principal autenticado en el servidor.",
-        "Añadir pruebas de acceso no autenticado, autorización y atribución de auditoría."
+        "Implementado: el router exige obtener_usuario_actual_db y entrega el principal autenticado al servicio.",
+        "Implementado: el servicio exige el permiso efectivo ticket-management desde el RBAC dinámico.",
+        "Implementado: usuario_id y usuario_nombre del payload se descartan y el historial usa id y nombre del actor autenticado.",
+        "Añadidas regresiones para dependencia autenticada, permiso revocado y rol personalizado con permiso concedido."
       ],
       "impacto": "Un cliente no autenticado podría modificar tickets y atribuir la operación a una identidad de auditoría no verificada.",
-      "estado": "NO_RESUELTO",
+      "estado": "RESUELTO",
       "prioridad": "CRITICA",
       "componente": "backend",
       "fecha_deteccion": "2026-07-14",
+      "fecha_resolucion": "2026-07-22",
+      "evidencia_validacion": [
+        "Inspección estática: backend_v2/app/api/tickets/router.py:403-419 vincula el PATCH a obtener_usuario_actual_db y pasa usuario_actual al servicio.",
+        "Inspección estática: backend_v2/app/services/ticket/servicio.py:291-337 exige ticket-management, elimina identidad controlada por cliente y deriva actor desde usuario_actual.",
+        "Ejecución final del 2026-07-22: la suite multidominio que incluyó testing/backend/test_ticket_update_errors.py terminó con 75 passed, 1 skipped y 1 deselected; los dos fallos iniciales de aislamiento se corrigieron y su rerun parametrizado terminó con 6 passed.",
+        "Cierre canónico: docs/reviews/builds/cierre-snapshot-multidominio-2026-07-22.md, veredicto approved y backend-reviewer approved sin bloqueantes."
+      ],
+      "riesgos_residuales": [
+        "Falta una regresión explícita que envíe usuario_id/usuario_nombre falsificados y compruebe la identidad persistida en historial.",
+        "Falta una prueba HTTP 401 integral sin overrides.",
+        "La administración del permiso ticket-management debe conservarse como fuente única de autorización."
+      ],
+      "adr_referencia": "docs/decisions/ADR-005-acceso-panel-admin-via-header.md",
       "tags": [
         "tickets",
         "patch",
@@ -259,6 +275,282 @@
         "rbac",
         "schema-verifier",
         "entorno-local"
+      ]
+    },
+    {
+      "id": "ERR-008",
+      "titulo": "Bitácoras Operacionales Fase 1 presentaba brechas de integridad, concurrencia y verificación PostgreSQL",
+      "archivos_afectados": [
+        "backend_v2/app/models/bitacoras_operacionales/modelos.py",
+        "backend_v2/app/core/migrations/bitacoras_operacionales_migration.py",
+        "backend_v2/app/core/migrations/bitacoras_operacionales_schema.py",
+        "backend_v2/app/core/migrations/schema_verifier.py",
+        "backend_v2/app/core/migrations/manager.py",
+        "scripts/sync_docs.py",
+        "testing/backend/test_bitacoras_operacionales_persistencia.py",
+        "testing/backend/test_bitacoras_operacionales_postgres.py",
+        "testing/backend/test_bitacoras_schema_normalizacion.py",
+        "docs/ESQUEMA_BASE_DATOS.md"
+      ],
+      "causa_raiz": "SQLModel.metadata.create_all() se ejecuta antes de las migraciones especializadas, por lo que los defaults declarados solo en DDL posterior podían faltar; además, las mutaciones de hijos no serializaban inicialmente con la finalización del padre, creado_por_id era mutable, y la verificación/documentación del esquema no cubría de forma exhaustiva el contrato físico bajo la separación de privilegios.",
+      "solucion_propuesta": [
+        "Declarar los defaults de servidor en el modelo y reafirmarlos mediante ALTER idempotente en la migración especializada.",
+        "Bloquear la fila padre con SELECT ... FOR UPDATE en toda mutación de hijos y hacer creado_por_id inmutable.",
+        "Mantener el schema verifier runtime estrictamente read-only y fail-closed sobre columnas, PK, FK, checks, uniques, índices, triggers, funciones, secuencia y ACL.",
+        "Ejecutar sync_docs con login migrador y SET ROLE seguro al owner para inventario completo, sin ampliar privilegios runtime."
+      ],
+      "impacto": "Sin estas correcciones, la persistencia podía iniciar con defaults incompletos, admitir carreras entre finalización y cambios de hijos, transferir la propiedad de borradores o aceptar drift físico/documentación incompleta. La Fase 1 queda cerrada sin exponer todavía ERP, API ni RBAC funcional.",
+      "estado": "RESUELTO",
+      "prioridad": "ALTA",
+      "componente": "multi",
+      "fecha_deteccion": "2026-07-21",
+      "fecha_resolucion": "2026-07-21",
+      "evidencia_validacion": [
+        "25 pruebas focales PostgreSQL aprobadas",
+        "8 regresiones aprobadas",
+        "30 pruebas de startup/migración aprobadas",
+        "backend-reviewer: approved_with_risks, sin bloqueantes",
+        "security-rbac-reviewer: approved_with_risks, sin bloqueantes",
+        "docs-tests-reviewer: approved_with_risks, sin bloqueantes"
+      ],
+      "tags": [
+        "bitacoras-operacionales",
+        "fase-1",
+        "postgresql",
+        "sqlmodel",
+        "migraciones",
+        "concurrencia",
+        "for-update",
+        "inmutabilidad",
+        "schema-verifier",
+        "acl",
+        "sync-docs"
+      ]
+    },
+    {
+      "id": "ERR-009",
+      "titulo": "Redis de producción y Pruebas3 permitía despliegue sin contraseña obligatoria",
+      "archivos_afectados": [
+        "docker-compose.prod.yml:68,142",
+        "docker-compose.Pruebas3.yml:68,145",
+        "testing/backend/test_bitacoras_operacionales_fase0.py:20-29"
+      ],
+      "causa_raiz": "Los despliegues de producción y Pruebas3 no exigían REDIS_PASSWORD de forma fail-fast ni entregaban una credencial compartida a Redis, Pub/Sub y SlowAPI.",
+      "solucion_propuesta": [
+        "Implementado: iniciar redis-server con --requirepass y expansión obligatoria REDIS_PASSWORD:?REDIS_PASSWORD requerido.",
+        "Implementado: mantener REDIS_URL sin secretos y entregar REDIS_PASSWORD como opción separada a Pub/Sub y SlowAPI.",
+        "Añadidos healthcheck autenticado y pruebas para Compose y storage_options."
+      ],
+      "impacto": "Un Redis desplegado sin autenticación podía exponer tickets WebSocket, Pub/Sub y cualquier estado compartido accesible desde su red.",
+      "estado": "RESUELTO",
+      "prioridad": "ALTA",
+      "componente": "infra",
+      "fecha_deteccion": "2026-07-16",
+      "fecha_resolucion": "2026-07-22",
+      "evidencia_validacion": [
+        "Inspección estática: ambos Compose usan --requirepass, REDIS_URL sin credenciales y REDIS_PASSWORD obligatoria por separado.",
+        "Ejecución final del 2026-07-22: test_redis_despliegue_exige_password quedó cubierto por la suite multidominio cerrada con 75 passed, 1 skipped y 1 deselected tras el rerun de aislamiento.",
+        "Ejecución focal: test_password_redis_se_pasa_como_opcion_separada junto con test_ticket_websocket_security.py terminó con 5 passed.",
+        "docker compose -f docker-compose.prod.yml config --quiet y docker compose -f docker-compose.Pruebas3.yml config --quiet: PASS con variables sintéticas."
+      ],
+      "riesgos_residuales": [
+        "La provisión, rotación y fortaleza real de REDIS_PASSWORD dependen del entorno de despliegue y no pueden demostrarse por inspección del repositorio.",
+        "El entorno local permite una contraseña vacía para no imponer secretos productivos durante desarrollo."
+      ],
+      "tags": [
+        "redis",
+        "password",
+        "docker-compose",
+        "produccion",
+        "pruebas3",
+        "secret-management",
+        "fail-fast"
+      ]
+    },
+    {
+      "id": "ERR-010",
+      "titulo": "WebSocket de notificaciones no degradaba explícitamente ante fallo DB y no limitaba conexiones locales por usuario",
+      "archivos_afectados": [
+        "backend_v2/app/api/notificaciones/router.py:132-161",
+        "backend_v2/app/services/notificacion/ws_manager.py:20-92",
+        "testing/backend/test_bitacoras_operacionales_fase0.py:185-265"
+      ],
+      "causa_raiz": "El handshake no tenía un cierre temporal explícito para excepciones al validar la sesión en PostgreSQL y el manager aceptaba conexiones locales sin una cuota por usuario.",
+      "solucion_propuesta": [
+        "Implementado: cerrar con código 1013 cuando falla el consumo del ticket o la validación PostgreSQL durante el handshake.",
+        "Implementado: limitar a tres conexiones locales por usuario y rechazar la conexión excedente antes de accept con código 1008.",
+        "Añadidas pruebas focales del fallo PostgreSQL y de la cuota local."
+      ],
+      "impacto": "Una caída de PostgreSQL podía producir un handshake no controlado y un usuario podía consumir recursos ilimitados del worker mediante conexiones simultáneas.",
+      "estado": "RESUELTO",
+      "prioridad": "ALTA",
+      "componente": "backend",
+      "fecha_deteccion": "2026-07-21",
+      "fecha_resolucion": "2026-07-22",
+      "evidencia_validacion": [
+        "Inspección estática: el router captura fallos de ticket/DB y cierra 1013 antes de aceptar el WebSocket.",
+        "Inspección estática: NotificationConnectionManager fija max_connections_per_user=3 y rechaza el exceso antes de websocket.accept.",
+        "Ejecución final del 2026-07-22: test_bitacoras_operacionales_fase0.py y test_notificaciones.py formaron parte de la suite multidominio cerrada con 75 passed, 1 skipped y 1 deselected tras el rerun de aislamiento.",
+        "Cierre canónico: security-rbac-reviewer approved y contrato de notificaciones privadas, ticket efímero, origen exacto y revocación antes de transmitir aprobado sin bloqueantes."
+      ],
+      "riesgos_residuales": [
+        "La cuota es local por worker, no global entre réplicas; el máximo efectivo crece con el número de workers.",
+        "Redis no configura socket_connect_timeout/socket_timeout explícitos, por lo que una red colgada puede retrasar el 1013.",
+        "La revalidación periódica depende de 30 segundos sin tráfico entrante y aún falta una prueba integrada del handshake completo."
+      ],
+      "referencia_existente": "docs/reviews/plans/2026-07-21_bitacoras-operacionales-web.md",
+      "tags": [
+        "websocket",
+        "notificaciones",
+        "postgresql",
+        "1013",
+        "limite-conexiones",
+        "disponibilidad",
+        "cwe-400"
+      ]
+    },
+    {
+      "id": "ERR-011",
+      "titulo": "Consulta ERP OThorarios carecía de cuota específica por endpoint",
+      "archivos_afectados": [
+        "backend_v2/app/api/novedades_nomina/routers/horas_extras_planificador.py:158-187",
+        "testing/backend/test_horas_extras_ot_horarios.py:116-130"
+      ],
+      "causa_raiz": "El endpoint autenticado ejecutaba búsqueda multicolumna y conteo exacto contra OThorarios sin limitar la frecuencia por cliente, permitiendo presión repetida sobre el ERP.",
+      "solucion_propuesta": [
+        "Implementado: aplicar slowapi con cuota específica de 30/minute al endpoint ots-horarios.",
+        "Mantener autenticación/RBAC, límites de q/limit/offset, timeout y degradación 503 existentes.",
+        "Añadida comprobación estructural de que el handler está envuelto por el limitador."
+      ],
+      "impacto": "Solicitudes repetidas podían amplificar consultas ILIKE y COUNT sobre el ERP, degradando el planificador y la fuente externa.",
+      "estado": "RESUELTO",
+      "prioridad": "MEDIA",
+      "componente": "backend",
+      "fecha_deteccion": "2026-07-21",
+      "fecha_resolucion": "2026-07-22",
+      "evidencia_validacion": [
+        "Inspección estática: listar_ots_horarios está decorado con @limiter.limit(\"30/minute\") y recibe Request/Response.",
+        "Ejecución final del 2026-07-22: testing/backend/test_horas_extras_ot_horarios.py formó parte de la suite multidominio cerrada con 75 passed, 1 skipped y 1 deselected tras el rerun de aislamiento.",
+        "El cierre canónico aprobó OThorarios protegido, paginado, sin caché y con cuota específica; el smoke productivo opt-in permanece como riesgo no bloqueante."
+      ],
+      "riesgos_residuales": [
+        "No existe una regresión que agote la cuota y observe 429, Retry-After, aislamiento de bucket o reset determinista.",
+        "La cuota está hardcodeada y su efectividad multiworker depende del storage compartido configurado para slowapi.",
+        "Sigue pendiente el smoke productivo porque OThorarios no existe en solidpruebas3; también falta validar costo y rendimiento reales de ILIKE/COUNT."
+      ],
+      "adr_referencias": [
+        "docs/decisions/ADR-005-acceso-panel-admin-via-header.md",
+        "docs/decisions/ADR-008-alcance-empleados-y-aplicacion-inmutable-horarios.md",
+        "docs/decisions/ADR-009-planilla-regional-item-versionado.md"
+      ],
+      "tags": [
+        "othorarios",
+        "erp",
+        "horas-extras",
+        "rate-limit",
+        "slowapi",
+        "disponibilidad",
+        "cwe-400"
+      ]
+    },
+    {
+      "id": "ERR-012",
+      "titulo": "Planilla de horas extras mostraba salario y base hora estimados persistidos",
+      "archivos_afectados": [
+        "GET /api/v2/novedades-nomina/horas-extras/calculos/planilla",
+        "backend_v2/app/api/novedades_nomina/routers/horas_extras_consultas.py",
+        "backend_v2/app/services/novedades_nomina/horas_extras_planilla.py",
+        "backend_v2/app/services/novedades_nomina/horas_extras_planilla_valores.py",
+        "backend_v2/app/services/erp/empleados_service.py",
+        "backend_v2/app/core/rbac_manifest.py",
+        "testing/backend/test_horas_extras_calculos_planilla.py",
+        "testing/backend/test_horas_extras_planilla_salarios_erp.py",
+        "testing/backend/test_erp_empleados_offload.py",
+        "testing/backend/test_horas_extras_rbac_granular.py",
+        "docs/specs/2026-06-01_modulo-horas-extras-novedades.md",
+        "testing/CATALOGO_PRUEBAS.md"
+      ],
+      "causa_raiz": "La proyección de planilla reutilizaba el salario y la base hora estimados persistidos en el cálculo ($3.000.000 y $12.500) en lugar de solicitar explícitamente el salario vigente al ERP; además, la resolución salarial no exigía una cardinalidad única de contrato y beneficio activos y el costo de respuesta podía conservar importes calculados con la base estimada.",
+      "solucion_propuesta": [
+        "Implementado: solicitar explícitamente el salario vigente al ERP para las cédulas autorizadas de la planilla.",
+        "Implementado: aceptar el salario únicamente cuando existe un contrato activo único y un beneficio activo único.",
+        "Implementado: calcular la base hora con las reglas configurables vigentes y recalcular el costo de cada fila con salario ERP, divisor, factor de novedad y carga prestacional.",
+        "Implementado: fallar cerrado con 503 cuando ERP no está disponible y con 422 ante salario, cardinalidad o reglas de cálculo inválidos; nunca reutilizar el estimado persistido.",
+        "Implementado: actualizar RBAC, documentación funcional, catálogo y pruebas focales."
+      ],
+      "impacto": "La planilla podía presentar valores salariales y costos incorrectos u obsoletos, afectando la revisión operativa y financiera de horas extras.",
+      "estado": "RESUELTO",
+      "prioridad": "ALTA",
+      "componente": "backend",
+      "fecha_deteccion": "2026-07-22",
+      "fecha_resolucion": "2026-07-22",
+      "evidencia_validacion": [
+        "37 pruebas de planilla aprobadas: salario ERP, reglas configurables, costos consistentes y fallos cerrados 503/422.",
+        "5 pruebas de offload ERP aprobadas: la consulta salarial masiva se ejecuta fuera del event loop.",
+        "15 pruebas RBAC aprobadas: manifiesto y permisos granulares.",
+        "backend-reviewer: approved_with_risks, sin bloqueos.",
+        "security-rbac-reviewer: approved, sin hallazgos bloqueantes."
+      ],
+      "riesgos_residuales": [
+        "Las suites live/mutating de infraestructura no se ejecutaron porque sus guards las mantuvieron deshabilitadas.",
+        "No existe una prueba endpoint-level específica para divisor o factor inválido; la cobertura actual valida esas reglas por debajo del endpoint."
+      ],
+      "tags": [
+        "horas-extras",
+        "planilla",
+        "salario",
+        "erp",
+        "base-hora",
+        "costo",
+        "reglas-configurables",
+        "rbac",
+        "503",
+        "422",
+        "regresion"
+      ]
+    },
+    {
+      "id": "ERR-013",
+      "titulo": "WebSocket de tickets permitía una suscripción pública sin autenticar ni revalidar autorización",
+      "archivos_afectados": [
+        "backend_v2/app/api/tickets/router.py:288-350",
+        "backend_v2/app/services/ticket/ws_manager.py",
+        "backend_v2/app/services/notificacion/ws_security.py",
+        "testing/backend/test_ticket_websocket_security.py"
+      ],
+      "causa_raiz": "El canal /soporte/ws/{ticket_id} agrupaba conexiones por identificador de ticket sin demostrar sesión activa, propiedad del recurso ni permiso RBAC, y podía transmitir eventos después de una revocación.",
+      "solucion_propuesta": [
+        "Implementado: exigir un ticket efímero de un solo uso ligado a sesión y origen, transportado mediante subprotocolo y nunca como JWT en la URL.",
+        "Implementado: validar sesión activa y autorización por propiedad del ticket o permiso dinámico ticket-management antes de aceptar.",
+        "Implementado: revalidar sesión y autorización antes de cada transmisión y cerrar 1008 antes de enviar cuando existe revocación.",
+        "Implementado: validar el Origin exacto contra el conjunto de orígenes configurados de CORS/frontend; no existe una lista estática propia del módulo tickets.",
+        "Añadidas regresiones para ausencia de ticket efímero, sesión inactiva, propietario autorizado y revocación previa al envío."
+      ],
+      "impacto": "Conocer un ticket_id podía permitir observar eventos de soporte sin una identidad o autorización vigente, exponiendo actividad del ticket y manteniendo conexiones revocadas.",
+      "estado": "RESUELTO",
+      "prioridad": "CRITICA",
+      "componente": "backend",
+      "fecha_deteccion": "2026-07-22",
+      "fecha_resolucion": "2026-07-22",
+      "evidencia_validacion": [
+        "Ejecución focal final: test_password_redis_se_pasa_como_opcion_separada y testing/backend/test_ticket_websocket_security.py terminaron con 5 passed.",
+        "La suite multidominio incluyó test_ticket_websocket_security.py y cerró con 75 passed, 1 skipped y 1 deselected tras resolver dos fallos de aislamiento y completar un rerun de 6 passed.",
+        "docs/reviews/builds/cierre-snapshot-multidominio-2026-07-22.md registra backend, security, frontend y scope aprobados sin bloqueantes."
+      ],
+      "riesgos_residuales": [
+        "La cobertura focal usa dobles del WebSocket y no sustituye un smoke integrado con Redis y PostgreSQL reales.",
+        "La disponibilidad y rotación de REDIS_PASSWORD siguen dependiendo del entorno; REDIS_URL permanece deliberadamente sin credenciales y la contraseña se pasa por opción separada."
+      ],
+      "tags": [
+        "tickets",
+        "websocket",
+        "autenticacion",
+        "autorizacion",
+        "rbac-dinamico",
+        "ticket-efimero",
+        "revocacion",
+        "origin",
+        "redis"
       ]
     }
   ],
@@ -341,6 +633,121 @@
       ],
       "consecuencias": "Las revisiones serán 5-10x más rápidas (sin pedir confirmación para git/cat/ls). error-memory puede persistir sin intervención. Riesgo: un subagente deshonesto podría ejecutar comandos fuera de whitelist — mitigado por la tabla explícita en frontmatter y en _shared-discovery.md.",
       "fecha": "2026-06-03",
+      "estado": "VIGENTE"
+    },
+    {
+      "id": "DEC-001",
+      "titulo": "Defaults de servidor declarados en modelo y reafirmados por migración especializada",
+      "descripcion": "Como SQLModel.metadata.create_all() precede las migraciones especializadas, todo default PostgreSQL requerido debe declararse también en el modelo y la migración debe converger mediante ALTER idempotente.",
+      "modulos_afectados": [
+        "backend_v2/app/models/bitacoras_operacionales/modelos.py",
+        "backend_v2/app/core/migrations/bitacoras_operacionales_migration.py",
+        "backend_v2/app/models/registry.py"
+      ],
+      "alternativas_consideradas": [
+        "Confiar únicamente en el DDL de la migración especializada",
+        "Invertir globalmente el orden create_all/migraciones",
+        "Declarar el default en SQLModel y reafirmarlo con ALTER idempotente"
+      ],
+      "consecuencias": "Las tablas creadas por metadata nacen con defaults válidos y una ejecución posterior de migrate repara drift sin perder idempotencia.",
+      "fecha": "2026-07-21",
+      "estado": "VIGENTE"
+    },
+    {
+      "id": "DEC-002",
+      "titulo": "Mutaciones hijas serializadas con finalización e identidad creadora inmutable",
+      "descripcion": "Toda inserción, actualización o eliminación de actividades y fotografías debe bloquear la fila padre mediante SELECT ... FOR UPDATE antes de validar estado; creado_por_id no puede modificarse después de crear la bitácora.",
+      "modulos_afectados": [
+        "backend_v2/app/core/migrations/bitacoras_operacionales_migration.py",
+        "testing/backend/test_bitacoras_operacionales_persistencia.py",
+        "testing/backend/test_bitacoras_operacionales_postgres.py"
+      ],
+      "alternativas_consideradas": [
+        "Validar el estado sin lock de fila",
+        "Resolver la carrera únicamente en el servicio futuro",
+        "Serializar en PostgreSQL y proteger la propiedad mediante trigger"
+      ],
+      "consecuencias": "Finalización y mutaciones de hijos quedan ordenadas por PostgreSQL en ambos órdenes de commit, y la frontera de propiedad no depende de la futura API.",
+      "fecha": "2026-07-21",
+      "estado": "VIGENTE"
+    },
+    {
+      "id": "DEC-003",
+      "titulo": "Schema verifier runtime read-only y fail-closed sobre el contrato físico completo",
+      "descripcion": "El startup runtime solo inspecciona catálogos y ACL, nunca ejecuta DDL, y debe fallar cerrado ante drift de columnas, PK, FK, checks, uniques, índices, triggers, funciones, secuencia o privilegios.",
+      "modulos_afectados": [
+        "backend_v2/app/core/migrations/schema_verifier.py",
+        "backend_v2/app/core/migrations/bitacoras_operacionales_schema.py",
+        "backend_v2/app/core/migrations/manager.py"
+      ],
+      "alternativas_consideradas": [
+        "Reparar automáticamente el esquema durante startup runtime",
+        "Verificar solo existencia de tablas y columnas",
+        "Separar migración privilegiada de verificación runtime exhaustiva"
+      ],
+      "consecuencias": "Una credencial runtime restringida no obtiene capacidad de mutación estructural y el backend no inicia cuando el contrato PostgreSQL o sus ACL divergen.",
+      "fecha": "2026-07-21",
+      "estado": "VIGENTE"
+    },
+    {
+      "id": "DEC-004",
+      "titulo": "Inventario documental con login migrador y SET ROLE seguro al owner",
+      "descripcion": "sync_docs debe conectarse con el login migrador y asumir el owner mediante SET ROLE compuesto como identificador PostgreSQL seguro para inventariar objetos protegidos; nunca debe concederse visibilidad adicional al runtime.",
+      "modulos_afectados": [
+        "scripts/sync_docs.py",
+        "docs/ESQUEMA_BASE_DATOS.md"
+      ],
+      "alternativas_consideradas": [
+        "Generar documentación con la credencial runtime",
+        "Ampliar SELECT runtime para que information_schema vea todas las tablas",
+        "Usar login migrador con SET ROLE seguro y temporal al owner"
+      ],
+      "consecuencias": "El MER y el diccionario reflejan el inventario completo, incluidas tablas deliberadamente protegidas, sin erosionar mínimo privilegio en producción.",
+      "fecha": "2026-07-21",
+      "estado": "VIGENTE"
+    },
+    {
+      "id": "DEC-005",
+      "titulo": "ERP, API y RBAC funcional de Bitácoras diferidos hasta el contrato real Aperturas OT V4",
+      "descripcion": "La Fase 1 se limita a persistencia PostgreSQL. Integración ERP, servicios, endpoints y permisos funcionales permanecen bloqueados hasta recibir y validar el contrato real de Aperturas OT V4.",
+      "modulos_afectados": [
+        "backend_v2/app/api",
+        "backend_v2/app/services",
+        "backend_v2/app/core/rbac_manifest.py",
+        "docs/specs/2026-07-21_bitacoras-operacionales-web.md",
+        "docs/reviews/plans/2026-07-21_bitacoras-operacionales-web.md"
+      ],
+      "alternativas_consideradas": [
+        "Implementar contra un contrato ERP supuesto",
+        "Publicar API y RBAC parciales sin integración validada",
+        "Mantener la frontera funcional cerrada hasta disponer del contrato real"
+      ],
+      "consecuencias": "No se crean contratos ficticios ni permisos prematuros; la persistencia queda aprobada independientemente, mientras la fase funcional conserva un gate externo explícito.",
+      "fecha": "2026-07-21",
+      "estado": "VIGENTE"
+    },
+    {
+      "id": "DEC-006",
+      "titulo": "WebSockets de tickets protegidos con credencial efímera, autorización dinámica y revalidación por evento",
+      "descripcion": "El endpoint WebSocket puede ser direccionable públicamente, pero ninguna suscripción es pública: exige un ticket efímero de un solo uso ligado a sesión y Origin, valida propiedad del ticket o permiso RBAC dinámico ticket-management y revalida antes de transmitir. Los orígenes se derivan de la configuración CORS/frontend y no de una lista estática propia del módulo tickets. REDIS_URL no contiene credenciales; REDIS_PASSWORD se entrega como opción separada.",
+      "modulos_afectados": [
+        "backend_v2/app/api/tickets/router.py",
+        "backend_v2/app/services/ticket/ws_manager.py",
+        "backend_v2/app/services/notificacion/ws_manager.py",
+        "backend_v2/app/services/notificacion/ws_security.py",
+        "testing/backend/test_ticket_websocket_security.py",
+        "testing/backend/test_auth_rate_limit.py",
+        "docker-compose.prod.yml",
+        "docker-compose.Pruebas3.yml"
+      ],
+      "alternativas_consideradas": [
+        "Mantener suscripción pública basada únicamente en ticket_id",
+        "Autorizar mediante roles codificados o identificadores de ticket predefinidos",
+        "Enviar JWT en query string del WebSocket",
+        "Usar ticket efímero, RBAC dinámico y revalidación con credencial Redis separada de la URI"
+      ],
+      "consecuencias": "Se evita IDOR, replay y entrega posterior a revocación sin filtrar JWT ni contraseña Redis en URLs. El canal depende de Redis y PostgreSQL y falla cerrado con códigos 1008/1013; el smoke integrado de infraestructura permanece como validación operativa previa al despliegue.",
+      "fecha": "2026-07-22",
       "estado": "VIGENTE"
     }
   ]
