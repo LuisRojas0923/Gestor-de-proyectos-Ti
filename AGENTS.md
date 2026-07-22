@@ -94,23 +94,3 @@ Antes de revisar o implementar con subagentes, leer:
 ### Push a remoto
 
 - `skill_git_controlled_push`: no hacer `git push` sin instrucción explícita del usuario.
-
-## Protocolo de Rigurosidad Estricto de Desarrollo
-
-Para garantizar que el código entregado sea de nivel de producción y 100% confiable, todo desarrollo o modificación debe cumplir obligatoriamente con los siguientes pasos antes de dar por completada la tarea:
-
-1. **Auditoría Proactiva Obligatoria en 5 Pilares**:
-   - **Seguridad y RBAC**: Verificar que los endpoints requieran JWT y permisos de rol adecuados (ej. `requiere_permiso_nomina_novedades`).
-   - **Formatos de Datos Reales**: Validar notaciones locales (`es-CO`, ej. `391.085,00`), valores `None`/`NaN`, espacios y encodings reales.
-   - **Protección contra Pérdida de Datos**: Garantizar que ante errores de lectura o 0 filas extraídas, la BD no ejecute eliminaciones en caliente.
-   - **Límites de Recursos y Seguridad**: Aplicar `@limiter.limit`, límites de peso por archivo (ej. 10MB), total (25MB) y límites de filas/hojas contra bombas de memoria.
-   - **Aislamiento de Dominio**: Usar claves compuestas (ej. `(file_idx, sheet_name, cert)`) para evitar que certificados o registros entre distintos archivos/hojas se mezclen.
-
-2. **Pruebas Adversarias y Destructivas (Adversarial Testing)**:
-   - Las pruebas unitarias no se limitarán al caso ideal.
-   - Se deben incluir casos destructivos: archivos corruptos, PDFs disfrazados con extensión `.xlsx`, notaciones COP complejas, headers desplazados (`skiprows`), etc.
-
-3. **Verificación de Linters y Tipado Estricto**:
-   - Backend: Validar que la suite de `pytest` pase al 100%.
-   - Frontend: Validar que los archivos TypeScript/React no contengan tipos `any` implícitos/explícitos ni importaciones obsoletas/sin uso según ESLint.
-

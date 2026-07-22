@@ -11,12 +11,8 @@ from ....models.novedades_nomina.nomina import (
 from ....services.erp.empleados_service import EmpleadosService
 from ....services.novedades_nomina.polizas_vehiculos_extractor import extraer_polizas_vehiculos
 from ....services.novedades_nomina.excepcion_service import ExcepcionService
-from ..dependencies import requiere_permiso_nomina_novedades
 
-router = APIRouter(
-    tags=["Otros - Pólizas Vehículos"],
-    dependencies=[Depends(requiere_permiso_nomina_novedades)],
-)
+router = APIRouter(tags=["Otros - Pólizas Vehículos"])
 
 @router.post("/polizas-vehiculos/preview")
 async def preview_polizas_vehiculos(mes: int = Form(...), anio: int = Form(...), files: List[UploadFile] = File(...), session: AsyncSession = Depends(obtener_db), db_erp = Depends(obtener_erp_db_opcional)):

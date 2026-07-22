@@ -103,6 +103,47 @@
         "F5: vitest-axe no instalado — añadir para tests a11y de los modales migrados.",
         "F6: Bundle size warning pre-existente (index.js 2.97MB) no relacionado con estos cambios."
       ]
+    },
+    {
+      "id": "ERR-003",
+      "titulo": "PR #22 HDI: extracción y almacenamiento inseguros de archivos XLS/XLSX",
+      "archivos_afectados": [
+        "backend_v2/ (flujo HDI de carga, validación, extracción y almacenamiento)",
+        "frontend/ (flujo y pruebas HDI)",
+        "testing/ (regresiones HDI)"
+      ],
+      "causa_raiz": "Faltaba importar Optional; la extracción aceptaba resultados parciales o vacíos, con validación ZIP/OLE débil y truncamiento silencioso; el parseo COP, la cardinalidad TIPO/CERT del titular y los metadatos multifile eran incorrectos o ambiguos; además se almacenaba antes de validar con una carrera de filesystem, y las pruebas frontend no ejercían el flujo real.",
+      "solucion_propuesta": [
+        "Contrato de un único archivo XLS/XLSX con validación estructural y de recursos estricta, incluido BIFF8 real.",
+        "Extracción atómica fail-closed, sin truncamiento silencioso, con parseo COP correcto y exactamente un titular.",
+        "Errores externos genéricos 422, RBAC y rate limit.",
+        "Almacenamiento staged posterior a validación mediante SHA256+UUID y limpieza protegida ante cancelación.",
+        "Regresiones backend y frontend reales para los casos corregidos."
+      ],
+      "impacto": "Evita aceptar, interpretar o persistir archivos HDI inválidos o ambiguos, elimina carreras y metadatos engañosos, y mejora la seguridad y confiabilidad del flujo de carga.",
+      "estado": "RESUELTO",
+      "prioridad": "CRITICA",
+      "componente": "multi",
+      "fecha_deteccion": "2026-07-22",
+      "tags": [
+        "PR-22",
+        "HDI",
+        "XLS",
+        "XLSX",
+        "BIFF8",
+        "fail-closed",
+        "RBAC",
+        "rate-limit",
+        "race-condition",
+        "regresion"
+      ],
+      "evidencia": [
+        "25 pruebas backend HDI aprobadas",
+        "4 health aprobadas y 4 omitidas",
+        "2 pruebas frontend aprobadas",
+        "ESLint focalizado, build, py_compile y diff-check aprobados"
+      ],
+      "nota_publicacion": "Resuelto localmente; commit y push pendientes de instrucción explícita del usuario."
     }
   ],
   "decisions": [

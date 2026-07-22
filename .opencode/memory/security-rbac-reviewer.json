@@ -39,10 +39,22 @@
         "BAJO": 0
       },
       "cwe_references": []
+    },
+    {
+      "date": "2026-07-22",
+      "scope": "final effective-diff review of repaired PR #22 HDI Excel upload and RBAC",
+      "outcome": "approved_with_risks",
+      "finding_count_by_severity": {
+        "BLOQUEANTE": 0,
+        "ALTO": 0,
+        "MEDIO": 2,
+        "BAJO": 1
+      },
+      "cwe_references": ["CWE-400", "CWE-770", "CWE-367", "CWE-459", "CWE-693"]
     }
   ],
   "stats": {
-    "total_reviews": 2,
-    "last_review": "2026-07-06"
+    "total_reviews": 3,
+    "last_review": "2026-07-22"
   }
 }

@@ -12,16 +12,12 @@ from ....services.erp.empleados_service import EmpleadosService
 from ....services.novedades_nomina.otros_gerencia_extractor import extraer_otros_gerencia
 from ....services.novedades_nomina.nomina_manual_service import NominaManualService
 from ....services.novedades_nomina.excepcion_service import ExcepcionService
-from ..dependencies import requiere_permiso_nomina_novedades
 
 from ....api.auth.router import obtener_usuario_actual_db
 from ....models.auth.usuario import Usuario
 from ....models.novedades_nomina.nomina import NominaFavorito
 
-router = APIRouter(
-    tags=["Otros - Gerencia"],
-    dependencies=[Depends(requiere_permiso_nomina_novedades)],
-)
+router = APIRouter(tags=["Otros - Gerencia"])
 
 @router.post("/preview")
 async def preview_otros_gerencia(mes: int = Form(...), anio: int = Form(...), files: List[UploadFile] = File(...), session: AsyncSession = Depends(obtener_db), db_erp = Depends(obtener_erp_db_opcional)):

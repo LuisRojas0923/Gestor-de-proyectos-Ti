@@ -48,6 +48,7 @@ Ubicación: `testing/backend/`
 | **ETL Beneficiar** | `test_beneficiar_prima.py` | Prima opcional, meses ordinarios y rechazo de columnas obligatorias ausentes. | ✅ PASSED |
 | **ETL Grancoop** | `test_grancoop_nombre_matching.py` | CREDIPRIMA, NOMPRI estricto, sumatoria sin duplicar y límites PDF. | ✅ PASSED |
 | **Seguridad Cooperativas** | `test_cooperativas_archivos_seguridad.py` | Firmas, límites, nombres, permiso `nomina_novedades` y parser en proceso cancelable. | ✅ PASSED |
+| **Seguros HDI Excel** | `test_hdi_extractor_grupos.py`, `test_hdi_excel_security.py` | Formato COP, estructura XLS/XLSX, límites, archivos disfrazados y preservación de datos ante fallos. | ✅ PASSED |
 
 ### 2. Frontend (Vitest)
 Ubicación: `frontend/src/`
@@ -63,6 +64,7 @@ Ubicación: `frontend/src/`
 | **Indicadores de Auditoría** | `pages/ServicePortal/pages/AuditoriaIndicadores/index.test.tsx` | Estados de éxito, error y actualización manual del dashboard. | ✅ PASSED |
 | **Organigrama interactivo** | `pages/OrganizationalHierarchy/*.test.tsx` y `utils.test.ts` | Expansión inicial, paneo móvil, layout aislado y controles accesibles. | ✅ PASSED |
 | **Líneas Corporativas** | `components/atoms/SearchableSelect.test.tsx`, `components/molecules/__tests__/{DataTable,Modal}.test.tsx`, `pages/CorporateLines/**/*.test.tsx` | Teclado, tabla/filtros accesibles, modales, confirmaciones, reintentos y estados de gestores. | ✅ PASSED |
+| **Seguros HDI Excel** | `pages/ServicePortal/pages/NOVEDADES_NOMINA/__tests__/HdiPreview.test.tsx` | Contrato de archivo único y rechazo verificable de formatos distintos de XLS/XLSX. | ✅ PASSED |
 
 ### 3. Arnés de agentes (Pytest)
 Ubicación: `testing/agent_harness/`

@@ -48,7 +48,7 @@ class NominaService:
     async def crear_archivo_procesado(
         session: AsyncSession,
         nombre: str,
-        content_prefix: bytes,
+        contenido: bytes,
         size: int,
         ext: str,
         mes: int,
@@ -61,7 +61,7 @@ class NominaService:
         return await NominaHelper.crear_archivo_procesado(
             session=session,
             nombre=nombre,
-            content_prefix=content_prefix,
+            contenido=contenido,
             size=size,
             ext=ext,
             mes=mes,
@@ -83,7 +83,7 @@ class NominaService:
         anio: int
     ) -> Dict[str, Any]:
         """Flujo unificado para procesar archivos de nómina especializados."""
-        # 1. Leer archivos y guardar el primero físicamente
+        # 1. Leer archivos. No se escribe en disco hasta validar la extracción completa.
         archivos_binarios = []
         original_filenames = []
         for f in files:
@@ -91,34 +91,24 @@ class NominaService:
             archivos_binarios.append(content)
             original_filenames.append(getattr(f, "filename", "archivo"))
             
-        import os
-        STORAGE_DIR = "uploads/nomina"
-        os.makedirs(STORAGE_DIR, exist_ok=True)
-        
-        ruta_almacenamiento = "memory"
-        nombre_archivo = f"{subcategoria.lower().replace(' ', '_')}_{mes}_{anio}.{extension}"
-        
-        if archivos_binarios:
-            contenido = archivos_binarios[0]
-            hash_str = hashlib.md5(contenido).hexdigest()
-            nombre_archivo = original_filenames[0]
-            ext_real = nombre_archivo.split('.')[-1].lower() if '.' in nombre_archivo else extension
-            
-            ruta_almacenamiento = os.path.join(STORAGE_DIR, f"{hash_str}.{ext_real}")
-            
-            # Guardamos el archivo original intacto para descargas y auditoría
-            with open(ruta_almacenamiento, "wb") as f_out:
-                f_out.write(contenido)
-        
         # 2. Extraer datos usando la función específica en un hilo separado para no bloquear el event loop
         import asyncio
-        rows, summary, warnings_txt = await asyncio.to_thread(extractor_fn, archivos_binarios)
+        from fastapi import HTTPException
+
+        try:
+            rows, summary, warnings_txt = await asyncio.to_thread(
+                extractor_fn, archivos_binarios
+            )
+        except ValueError as exc:
+            raise HTTPException(
+                status_code=422,
+                detail="El archivo no cumple la estructura requerida para esta nómina.",
+            ) from exc
         summary.update({"mes": mes, "anio": anio})
 
         # 2b. Protección contra pérdida de datos: si la extracción falla o devuelve 0 filas válidas,
         # se aborta la operación ANTES de eliminar registros existentes en el periodo.
         if not rows:
-            from fastapi import HTTPException
             detalle = f" Detalle: {'; '.join(warnings_txt)}" if warnings_txt else ""
             raise HTTPException(
                 status_code=400,
@@ -128,6 +118,18 @@ class NominaService:
         # 3. Obtener info ERP y Excepciones
         excepciones = await ExcepcionService.obtener_excepciones_activas(session, subcategoria)
         mapa_erp = await NominaService.get_mapa_erp(db_erp, rows, excepciones)
+
+        import os
+        from uuid import uuid4
+
+        contenido = archivos_binarios[0]
+        nombre_archivo = os.path.basename(original_filenames[0])
+        hash_str = hashlib.sha256(contenido).hexdigest()
+        ruta_almacenamiento = os.path.join(
+            "uploads", "nomina", f"{hash_str}_{uuid4().hex}.{extension}"
+        )
+        ruta_creada = False
+        transaccion_confirmada = False
         
         # 4. Borrar antiguos para evitar duplicados en el mismo periodo/subcat
         subcategoria_clean = subcategoria.strip()
@@ -136,14 +138,40 @@ class NominaService:
             NominaRegistroNormalizado.mes_fact == mes,
             NominaRegistroNormalizado.año_fact == anio,
         )
-        
+
+        def _guardar_archivo() -> None:
+            directorio = os.path.dirname(ruta_almacenamiento)
+            os.makedirs(directorio, exist_ok=True)
+            ruta_temporal = f"{ruta_almacenamiento}.tmp"
+            try:
+                with open(ruta_temporal, "xb") as f_out:
+                    f_out.write(contenido)
+                    f_out.flush()
+                    os.fsync(f_out.fileno())
+                os.replace(ruta_temporal, ruta_almacenamiento)
+            except BaseException:
+                try:
+                    os.remove(ruta_temporal)
+                except FileNotFoundError:
+                    pass
+                raise
+
         try:
+            tarea_guardado = asyncio.create_task(asyncio.to_thread(_guardar_archivo))
+            try:
+                await asyncio.shield(tarea_guardado)
+                ruta_creada = True
+            except asyncio.CancelledError:
+                await tarea_guardado
+                ruta_creada = True
+                raise
+
             await session.execute(stmt_del)
             
             # 6. Crear entrada de archivo
             archivo = await NominaService.crear_archivo_procesado(
-                session, nombre_archivo, archivos_binarios[0][:1024] if archivos_binarios else b"", 
-                sum(len(b) for b in archivos_binarios), extension, mes, anio, categoria, subcategoria, ruta_almacenamiento
+                session, nombre_archivo, contenido, len(contenido), extension,
+                mes, anio, categoria, subcategoria, ruta_almacenamiento
             )
 
             # 7. Persistir registros (con excepciones)
@@ -152,6 +180,7 @@ class NominaService:
             )
             
             await session.commit()
+            transaccion_confirmada = True
             
             # 8. Formatear respuesta para el frontend (Compatible con múltiples versiones)
             filas_frontend = []
@@ -232,10 +261,17 @@ class NominaService:
                 "archivo_id": archivo.id
             }
             
-        except Exception as e:
-            await session.rollback()
-            logger.error(f"FALLO CRÍTICO en flujo {subcategoria}: {str(e)}", exc_info=True)
-            raise e
+        except BaseException:
+            await asyncio.shield(session.rollback())
+            if ruta_creada and not transaccion_confirmada:
+                try:
+                    await asyncio.shield(
+                        asyncio.to_thread(os.remove, ruta_almacenamiento)
+                    )
+                except FileNotFoundError:
+                    pass
+            logger.error(f"FALLO CRÍTICO en flujo {subcategoria}", exc_info=True)
+            raise
     @staticmethod
     async def obtener_datos_periodo(
         session: AsyncSession,

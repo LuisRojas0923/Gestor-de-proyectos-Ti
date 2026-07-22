@@ -5,13 +5,11 @@ Implementa los 7 pasos de normalización solicitados por el usuario.
 
 import io
 import re
-import logging
 import collections
-from typing import List, Dict, Any, Tuple
-import pdfplumber
+from typing import List, Dict, Any, Optional, Tuple
 import pandas as pd
 
-logger = logging.getLogger(__name__)
+from .validacion_excel_hdi import MAX_EXCEL_COLS, MAX_EXCEL_ROWS, MAX_EXCEL_SHEETS
 
 def _formatear_nombre(nombre: str) -> str:
     """Invierte el nombre de 'Nombres Apellidos' a 'Apellidos Nombres'."""
@@ -76,52 +74,6 @@ def _limpiar_numero(valor: Any) -> float:
         return 0.0
 
 
-def _find_column(columns: List[str], keywords: List[str]) -> str:
-    """Busca una columna que contenga alguna de las palabras clave."""
-    for col in columns:
-        col_up = str(col).upper().strip()
-        for k in keywords:
-            if k in col_up:
-                return col
-    return ""
-
-
-def _extraer_por_regex(text: str) -> List[Dict[str, Any]]:
-    """Fallback por texto puro buscando el patrón de HDI."""
-    rows = []
-    # Patrón: [CERT] [NOV] [TIPO P/D] [ID] [NAME...] [EDAD] [PLAN] [$ VALOR_ASEGURADO] [$ PRIMA_ANUAL] [$ EXTRAPRIMA] [$ PRIMA_COBRO]
-    pattern = re.compile(
-        r"(\d+)\s+[A-Z]+\s+([PD])\s+(\d{5,12})\s+(.*?)\s+\d+\s+\d+\s+.*?\$?\s*[\d,.]+\s+.*?\$?\s*([\d,.]+)\s+.*?\$?\s*[\d,.]+\s+.*?\$?\s*([\d,.]+)\s*$",
-        re.MULTILINE
-    )
-    
-    if not text:
-        return []
-
-    for line in text.split("\n"):
-        m = pattern.search(line.strip())
-        if m:
-            cert_val = m.group(1)
-            tipo = m.group(2)
-            cedula_raw = m.group(3)
-            nombre_raw = m.group(4).strip()
-            prima_anual = _limpiar_numero(m.group(5))
-            
-            # Aplicar reemplazos específicos
-            cedula, nombre = _aplicar_reemplazos(cedula_raw, nombre_raw)
-            
-            rows.append({
-                "cert": cert_val,
-                "tipo": tipo,
-                "cedula": cedula,
-                "nombre_asociado": _formatear_nombre(nombre),
-                "empresa": "REFRIDCOL",
-                "prima_anual": prima_anual,
-                "concepto": "SEGURO DE VIDA",
-            })
-    return rows
-
-
 def _aplicar_reemplazos(cedula: str, nombre: str) -> Tuple[str, str]:
     """Aplica las reglas del Paso 3 de normalización."""
     # IDs
@@ -136,18 +88,13 @@ def _aplicar_reemplazos(cedula: str, nombre: str) -> Tuple[str, str]:
     return cedula, nombre
 
 
-MAX_EXCEL_SHEETS = 10
-MAX_EXCEL_ROWS = 5000
-MAX_EXCEL_COLS = 50
-
-
 def normalizar_df(df: pd.DataFrame, warnings_out: Optional[List[str]] = None) -> pd.DataFrame:
     """Normaliza el DataFrame (de Excel) siguiendo la estructura de HDI exigiendo TIPO estrictamente ('P' o 'D')."""
     df = df.copy()
     if len(df.columns) > MAX_EXCEL_COLS:
-        df = df.iloc[:, :MAX_EXCEL_COLS]
+        raise ValueError(f"La hoja supera el límite de {MAX_EXCEL_COLS} columnas.")
     if len(df) > MAX_EXCEL_ROWS:
-        df = df.iloc[:MAX_EXCEL_ROWS, :]
+        raise ValueError(f"La hoja supera el límite de {MAX_EXCEL_ROWS} filas.")
 
     df = df.dropna(axis=1, how='all').dropna(axis=0, how='all')
     if len(df.columns) < 2 or len(df) == 0:
@@ -168,7 +115,7 @@ def normalizar_df(df: pd.DataFrame, warnings_out: Optional[List[str]] = None) ->
                 m["id"] = i
             if ("NOMBRE" in c_str or "ASOCIADO" in c_str or ("ASEGURADO" in c_str and "VALOR" not in c_str)) and "nombre" not in m:
                 m["nombre"] = i
-            
+
             # Priorizar PRIMA ANUAL sobre PRIMA COBRO y VALOR ASEGURADO
             if "PRIMA ANUAL" in c_str or "ANUAL" in c_str:
                 m["prima"] = i
@@ -237,12 +184,15 @@ def normalizar_df(df: pd.DataFrame, warnings_out: Optional[List[str]] = None) ->
                 tipo = "D"
 
         if not tipo:
-            if warnings_out is not None:
-                raw_tipo_str = str(row.iloc[tipo_col_idx]).strip() if (tipo_col_idx != -1 and tipo_col_idx < len(row)) else "Ausente"
-                warnings_out.append(
-                    f"Fila con Cédula '{id_val}' ignorada: TIPO inválido o no reconocido ('{raw_tipo_str}'). Se requiere 'P' (Titular) o 'D' (Dependiente)."
-                )
-            continue
+            raw_tipo = (
+                str(row.iloc[tipo_col_idx]).strip()
+                if tipo_col_idx != -1 and tipo_col_idx < len(row)
+                else "Ausente"
+            )
+            raise ValueError(
+                f"TIPO inválido para la cédula '{id_val}': '{raw_tipo}'. "
+                "Se requiere P (Titular) o D (Dependiente)."
+            )
 
         nombre = ""
         if nombre_col_idx != -1 and nombre_col_idx < len(row):
@@ -278,98 +228,77 @@ def extraer_hdi(
     archivos_binarios: List[bytes]
 ) -> Tuple[List[Dict[str, Any]], Dict[str, Any], List[str]]:
     """Procesa de manera exclusiva archivos Excel (.xlsx, .xls) de HDI con la lógica de 7 pasos y consolidación."""
+    if len(archivos_binarios) != 1:
+        raise ValueError("Seguros HDI requiere exactamente un archivo Excel.")
+
     all_raw_rows: List[Dict[str, Any]] = []
     warnings: List[str] = []
-    archivos_procesados_exitosamente = 0
+    excel_file = pd.ExcelFile(io.BytesIO(archivos_binarios[0]))
+    if len(excel_file.sheet_names) > MAX_EXCEL_SHEETS:
+        raise ValueError(f"El libro supera el límite de {MAX_EXCEL_SHEETS} hojas.")
 
-    for idx, contenido in enumerate(archivos_binarios):
-        filas_archivo = []
-        try:
-            excel_file = pd.ExcelFile(io.BytesIO(contenido))
-            sheets = excel_file.sheet_names[:MAX_EXCEL_SHEETS]
-            for sheet_name in sheets:
-                df_norm = pd.DataFrame()
-                for skip in range(6):
-                    try:
-                        df_sheet = pd.read_excel(
-                            excel_file,
-                            sheet_name=sheet_name,
-                            skiprows=skip,
-                            nrows=MAX_EXCEL_ROWS
-                        )
-                        df_candidate = normalizar_df(df_sheet, warnings_out=warnings)
-                        if not df_candidate.empty:
-                            df_norm = df_candidate
-                            break
-                    except Exception:
-                        continue
+    for sheet_name in excel_file.sheet_names:
+        df_full = pd.read_excel(excel_file, sheet_name=sheet_name, header=None)
+        if len(df_full) > MAX_EXCEL_ROWS or len(df_full.columns) > MAX_EXCEL_COLS:
+            raise ValueError("El libro excede los límites de filas o columnas permitidos.")
 
-                for _, r in df_norm.iterrows():
-                    row_dict = dict(r)
-                    row_dict["_origin_file"] = idx
-                    row_dict["_origin_sheet"] = sheet_name
-                    filas_archivo.append(row_dict)
+        header_index = None
+        for index in range(min(6, len(df_full))):
+            values = [str(value).upper().strip() for value in df_full.iloc[index]]
+            has_id = any("IDENTIF" in value or "CEDULA" in value for value in values)
+            if has_id and any("TIPO" in value for value in values):
+                header_index = index
+                break
 
-            if len(filas_archivo) > 0:
-                archivos_procesados_exitosamente += 1
-                all_raw_rows.extend(filas_archivo)
-            else:
-                num_archivo = f" #{idx + 1}" if len(archivos_binarios) > 1 else ""
-                warnings.append(f"El archivo{num_archivo} no contiene filas o columnas válidas del formato Seguros HDI.")
+        if header_index is None:
+            raise ValueError(
+                f"La hoja '{sheet_name}' no contiene encabezados válidos de Seguros HDI."
+            )
 
-        except Exception as e:
-            logger.error(f"Error procesando archivo Excel de HDI #{idx + 1}: {e}")
-            num_archivo = f" #{idx + 1}" if len(archivos_binarios) > 1 else ""
-            warnings.append(f"Error al leer el archivo Excel{num_archivo}: {e}")
+        df_sheet = df_full.iloc[header_index + 1:].copy()
+        df_sheet.columns = df_full.iloc[header_index].tolist()
+        df_norm = normalizar_df(df_sheet, warnings_out=warnings)
 
-    if len(all_raw_rows) == 0:
-        warnings.append("Ninguno de los archivos adjuntos contiene la estructura ni columnas válidas asociadas al formato Excel de Seguros HDI.")
+        for _, row in df_norm.iterrows():
+            row_dict = dict(row)
+            row_dict["_origin_sheet"] = sheet_name
+            all_raw_rows.append(row_dict)
+
+    if not all_raw_rows:
+        raise ValueError("El archivo no contiene filas válidas del formato Seguros HDI.")
 
     # Agrupar por CERT dentro del mismo origen (archivo y hoja)
     grupos_cert = collections.defaultdict(list)
     for idx_r, r in enumerate(all_raw_rows):
-        file_idx = r.get("_origin_file", 0)
         sheet_name = r.get("_origin_sheet", "")
         cert_val = r.get("cert")
         if not cert_val:
-            group_key = (file_idx, sheet_name, f"dummy_{idx_r}")
+            group_key = (sheet_name, f"dummy_{idx_r}")
         else:
-            group_key = (file_idx, sheet_name, cert_val)
+            group_key = (sheet_name, cert_val)
         grupos_cert[group_key].append(r)
 
     consolidated_rows: List[Dict[str, Any]] = []
     for group_key, members in grupos_cert.items():
-        cert_display = group_key[2] if isinstance(group_key, tuple) else group_key
-        # Encontrar el titular (tipo == "P")
-        titular = None
-        for m in members:
-            if m["tipo"] == "P":
-                titular = m
-                break
-        
-        # Si no hay titular, usamos el primer miembro del grupo y generamos una advertencia
-        if not titular:
-            titular = members[0]
-            warnings.append(
-                f"No se detectó un Titular (TIPO = 'P') para el grupo CERT '{cert_display}'. "
-                f"Se asumirá como titular a '{titular['nombre_asociado']}' y no se aplicará subsidio de empresa."
+        cert_display = group_key[-1]
+        titulares = [member for member in members if member["tipo"] == "P"]
+        if len(titulares) != 1:
+            raise ValueError(
+                f"El grupo CERT '{cert_display}' debe contener exactamente un Titular; "
+                f"se encontraron {len(titulares)}."
             )
-            total_empleado = sum(m["prima_anual"] / 12 for m in members)
-            valor_colaborador = round(total_empleado, 2)
-            valor_rdc = 0.0
-            valor_total = valor_colaborador
-        else:
-            # Hay titular:
-            # 1. Prima titular: 76% colaborador, 24% empresa
-            prima_titular = titular["prima_anual"] / 12
-            valor_rdc = round(prima_titular * 0.24, 2)
-            valor_col_titular = round(prima_titular * 0.76, 2)
-            
-            # 2. Prima dependientes: 100% colaborador, 0% empresa
-            valor_col_dependents = sum(m["prima_anual"] / 12 for m in members if m is not titular)
-            
-            valor_colaborador = round(valor_col_titular + valor_col_dependents, 2)
-            valor_total = round(valor_rdc + valor_colaborador, 2)
+        titular = titulares[0]
+
+        prima_titular = titular["prima_anual"] / 12
+        valor_rdc = round(prima_titular * 0.24, 2)
+        valor_col_titular = round(prima_titular * 0.76, 2)
+        valor_col_dependents = sum(
+            member["prima_anual"] / 12
+            for member in members
+            if member is not titular
+        )
+        valor_colaborador = round(valor_col_titular + valor_col_dependents, 2)
+        valor_total = round(valor_rdc + valor_colaborador, 2)
             
         # Crear la fila consolidada asociada al Titular
         obs = f"Grupo CERT {cert_display}"
@@ -418,8 +347,8 @@ def extraer_hdi(
         "total_asociados": len(final_rows),
         "total_filas_consolidadas": len(final_rows),
         "total_valor": round(total_valor, 2),
-        "archivos_procesados": archivos_procesados_exitosamente,
-        "archivos_recibidos": len(archivos_binarios),
+        "archivos_procesados": 1,
+        "archivos_recibidos": 1,
     }
     
     return final_rows, summary, warnings

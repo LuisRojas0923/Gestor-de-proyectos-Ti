@@ -1,71 +1,72 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import HdiPreview from '../HdiPreview';
-import { BrowserRouter } from 'react-router-dom';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { MemoryRouter } from 'react-router-dom';
 
-// Mocks para servicios API y alertas
-vi.mock('../../../../../services/nominaService', () => ({
-  nominaService: {
-    previewHdi: vi.fn(),
-    guardarNovedades: vi.fn(),
-    obtenerDatosHdi: vi.fn().mockResolvedValue([]),
+const mocks = vi.hoisted(() => ({
+  addNotification: vi.fn(),
+  axiosGet: vi.fn(),
+  axiosPost: vi.fn(),
+}));
+
+vi.mock('axios', () => ({
+  default: {
+    get: mocks.axiosGet,
+    post: mocks.axiosPost,
   },
 }));
 
-vi.mock('../../../../../context/AuthContext', () => ({
-  useAuth: () => ({
-    user: { id: 1, name: 'Test User', role: 'admin' },
-    hasPermission: () => true,
-  }),
+vi.mock('../../../../../components/notifications/NotificationsContext', () => ({
+  useNotifications: () => ({ addNotification: mocks.addNotification }),
 }));
 
-describe('HdiPreview Component', () => {
+import HdiPreview from '../HdiPreview';
+
+const renderComponent = () => render(
+  <MemoryRouter>
+    <HdiPreview />
+  </MemoryRouter>,
+);
+
+describe('HdiPreview', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.axiosGet.mockResolvedValue({ data: { rows: [] } });
   });
 
-  it('debe configurar el input de archivos únicamente para formatos Excel (.xlsx, .xls)', () => {
-    render(
-      <BrowserRouter>
-        <HdiPreview />
-      </BrowserRouter>
-    );
+  it('acepta un único archivo Excel', async () => {
+    renderComponent();
+    await waitFor(() => expect(mocks.axiosGet).toHaveBeenCalledTimes(1));
 
-    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
-    expect(fileInput).not.toBeNull();
-    expect(fileInput.getAttribute('accept')).toBe('.xlsx,.xls');
+    const fileInput = document.getElementById('file-upload') as HTMLInputElement;
+    expect(fileInput).toHaveAttribute('accept', '.xlsx,.xls');
+    expect(fileInput).not.toHaveAttribute('multiple');
   });
 
-  it('debe mostrar etiquetas y textos centrados en Excel (no PDF)', () => {
-    render(
-      <BrowserRouter>
-        <HdiPreview />
-      </BrowserRouter>
-    );
+  it('rechaza PDF, notifica, limpia la selección y no procesa', async () => {
+    renderComponent();
+    await waitFor(() => expect(mocks.axiosGet).toHaveBeenCalledTimes(1));
 
-    // Verificar texto de botones o encabezados de Excel
-    const buttons = screen.getAllByRole('button');
-    const procesarBtn = buttons.find(b => b.textContent?.includes('Excel') || b.textContent?.includes('Procesar'));
-    expect(procesarBtn).toBeDefined();
-  });
-
-  it('debe advertir si se intenta seleccionar un archivo PDF', async () => {
-    render(
-      <BrowserRouter>
-        <HdiPreview />
-      </BrowserRouter>
-    );
-
-    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
-    const fakePdfFile = new File(['%PDF-1.4 mock content'], 'factura.pdf', { type: 'application/pdf' });
-
-    fireEvent.change(fileInput, { target: { files: [fakePdfFile] } });
-
-    // El input o UI debe rechazar o mostrar mensaje ante extensiones no permitidas
-    await waitFor(() => {
-      const errorOrInfo = screen.queryByText(/PDF/i) || screen.queryByText(/Excel/i);
-      expect(errorOrInfo).not.toBeNull();
+    const fileInput = document.getElementById('file-upload') as HTMLInputElement;
+    const validFile = new File(['excel'], 'nomina.xlsx', {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     });
+    fireEvent.change(fileInput, { target: { files: [validFile] } });
+    expect(screen.getByText(/1 seleccionado/i)).toBeInTheDocument();
+
+    const pdf = new File(['%PDF-1.4'], 'nomina.xlsx.pdf', { type: 'application/pdf' });
+    fireEvent.change(fileInput, { target: { files: [pdf] } });
+
+    await waitFor(() => expect(mocks.addNotification).toHaveBeenCalledWith(
+      'error',
+      'Solo se permite un archivo Excel (.xls o .xlsx).',
+    ));
+    expect(screen.getByText(/0 seleccionados/i)).toBeInTheDocument();
+    expect(fileInput.value).toBe('');
+
+    const processButton = screen.getByRole('button', { name: /Procesar Excel/i });
+    expect(processButton).toBeDisabled();
+    fireEvent.click(processButton);
+    expect(mocks.axiosPost).not.toHaveBeenCalled();
   });
 });

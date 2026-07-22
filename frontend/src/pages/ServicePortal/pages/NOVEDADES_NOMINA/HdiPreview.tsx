@@ -101,9 +101,16 @@ const HdiPreview: React.FC = () => {
     }, [mes, anio]);
 
     const handleFilesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files) {
-            setFiles(Array.from(e.target.files));
+        const selectedFiles = Array.from(e.currentTarget.files ?? []);
+        const isValid = selectedFiles.length <= 1
+            && selectedFiles.every(file => /\.(xlsx|xls)$/i.test(file.name));
+        if (!isValid) {
+            setFiles([]);
+            e.currentTarget.value = '';
+            addNotification('error', 'Solo se permite un archivo Excel (.xls o .xlsx).');
+            return;
         }
+        setFiles(selectedFiles);
     };
 
     const handleProcess = async () => {
@@ -246,7 +253,6 @@ const HdiPreview: React.FC = () => {
                         <div className="relative group">
                             <input id="file-upload" // @audit-ok
                                 type="file"
-                                multiple
                                 accept=".xlsx,.xls"
                                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                                 onChange={handleFilesChange}

@@ -83,10 +83,34 @@
         "low": 3
       },
       "test_coverage_observations": "Se recolectan 10 tests backend y se reportan 10 passed; cubren servicio, 413 previo al parser, lifecycle HTTP POST/GET/DELETE y RBAC. Frontend reporta 3 passed, incluido éxito parcial y reintento sin duplicar. Persisten gaps no bloqueantes de DB real/rollback/auditoría, matriz de formatos, carga exitosa/edición/refresh 401, health checks con skips y sync_docs."
+    },
+    {
+      "date": "2026-07-22",
+      "scope": "revisión final de documentación y evidencia de pruebas para PR #22 Seguros HDI reparado",
+      "outcome": "blocked",
+      "finding_count_by_severity": {
+        "blocking": 1,
+        "high": 0,
+        "medium": 2,
+        "low": 1
+      },
+      "test_coverage_observations": "Se aportan 21 passed backend HDI, 2 passed frontend y 4 passed/4 skipped en health. La cobertura incluye BIFF8 real, límites, archivos disfrazados, preservación y aserciones frontend. Bloquea que el validador y 9 casos permanezcan untracked y que toda la reparación siga fuera de origin/FIX_HDI; collect-only local no estuvo disponible por ausencia de pytest."
+    },
+    {
+      "date": "2026-07-22",
+      "scope": "re-evaluación del build local final de PR #22 con reporte canónico y evidencia ampliada",
+      "outcome": "approved_with_risks",
+      "finding_count_by_severity": {
+        "blocking": 0,
+        "high": 0,
+        "medium": 2,
+        "low": 1
+      },
+      "test_coverage_observations": "La implementación local reporta 25 passed backend HDI, 2 passed frontend y 4 passed/4 skipped en health; cubre BIFF8 real, límites, archivos disfrazados, rollback/limpieza, preservación y contrato frontend. No hay blocker local. El remoto aún no contiene el working tree, pero commit/push es un paso de publicación separado y no bloquea la aprobación técnica local sin solicitud Git explícita."
     }
   ],
   "stats": {
-    "total_reviews": 6,
-    "last_review": "2026-07-15"
+    "total_reviews": 8,
+    "last_review": "2026-07-22"
   }
 }

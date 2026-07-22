@@ -37,12 +37,21 @@
       "titulo": "Permisos ampliados para subagentes con whitelists explícitas",
       "timestamp": "2026-06-03T09:35:00Z",
       "estado": "VIGENTE"
+    },
+    {
+      "operation": "record error",
+      "id": "ERR-003",
+      "titulo": "PR #22 HDI: extracción y almacenamiento inseguros de archivos XLS/XLSX",
+      "timestamp": "2026-07-22T00:00:00Z",
+      "prioridad": "CRITICA",
+      "estado": "RESUELTO",
+      "publicacion": "commit y push pendientes de instrucción explícita"
     }
   ],
   "stats": {
-    "total_operations": 2,
-    "last_operation": "record decision (DEC-2026-06-03-1) — 2026-06-03T09:35:00Z",
-    "errors_recorded": 1,
+    "total_operations": 3,
+    "last_operation": "record error (ERR-003) — 2026-07-22T00:00:00Z",
+    "errors_recorded": 2,
     "decisions_recorded": 1,
     "memory_persistence_enabled": true,
     "permission_grant_date": "2026-06-03"

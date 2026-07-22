@@ -293,7 +293,7 @@ class NominaHelper:
     async def crear_archivo_procesado(
         session: AsyncSession,
         nombre: str,
-        content_prefix: bytes,
+        contenido: bytes,
         size: int,
         ext: str,
         mes: int,
@@ -305,7 +305,7 @@ class NominaHelper:
         """Crea un objeto NominaArchivo marcado como procesado."""
         archivo = NominaArchivo(
             nombre_archivo=nombre,
-            hash_archivo=hashlib.md5(content_prefix).hexdigest(),
+            hash_archivo=hashlib.sha256(contenido).hexdigest(),
             tamaño_bytes=size,
             tipo_archivo=ext,
             ruta_almacenamiento=ruta_almacenamiento,
