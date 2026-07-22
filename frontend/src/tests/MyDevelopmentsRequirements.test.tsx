@@ -158,6 +158,6 @@ describe('MyDevelopments - Page Rendering', () => {
 
     // Verify action buttons exist
     expect(screen.getByTitle('Actualizar')).toBeInTheDocument();
-    expect(screen.getByTitle('Eliminar')).toBeInTheDocument();
+    expect(screen.getByTitle('Anular')).toBeInTheDocument();
   });
 });
