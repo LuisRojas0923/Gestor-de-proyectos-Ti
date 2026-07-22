@@ -83,10 +83,118 @@
         "low": 3
       },
       "test_coverage_observations": "Se recolectan 10 tests backend y se reportan 10 passed; cubren servicio, 413 previo al parser, lifecycle HTTP POST/GET/DELETE y RBAC. Frontend reporta 3 passed, incluido éxito parcial y reintento sin duplicar. Persisten gaps no bloqueantes de DB real/rollback/auditoría, matriz de formatos, carga exitosa/edición/refresh 401, health checks con skips y sync_docs."
+    },
+    {
+      "date": "2026-07-22",
+      "scope": "cobertura aria-checked de ConsolidatedTableById y ColumnFilterPopover",
+      "outcome": "blocked",
+      "finding_count_by_severity": {
+        "blocking": 2,
+        "high": 0,
+        "medium": 0,
+        "low": 0
+      },
+      "test_coverage_observations": "La suite existente tiene 11 pruebas y cubre roles, filtrado y aria-expanded, pero no comprueba aria-checked en el DOM ni su transición true→false. ColumnFilterPopover envía el atributo, mientras Button no lo declara ni reenvía; se requiere una aserción focalizada y ejecutar Vitest dirigido, tsc, lint y build."
+    },
+    {
+      "date": "2026-07-22",
+      "scope": "revisión final aria-checked de Button, ColumnFilterPopover y ConsolidatedTableById",
+      "outcome": "approved_with_risks",
+      "finding_count_by_severity": {
+        "blocking": 0,
+        "high": 0,
+        "medium": 2,
+        "low": 1
+      },
+      "test_coverage_observations": "La prueba integrada verifica aria-checked=true→false en el DOM y satisface el bloqueo original. Se reportan Vitest 146 passed/2 skipped, build exitoso y lint focalizado limpio; tsc -b falla en RequirementsTab.tsx y el lint global reporta 503 errores preexistentes. No hay prueba directa de Button para mixed y queda un reporte previo bloqueado que debe considerarse superseded."
+    },
+    {
+      "date": "2026-07-22",
+      "scope": "cobertura Set vacío/todos/ninguno de ConsolidatedTableById",
+      "outcome": "blocked",
+      "finding_count_by_severity": {
+        "blocking": 1,
+        "high": 0,
+        "medium": 2,
+        "low": 0
+      },
+      "test_coverage_observations": "La suite cubre solo la transición parcial aria-checked=true→false y una comprobación mínima de Limpiar. Faltan casos para última opción, columna univaluada, reactivación desde ninguno, Todo y visibilidad completa tras Limpiar. La implementación colapsa Set vacío con todos y no permite proteger el estado ninguno; se proponen cinco casos focalizados con aserciones ARIA."
+    },
+    {
+      "date": "2026-07-22",
+      "scope": "cobertura final triestado de ConsolidatedTableById",
+      "outcome": "approved_with_risks",
+      "finding_count_by_severity": {
+        "blocking": 0,
+        "high": 0,
+        "medium": 1,
+        "low": 1
+      },
+      "test_coverage_observations": "La suite final cubre última opción→ninguno, reactivación, columna con una opción, Todo, Limpiar, aria-checked e indicador; se reportan 149 passed/2 skipped y build exitoso. tsc -b continúa fallando fuera del diff en RequirementsTab.tsx. Como hardening opcional, falta una aserción directa del indicador en null y de las tres filas tras Todo/Limpiar."
+    },
+    {
+      "date": "2026-07-22",
+      "scope": "estructura semántica de ConsolidatedTableById",
+      "outcome": "blocked",
+      "finding_count_by_severity": {
+        "blocking": 2,
+        "high": 0,
+        "medium": 0,
+        "low": 0
+      },
+      "test_coverage_observations": "La suite de 14 pruebas no verifica seis columnheaders con scope=col ni seis celdas por fila. El DOM actual no declara scope=col y añade una séptima celda td para la franja; se requiere un caso focalizado que cuente headers y celdas, preservando la franja mediante CSS no tabular."
+    },
+    {
+      "date": "2026-07-22",
+      "scope": "cobertura final semántica de tabla de ConsolidatedTableById",
+      "outcome": "approved_with_risks",
+      "finding_count_by_severity": {
+        "blocking": 0,
+        "high": 0,
+        "medium": 1,
+        "low": 1
+      },
+      "test_coverage_observations": "La prueba focalizada verifica seis encabezados, scope=col en cada uno, seis celdas por fila y el borde CSS de franja; se reportan 150 passed/2 skipped y build exitoso. Permanece como bloqueo externo condicional el tsc global fallido en RequirementsTab.tsx; el borde solo se comprueba en la primera fila como hardening opcional."
+    },
+    {
+      "date": "2026-07-22",
+      "scope": "cobertura final del posicionamiento de ColumnFilterPopover",
+      "outcome": "approved_with_risks",
+      "finding_count_by_severity": {
+        "blocking": 0,
+        "high": 0,
+        "medium": 2,
+        "low": 0
+      },
+      "test_coverage_observations": "La prueba cubre viewport móvil 260x300, top/width ajustados, max-height y el registro de resize/scroll en visualViewport; la comparación estática confirma que los tests existentes se conservan. Se reportan 150 passed/2 skipped y build exitoso. Como hardening, no se disparan los callbacks ni se verifica su cleanup; tsc global mantiene el fallo conocido fuera del alcance en RequirementsTab.tsx."
+    },
+    {
+      "date": "2026-07-22",
+      "scope": "cobertura de teclado de ConsolidatedTableById",
+      "outcome": "blocked",
+      "finding_count_by_severity": {
+        "blocking": 2,
+        "high": 0,
+        "medium": 1,
+        "low": 0
+      },
+      "test_coverage_observations": "La suite cubre autofocus, foco restaurado y clic, pero no Enter para abrir ni Space/Enter para activar opciones; fireEvent.keyDown no reproduce activación nativa ni navegación Tab en jsdom y user-event no está instalado. Button ya reenvía onKeyDown; se recomienda handler local deliberado con preventDefault para evitar doble toggle, sin modificar genéricamente Button ni el átomo Checkbox."
+    },
+    {
+      "date": "2026-07-22",
+      "scope": "cobertura final del test de selección por teclado de ConsolidatedTableById",
+      "outcome": "approved_with_risks",
+      "finding_count_by_severity": {
+        "blocking": 0,
+        "high": 0,
+        "medium": 3,
+        "low": 0
+      },
+      "test_coverage_observations": "La prueba final confirma apertura con Enter, foco automático del buscador, activación de Sin estado con Space y Enter, y aria-checked false→true con la fila restaurada. No se ejecutó Vitest bajo las restricciones read-only; no se demuestra navegación Tab/Shift+Tab real y falta una aserción explícita de aria-expanded/keyUp en el caso de teclado."
     }
   ],
   "stats": {
-    "total_reviews": 6,
-    "last_review": "2026-07-15"
+    "total_reviews": 15,
+    "last_review": "2026-07-22"
   }
 }

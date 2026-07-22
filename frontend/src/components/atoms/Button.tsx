@@ -22,6 +22,7 @@ interface ButtonProps {
   'aria-describedby'?: string;
   'aria-hidden'?: boolean;
   'aria-selected'?: boolean;
+  'aria-checked'?: boolean | 'mixed';
   'aria-pressed'?: boolean;
   'aria-expanded'?: boolean;
   'aria-controls'?: string;
@@ -71,6 +72,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(({
   'aria-describedby': ariaDescribedBy,
   'aria-hidden': ariaHidden,
   'aria-selected': ariaSelected,
+  'aria-checked': ariaChecked,
   'aria-pressed': ariaPressed,
   'aria-expanded': ariaExpanded,
   'aria-controls': ariaControls,
@@ -122,6 +124,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(({
       aria-describedby={ariaDescribedBy}
       aria-hidden={ariaHidden}
       aria-selected={ariaSelected}
+      aria-checked={ariaChecked}
       aria-pressed={ariaPressed}
       aria-expanded={ariaExpanded}
       aria-controls={ariaControls}

@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Search, X, Check } from 'lucide-react';
-import { Button, Input, Checkbox, Text } from '../atoms';
+import { Button, Input, Text } from '../atoms';
 
 interface ColumnFilterPopoverProps {
   columnKey: string;
   title: string;
   options: string[];
-  selectedValues: Set<string>;
+  selectedValues: Set<string> | null;
   onToggleOption: (columnKey: string, option: string) => void;
   onSelectAll: (columnKey: string) => void;
   onClear: (columnKey: string) => void;
@@ -31,28 +31,50 @@ export const ColumnFilterPopover: React.FC<ColumnFilterPopoverProps> = ({
   const popoverRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    const POPOVER_MAX_HEIGHT = 350;
+    const VIEWPORT_MARGIN = 10;
+    const POSITION_GAP = 4;
+
     const updatePosition = () => {
       if (anchorEl) {
         const rect = anchorEl.getBoundingClientRect();
-        const POPOVER_HEIGHT = 350;
-        const POPOVER_WIDTH = Math.min(250, window.innerWidth - 20);
+        const viewport = window.visualViewport;
+        const viewportTop = viewport?.offsetTop ?? 0;
+        const viewportLeft = viewport?.offsetLeft ?? 0;
+        const viewportWidth = viewport?.width ?? window.innerWidth;
+        const viewportHeight = viewport?.height ?? window.innerHeight;
+        const viewportBottom = viewportTop + viewportHeight;
+        const viewportRight = viewportLeft + viewportWidth;
+        const POPOVER_WIDTH = Math.min(250, Math.max(0, viewportWidth - 20));
+        const popoverHeight = Math.min(
+          POPOVER_MAX_HEIGHT,
+          Math.max(0, viewportHeight - VIEWPORT_MARGIN * 2)
+        );
 
-        let top = rect.bottom + 4;
+        let top = rect.bottom + POSITION_GAP;
         let left = rect.left;
         let opensUpward = false;
+        const spaceBelow = viewportBottom - VIEWPORT_MARGIN - top;
+        const spaceAbove = rect.top - POSITION_GAP - (viewportTop + VIEWPORT_MARGIN);
 
-        if (top + POPOVER_HEIGHT > window.innerHeight) {
-          top = rect.top - POPOVER_HEIGHT - 4;
+        if (spaceBelow < popoverHeight && spaceAbove > spaceBelow) {
+          top = rect.top - popoverHeight - POSITION_GAP;
           opensUpward = true;
         }
 
-        top = Math.max(10, top);
+        top = Math.max(
+          viewportTop + VIEWPORT_MARGIN,
+          Math.min(top, viewportBottom - VIEWPORT_MARGIN - popoverHeight)
+        );
 
-        if (left + POPOVER_WIDTH > window.innerWidth) {
+        if (left + POPOVER_WIDTH > viewportRight) {
           left = rect.right - POPOVER_WIDTH;
         }
 
-        left = Math.max(10, left);
+        left = Math.max(
+          viewportLeft + VIEWPORT_MARGIN,
+          Math.min(left, viewportRight - VIEWPORT_MARGIN - POPOVER_WIDTH)
+        );
 
         setCoords({ top, left, opensUpward, width: POPOVER_WIDTH });
       }
@@ -61,10 +83,14 @@ export const ColumnFilterPopover: React.FC<ColumnFilterPopoverProps> = ({
     updatePosition();
     window.addEventListener('scroll', updatePosition, true);
     window.addEventListener('resize', updatePosition);
+    window.visualViewport?.addEventListener('resize', updatePosition);
+    window.visualViewport?.addEventListener('scroll', updatePosition);
 
     return () => {
       window.removeEventListener('scroll', updatePosition, true);
       window.removeEventListener('resize', updatePosition);
+      window.visualViewport?.removeEventListener('resize', updatePosition);
+      window.visualViewport?.removeEventListener('scroll', updatePosition);
     };
   }, [anchorEl]);
 
@@ -101,13 +127,15 @@ export const ColumnFilterPopover: React.FC<ColumnFilterPopoverProps> = ({
   );
 
   return createPortal(
-    <div
-      ref={popoverRef}
-      role="dialog"
-      aria-labelledby={`filter-title-${columnKey}`}
-      className={`
-        fixed z-[9999]
-        bg-white/90 dark:bg-neutral-800/95
+      <div
+        ref={popoverRef}
+        role="dialog"
+        aria-labelledby={`filter-title-${columnKey}`}
+        style={{ maxHeight: 'min(350px, calc(100dvh - 20px))' }}
+        className={`
+          fixed z-[9999]
+          flex flex-col
+          bg-white/90 dark:bg-neutral-800/95
         backdrop-blur-xl
         border border-neutral-200 dark:border-neutral-700
         rounded-2xl shadow-2xl
@@ -168,10 +196,10 @@ export const ColumnFilterPopover: React.FC<ColumnFilterPopoverProps> = ({
       </div>
 
       {/* Options List */}
-      <div className="px-2 py-1 max-h-[200px] overflow-y-auto custom-scrollbar">
+      <div className="px-2 py-1 flex-1 min-h-0 max-h-[200px] overflow-y-auto custom-scrollbar">
         {filteredOptions.length > 0 ? (
           filteredOptions.map(option => {
-            const isChecked = selectedValues.size === 0 || selectedValues.has(option);
+            const isChecked = selectedValues !== null && (selectedValues.size === 0 || selectedValues.has(option));
             return (
               <Button
                 key={option}
@@ -179,6 +207,12 @@ export const ColumnFilterPopover: React.FC<ColumnFilterPopoverProps> = ({
                 role="checkbox"
                 aria-checked={isChecked}
                 onClick={() => onToggleOption(columnKey, option)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ' || event.code === 'Space') {
+                    event.preventDefault();
+                    onToggleOption(columnKey, option);
+                  }
+                }}
                 className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors h-auto font-normal justify-start"
               >
                 <div className={`
@@ -205,7 +239,7 @@ export const ColumnFilterPopover: React.FC<ColumnFilterPopoverProps> = ({
       {/* Footer */}
       <div className="px-4 py-2 bg-neutral-50/50 dark:bg-neutral-900/30 border-t border-neutral-100 dark:border-neutral-700/50 flex justify-between items-center">
         <Text variant="caption" color="text-secondary" className="text-[10px]">
-          {selectedValues.size === 0 ? options.length : selectedValues.size} seleccionados
+          {selectedValues === null ? 0 : selectedValues.size === 0 ? options.length : selectedValues.size} seleccionados
         </Text>
         <Button
           variant="primary"

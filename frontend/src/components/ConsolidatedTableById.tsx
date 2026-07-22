@@ -27,6 +27,8 @@ type DesarrolloCon = {
     actividades: Actividad[];
 };
 
+type ColumnFilterSelection = Set<string> | null;
+
 const COLUMNS = [
     { key: 'tarea', label: 'Tarea', width: 'flex-1 min-w-[260px]' },
     { key: 'estado', label: 'Estado', width: 'md:w-24', isFilterable: true },
@@ -73,12 +75,15 @@ const formatDateShort = (dateStr?: string) => {
     }
 };
 
+const isFilterActive = (selection: ColumnFilterSelection | undefined): boolean =>
+    selection === null || (selection?.size ?? 0) > 0;
+
 const ConsolidatedTableById: React.FC<{ desarrolloId: string }> = ({ desarrolloId }) => {
     const [data, setData] = useState<DesarrolloCon | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    const [columnFilters, setColumnFilters] = useState<Record<string, Set<string>>>({});
+    const [columnFilters, setColumnFilters] = useState<Record<string, ColumnFilterSelection>>({});
     const [activeFilter, setActiveFilter] = useState<string | null>(null);
     const filterRefs = useRef<Record<string, HTMLButtonElement | null>>({});
 
@@ -116,6 +121,7 @@ const ConsolidatedTableById: React.FC<{ desarrolloId: string }> = ({ desarrolloI
         if (!data) return [];
         return data.actividades.filter((a) => {
             for (const [key, selected] of Object.entries(columnFilters)) {
+                if (selected === null) return false;
                 if (selected.size === 0) continue;
                 let value: string;
                 if (key === 'estado') {
@@ -131,7 +137,7 @@ const ConsolidatedTableById: React.FC<{ desarrolloId: string }> = ({ desarrolloI
         });
     }, [data, columnFilters]);
 
-    const hasActiveFilters = Object.values(columnFilters).some((s) => s.size > 0);
+    const hasActiveFilters = Object.values(columnFilters).some((selection) => isFilterActive(selection));
 
     const toggleFilter = (key: string) => {
         if (activeFilter === key) {
@@ -170,6 +176,7 @@ const ConsolidatedTableById: React.FC<{ desarrolloId: string }> = ({ desarrolloI
     const averageProgress = data.actividades.length
         ? Math.round(data.actividades.reduce((sum, item) => sum + (item.porcentaje_avance ?? 0), 0) / data.actividades.length)
         : 0;
+    const activeSelection = activeFilter ? columnFilters[activeFilter] : undefined;
 
     return (
         <div className="space-y-4">
@@ -222,6 +229,7 @@ const ConsolidatedTableById: React.FC<{ desarrolloId: string }> = ({ desarrolloI
                                         col.isActions ? (
                                             <th
                                                 key={col.key}
+                                                scope="col"
                                                 className={`${col.width} shrink-0 py-2.5 px-4 bg-white/10`}
                                             >
                                                 <Text as="span" variant="caption" weight="bold" color="white" className="uppercase tracking-wider !text-[11px]">
@@ -231,6 +239,7 @@ const ConsolidatedTableById: React.FC<{ desarrolloId: string }> = ({ desarrolloI
                                         ) : (
                                             <th
                                                 key={col.key}
+                                                scope="col"
                                                 className={`${col.width} shrink-0 py-2.5 px-4 ${idx === 0 ? 'bg-blue-500/20' : 'bg-[var(--deep-navy)]'} transition-colors`}
                                             >
                                                 {col.isFilterable ? (
@@ -238,6 +247,12 @@ const ConsolidatedTableById: React.FC<{ desarrolloId: string }> = ({ desarrolloI
                                                         variant="custom"
                                                         type="button"
                                                         onClick={() => toggleFilter(col.key)}
+                                                        onKeyDown={(event) => {
+                                                            if (event.key === 'Enter' || event.key === ' ' || event.code === 'Space') {
+                                                                event.preventDefault();
+                                                                toggleFilter(col.key);
+                                                            }
+                                                        }}
                                                         ref={(el) => { filterRefs.current[col.key] = el; }}
                                                         aria-haspopup="dialog"
                                                         aria-expanded={activeFilter === col.key}
@@ -249,7 +264,7 @@ const ConsolidatedTableById: React.FC<{ desarrolloId: string }> = ({ desarrolloI
                                                         `}>
                                                             {col.label}
                                                         </Text>
-                                                        {columnFilters[col.key]?.size > 0 && (
+                                                        {isFilterActive(columnFilters[col.key]) && (
                                                             <Text as="span" className="w-2 h-2 rounded-full bg-yellow-400 shrink-0" />
                                                         )}
                                                     </Button>
@@ -272,8 +287,7 @@ const ConsolidatedTableById: React.FC<{ desarrolloId: string }> = ({ desarrolloI
                                 {filteredActividades.length > 0 ? (
                                     filteredActividades.map((a) => (
                                         <tr key={`${data.id}-${a.id}`} className="group hover:bg-[var(--color-surface-variant)] transition-colors cursor-pointer relative">
-                                            <td className="absolute left-0 top-0 bottom-0 w-1.5 bg-[var(--deep-navy)]"></td>
-                                            <td className="flex-1 min-w-[260px] py-3 px-4">
+                                            <td className="flex-1 min-w-[260px] py-3 px-4 border-l-[6px] border-l-[var(--deep-navy)]">
                                                 <Text variant="body2" weight="bold" className="truncate leading-snug group-hover:text-[var(--color-primary)] transition-colors">
                                                     {a.titulo}
                                                 </Text>
@@ -373,29 +387,40 @@ const ConsolidatedTableById: React.FC<{ desarrolloId: string }> = ({ desarrolloI
                     columnKey={activeFilter}
                     title={COLUMNS.find((c) => c.key === activeFilter)?.label || ''}
                     options={uniqueValues[activeFilter as keyof typeof uniqueValues] || []}
-                    selectedValues={columnFilters[activeFilter] || new Set()}
+                    selectedValues={activeSelection === undefined ? new Set<string>() : activeSelection}
                     onToggleOption={(columnKey, option) => {
                         setColumnFilters((prev) => {
-                            const currentSet = prev[columnKey];
+                            const currentSelection = prev[columnKey];
                             const allValues = uniqueValues[columnKey as keyof typeof uniqueValues] || [];
-                            // Lógica tipo Excel: si estaba vacío, implica que todo estaba seleccionado (visible)
-                            // Al desmarcar uno, activamos el filtro con todos los demás valores seleccionados.
-                            if (!currentSet || currentSet.size === 0) {
-                                const newSet = new Set(allValues);
-                                newSet.delete(option);
-                                return { ...prev, [columnKey]: newSet };
+                            // Set vacío representa todos; null representa ninguno.
+                            if (currentSelection === null) {
+                                const newSet = new Set([option]);
+                                return {
+                                    ...prev,
+                                    [columnKey]: newSet.size === allValues.length ? new Set<string>() : newSet,
+                                };
                             }
 
-                            const newSet = new Set(currentSet);
+                            if (!currentSelection || currentSelection.size === 0) {
+                                const newSet = new Set(allValues);
+                                newSet.delete(option);
+                                return { ...prev, [columnKey]: newSet.size === 0 ? null : newSet };
+                            }
+
+                            const newSet = new Set(currentSelection);
                             if (newSet.has(option)) {
                                 newSet.delete(option);
                             } else {
                                 newSet.add(option);
                             }
 
-                            // Si el usuario vuelve a seleccionarlos todos manualmente, limpiamos el filtro.
+                            if (newSet.size === 0) {
+                                return { ...prev, [columnKey]: null };
+                            }
+
+                            // Si el usuario vuelve a seleccionarlos todos, normalizamos a todos.
                             if (newSet.size === allValues.length) {
-                                return { ...prev, [columnKey]: new Set() };
+                                return { ...prev, [columnKey]: new Set<string>() };
                             }
 
                             return { ...prev, [columnKey]: newSet };
@@ -404,11 +429,11 @@ const ConsolidatedTableById: React.FC<{ desarrolloId: string }> = ({ desarrolloI
                     onSelectAll={(columnKey) => {
                         setColumnFilters((prev) => ({
                             ...prev,
-                            [columnKey]: new Set(uniqueValues[columnKey as keyof typeof uniqueValues] || [])
+                            [columnKey]: new Set<string>()
                         }));
                     }}
                     onClear={(columnKey) => {
-                        setColumnFilters((prev) => ({ ...prev, [columnKey]: new Set() }));
+                        setColumnFilters((prev) => ({ ...prev, [columnKey]: new Set<string>() }));
                     }}
                     onClose={() => toggleFilter(activeFilter)}
                     anchorEl={filterRefs.current[activeFilter]}

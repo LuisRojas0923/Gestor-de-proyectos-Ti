@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
+import { act, render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import ConsolidatedTableById from '../ConsolidatedTableById';
 
@@ -13,6 +13,14 @@ const mockData = {
         { id: 2, titulo: "Tarea 2", estado: "pendiente", porcentaje_avance: 0 },
         { id: 3, titulo: "Tarea 3", estado: "", porcentaje_avance: 100 },
     ]
+};
+
+const singleOptionData = {
+    ...mockData,
+    actividades: mockData.actividades.map((actividad) => ({
+        ...actividad,
+        estado: 'pendiente',
+    })),
 };
 
 const originalFetch = global.fetch;
@@ -53,6 +61,26 @@ describe('ConsolidatedTableById', () => {
 
         // "Filtrar: Tarea" no debe existir
         expect(screen.queryByText('Filtrar: Tarea')).not.toBeInTheDocument();
+    });
+
+    it('mantiene seis columnas sin celda adicional para la franja', async () => {
+        render(<ConsolidatedTableById desarrolloId="HO-1" />);
+
+        const table = await screen.findByRole('table');
+        const headers = within(table).getAllByRole('columnheader');
+
+        expect(headers).toHaveLength(6);
+        headers.forEach((header) => {
+            expect(header).toHaveAttribute('scope', 'col');
+        });
+
+        const tbody = table.querySelector('tbody') as HTMLElement;
+        const rows = within(tbody).getAllByRole('row');
+
+        rows.forEach((row) => {
+            expect(within(row).getAllByRole('cell')).toHaveLength(6);
+        });
+        expect(within(rows[0]).getAllByRole('cell')[0]).toHaveClass('border-l-[6px]');
     });
 
     it('abre filtro de Estado y muestra estados normalizados', async () => {
@@ -97,7 +125,12 @@ describe('ConsolidatedTableById', () => {
         // Seleccionamos "pendiente" validando que sea accesible
         // Al estar todas marcadas por defecto, hacer clic la DESMARCA
         const pendienteCheckbox = within(dialog).getByRole('checkbox', { name: 'pendiente' });
+        expect(pendienteCheckbox).toHaveAttribute('aria-checked', 'true');
         fireEvent.click(pendienteCheckbox);
+
+        await waitFor(() => {
+            expect(pendienteCheckbox).toHaveAttribute('aria-checked', 'false');
+        });
 
         // Al desmarcar "pendiente", Tarea 2 desaparece. Tarea 1 queda visible.
         expect(screen.queryByText('Tarea 2')).not.toBeInTheDocument();
@@ -109,6 +142,103 @@ describe('ConsolidatedTableById', () => {
 
         // Debería volver a mostrar Tarea 2
         expect(screen.getByText('Tarea 2')).toBeInTheDocument();
+    });
+
+    it('representa ninguno al desmarcar todas las opciones y permite reactivarlas', async () => {
+        render(<ConsolidatedTableById desarrolloId="HO-1" />);
+        await screen.findByText('Tarea 1');
+
+        const estadoTrigger = screen.getByRole('button', { name: /Estado/i });
+        fireEvent.click(estadoTrigger);
+        const dialog = await screen.findByRole('dialog');
+
+        for (const option of ['en_progreso', 'pendiente', 'Sin estado']) {
+            fireEvent.click(within(dialog).getByRole('checkbox', { name: option }));
+        }
+
+        await waitFor(() => {
+            expect(screen.queryByText('Tarea 1')).not.toBeInTheDocument();
+            expect(screen.queryByText('Tarea 2')).not.toBeInTheDocument();
+            expect(screen.queryByText('Tarea 3')).not.toBeInTheDocument();
+            expect(within(dialog).getAllByRole('checkbox').every((checkbox) =>
+                checkbox.getAttribute('aria-checked') === 'false'
+            )).toBe(true);
+            expect(estadoTrigger.querySelector('.bg-yellow-400')).toBeInTheDocument();
+        });
+
+        const pendienteCheckbox = within(dialog).getByRole('checkbox', { name: 'pendiente' });
+        fireEvent.click(pendienteCheckbox);
+
+        await waitFor(() => {
+            expect(screen.getByText('Tarea 2')).toBeInTheDocument();
+            expect(screen.queryByText('Tarea 1')).not.toBeInTheDocument();
+            expect(pendienteCheckbox).toHaveAttribute('aria-checked', 'true');
+        });
+    });
+
+    it('permite desmarcar y volver a marcar una columna con una sola opción', async () => {
+        global.fetch = vi.fn().mockResolvedValue({
+            ok: true,
+            json: async () => singleOptionData,
+        });
+
+        render(<ConsolidatedTableById desarrolloId="HO-1" />);
+        await screen.findByText('Tarea 1');
+
+        fireEvent.click(screen.getByRole('button', { name: /Estado/i }));
+        const dialog = await screen.findByRole('dialog');
+        const onlyOption = within(dialog).getByRole('checkbox', { name: 'pendiente' });
+
+        fireEvent.click(onlyOption);
+
+        await waitFor(() => {
+            expect(screen.queryByText('Tarea 1')).not.toBeInTheDocument();
+            expect(onlyOption).toHaveAttribute('aria-checked', 'false');
+        });
+
+        fireEvent.click(onlyOption);
+
+        await waitFor(() => {
+            expect(screen.getByText('Tarea 1')).toBeInTheDocument();
+            expect(onlyOption).toHaveAttribute('aria-checked', 'true');
+        });
+    });
+
+    it('normaliza Todo y Limpiar al estado canonico de todas las opciones', async () => {
+        render(<ConsolidatedTableById desarrolloId="HO-1" />);
+        await screen.findByText('Tarea 1');
+
+        const estadoTrigger = screen.getByRole('button', { name: /Estado/i });
+        fireEvent.click(estadoTrigger);
+        const dialog = await screen.findByRole('dialog');
+        const pendienteCheckbox = within(dialog).getByRole('checkbox', { name: 'pendiente' });
+
+        fireEvent.click(pendienteCheckbox);
+        await waitFor(() => {
+            expect(screen.queryByText('Tarea 2')).not.toBeInTheDocument();
+            expect(estadoTrigger.querySelector('.bg-yellow-400')).toBeInTheDocument();
+        });
+
+        fireEvent.click(within(dialog).getByText('Todo'));
+        await waitFor(() => {
+            expect(screen.getByText('Tarea 2')).toBeInTheDocument();
+            expect(within(dialog).getAllByRole('checkbox').every((checkbox) =>
+                checkbox.getAttribute('aria-checked') === 'true'
+            )).toBe(true);
+            expect(estadoTrigger.querySelector('.bg-yellow-400')).not.toBeInTheDocument();
+        });
+
+        fireEvent.click(pendienteCheckbox);
+        await waitFor(() => expect(screen.queryByText('Tarea 2')).not.toBeInTheDocument());
+
+        fireEvent.click(within(dialog).getByText('Limpiar'));
+        await waitFor(() => {
+            expect(screen.getByText('Tarea 2')).toBeInTheDocument();
+            expect(within(dialog).getAllByRole('checkbox').every((checkbox) =>
+                checkbox.getAttribute('aria-checked') === 'true'
+            )).toBe(true);
+            expect(estadoTrigger.querySelector('.bg-yellow-400')).not.toBeInTheDocument();
+        });
     });
 
     it('abre filtro de Progreso y normaliza valores', async () => {
@@ -180,50 +310,160 @@ describe('ConsolidatedTableById', () => {
     });
 
     it('posiciona el popover adaptandose al scroll y viewport movil', async () => {
-        render(<ConsolidatedTableById desarrolloId="HO-1" />);
-        await screen.findByText('Tarea 1');
-
         const originalInnerHeight = window.innerHeight;
         const originalInnerWidth = window.innerWidth;
-        window.innerHeight = 300;
-        window.innerWidth = 260;
-
-        Element.prototype.getBoundingClientRect = vi.fn(() => ({
+        const originalGetBoundingClientRect = Element.prototype.getBoundingClientRect;
+        const originalVisualViewportDescriptor = Object.getOwnPropertyDescriptor(window, 'visualViewport');
+        const visualViewport = {
+            offsetTop: 0,
+            offsetLeft: 0,
+            width: 260,
+            height: 300,
+            addEventListener: vi.fn(),
+            removeEventListener: vi.fn(),
+        };
+        let currentAnchorRect = {
             width: 100,
             height: 40,
             top: 280,
             bottom: 320,
             left: 20,
             right: 120,
-        })) as unknown as () => DOMRect;
+        };
+        let unmount: (() => void) | undefined;
 
-        fireEvent.click(screen.getByRole('button', { name: /Estado/i }));
+        const assertWithinViewport = (dialog: HTMLElement) => {
+            const top = Number.parseFloat(dialog.style.top);
+            const left = Number.parseFloat(dialog.style.left);
+            const width = Number.parseFloat(dialog.style.width);
+            const maxHeight = Math.min(350, visualViewport.height - 20);
 
-        const dialog = await screen.findByRole('dialog');
-        expect(dialog).toHaveStyle({ top: '10px' });
-        expect(dialog).toHaveStyle({ width: '240px' });
+            expect(top).toBeGreaterThanOrEqual(visualViewport.offsetTop + 10);
+            expect(top + maxHeight).toBeLessThanOrEqual(visualViewport.offsetTop + visualViewport.height - 10);
+            expect(left).toBeGreaterThanOrEqual(visualViewport.offsetLeft + 10);
+            expect(left + width).toBeLessThanOrEqual(visualViewport.offsetLeft + visualViewport.width - 10);
+        };
 
-        window.innerHeight = originalInnerHeight;
-        window.innerWidth = originalInnerWidth;
+        const getViewportHandler = (eventName: 'resize' | 'scroll') => {
+            const listener = visualViewport.addEventListener.mock.calls.find(([event]) => event === eventName)?.[1];
+            expect(listener).toEqual(expect.any(Function));
+            return listener as EventListener;
+        };
+
+        try {
+            Object.defineProperty(window, 'visualViewport', {
+                configurable: true,
+                value: visualViewport as unknown as VisualViewport,
+            });
+            window.innerHeight = 300;
+            window.innerWidth = 260;
+
+            ({ unmount } = render(<ConsolidatedTableById desarrolloId="HO-1" />));
+            await screen.findByText('Tarea 1');
+
+            Element.prototype.getBoundingClientRect = vi.fn(() => currentAnchorRect) as unknown as () => DOMRect;
+
+            fireEvent.click(screen.getByRole('button', { name: /Estado/i }));
+
+            const dialog = await screen.findByRole('dialog');
+            await waitFor(() => {
+                expect(dialog).toHaveStyle({
+                    top: '10px',
+                    left: '10px',
+                    width: '240px',
+                    maxHeight: 'min(350px, calc(100dvh - 20px))',
+                });
+                assertWithinViewport(dialog);
+            });
+
+            const resizeHandler = getViewportHandler('resize');
+            const scrollHandler = getViewportHandler('scroll');
+            currentAnchorRect = {
+                ...currentAnchorRect,
+                top: 40,
+                bottom: 80,
+                left: 100,
+                right: 200,
+            };
+            visualViewport.width = 400;
+            visualViewport.height = 400;
+
+            act(() => {
+                fireEvent(window, new Event('resize'));
+                fireEvent(window, new Event('scroll'));
+                resizeHandler(new Event('resize'));
+                scrollHandler(new Event('scroll'));
+            });
+
+            await waitFor(() => {
+                expect(dialog).toHaveStyle({ top: '40px', left: '100px', width: '250px' });
+                assertWithinViewport(dialog);
+            });
+
+            unmount();
+            expect(visualViewport.removeEventListener).toHaveBeenCalledWith('resize', resizeHandler);
+            expect(visualViewport.removeEventListener).toHaveBeenCalledWith('scroll', scrollHandler);
+        } finally {
+            unmount?.();
+            Element.prototype.getBoundingClientRect = originalGetBoundingClientRect;
+            window.innerHeight = originalInnerHeight;
+            window.innerWidth = originalInnerWidth;
+            if (originalVisualViewportDescriptor) {
+                Object.defineProperty(window, 'visualViewport', originalVisualViewportDescriptor);
+            } else {
+                delete (window as unknown as { visualViewport?: VisualViewport }).visualViewport;
+            }
+        }
     });
 
     it('permite seleccion por teclado y filtra Estado vacío', async () => {
         render(<ConsolidatedTableById desarrolloId="HO-1" />);
         await screen.findByText('Tarea 1');
 
-        fireEvent.click(screen.getByRole('button', { name: /Estado/i }));
+        const estadoTrigger = screen.getByRole('button', { name: /Estado/i });
+        estadoTrigger.focus();
+        fireEvent.keyDown(estadoTrigger, { key: 'Enter', code: 'Enter' });
         const dialog = await screen.findByRole('dialog');
+        expect(estadoTrigger).toHaveAttribute('aria-expanded', 'true');
+        const searchInput = within(dialog).getByRole('textbox', { name: 'Buscar en filtro de Estado' });
+        expect(searchInput).toHaveFocus();
 
         const sinEstadoCheckbox = within(dialog).getByRole('checkbox', { name: 'Sin estado' });
 
         sinEstadoCheckbox.focus();
         expect(sinEstadoCheckbox).toHaveFocus();
-        fireEvent.click(sinEstadoCheckbox); // Desmarca "Sin estado"
+        fireEvent.keyDown(sinEstadoCheckbox, { key: ' ', code: 'Space' });
+        fireEvent.keyUp(sinEstadoCheckbox, { key: ' ', code: 'Space' });
 
-        // Tarea 3 tiene estado vacio, por lo que desaparece
-        expect(screen.queryByText('Tarea 3')).not.toBeInTheDocument();
-        expect(screen.getByText('Tarea 1')).toBeInTheDocument();
-        expect(screen.getByText('Tarea 2')).toBeInTheDocument();
+        await waitFor(() => {
+            expect(sinEstadoCheckbox).toHaveAttribute('aria-checked', 'false');
+            // Tarea 3 tiene estado vacío, por lo que desaparece.
+            expect(screen.queryByText('Tarea 3')).not.toBeInTheDocument();
+            expect(screen.getByText('Tarea 1')).toBeInTheDocument();
+            expect(screen.getByText('Tarea 2')).toBeInTheDocument();
+        });
+
+        fireEvent.keyDown(sinEstadoCheckbox, { key: 'Enter', code: 'Enter' });
+        fireEvent.keyUp(sinEstadoCheckbox, { key: 'Enter', code: 'Enter' });
+
+        await waitFor(() => {
+            expect(sinEstadoCheckbox).toHaveAttribute('aria-checked', 'true');
+            expect(screen.getByText('Tarea 3')).toBeInTheDocument();
+        });
+    });
+
+    it('abre el filtro con Espacio sin doble activacion', async () => {
+        render(<ConsolidatedTableById desarrolloId="HO-1" />);
+        await screen.findByText('Tarea 1');
+
+        const estadoTrigger = screen.getByRole('button', { name: /Estado/i });
+        estadoTrigger.focus();
+        fireEvent.keyDown(estadoTrigger, { key: ' ', code: 'Space' });
+        fireEvent.keyUp(estadoTrigger, { key: ' ', code: 'Space' });
+
+        expect(estadoTrigger).toHaveAttribute('aria-expanded', 'true');
+        const dialog = await screen.findByRole('dialog');
+        expect(within(dialog).getByRole('textbox', { name: 'Buscar en filtro de Estado' })).toHaveFocus();
     });
 
     it('filtra correctamente por la columna Progreso (Sin progreso 0%)', async () => {
