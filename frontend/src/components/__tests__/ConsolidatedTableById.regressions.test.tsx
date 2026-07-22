@@ -1,4 +1,5 @@
-import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import ConsolidatedTableById from '../ConsolidatedTableById';
 
@@ -125,14 +126,38 @@ describe('ConsolidatedTableById - regresiones finales', () => {
         expect(screen.getByRole('button', { name: 'Estado, filtro activo' })).toBeInTheDocument();
     });
 
-    it('cierra el popover cuando el foco abandona el diálogo', async () => {
+    it('continúa al siguiente control al salir del popover con Tab', async () => {
+        const user = userEvent.setup();
         render(<ConsolidatedTableById desarrolloId="HO-1" />);
         await screen.findByText('Tarea 1');
 
         fireEvent.click(screen.getByRole('button', { name: 'Estado' }));
-        await screen.findByRole('dialog');
-        fireEvent.focusIn(document.body);
+        const dialog = await screen.findByRole('dialog');
+        const nextControl = document.createElement('button');
+        nextControl.textContent = 'Siguiente control';
+        document.body.append(nextControl);
 
-        await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+        within(dialog).getByRole('button', { name: 'Aplicar' }).focus();
+        await user.tab();
+
+        expect(nextControl).toHaveFocus();
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+        nextControl.remove();
+    });
+
+    it('continúa al control anterior al salir del popover con Shift+Tab', async () => {
+        const user = userEvent.setup();
+
+        render(<ConsolidatedTableById desarrolloId="HO-1" />);
+        await screen.findByText('Tarea 1');
+        const previousControl = screen.getAllByRole('button', { name: 'Ver detalles' }).slice(-1)[0];
+
+        fireEvent.click(screen.getByRole('button', { name: 'Estado' }));
+        const dialog = await screen.findByRole('dialog');
+        within(dialog).getByRole('button', { name: 'Cerrar filtro' }).focus();
+        await user.tab({ shift: true });
+
+        expect(previousControl).toHaveFocus();
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     });
 });

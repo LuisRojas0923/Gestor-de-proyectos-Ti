@@ -149,13 +149,17 @@ const ConsolidatedTableById: React.FC<{ desarrolloId: string }> = ({ desarrolloI
 
     const hasActiveFilters = Object.values(columnFilters).some((selection) => isFilterActive(selection));
 
+    const closeFilter = (key: string, restoreFocus = true) => {
+        if (activeFilter !== key) return;
+        setActiveFilter(null);
+        if (restoreFocus) {
+            filterRefs.current[key]?.focus();
+        }
+    };
+
     const toggleFilter = (key: string) => {
         if (activeFilter === key) {
-            setActiveFilter(null);
-            const ref = filterRefs.current[key];
-            if (ref) {
-                ref.focus();
-            }
+            closeFilter(key);
         } else {
             setActiveFilter(key);
         }
@@ -240,9 +244,9 @@ const ConsolidatedTableById: React.FC<{ desarrolloId: string }> = ({ desarrolloI
                                             <th
                                                 key={col.key}
                                                 scope="col"
-                                                className={`${col.width} shrink-0 py-2.5 px-4 bg-white/10`}
+                                                className={`${col.width} shrink-0 py-2.5 px-4 bg-[var(--white)]/10`}
                                             >
-                                                <Text as="span" variant="caption" weight="bold" color="white" className="uppercase tracking-wider !text-[11px]">
+                                                <Text as="span" variant="caption" weight="bold" color="inherit" className="uppercase tracking-wider !text-[11px] text-[var(--white)]">
                                                     {col.label}
                                                 </Text>
                                             </th>
@@ -250,40 +254,34 @@ const ConsolidatedTableById: React.FC<{ desarrolloId: string }> = ({ desarrolloI
                                             <th
                                                 key={col.key}
                                                 scope="col"
-                                                className={`${col.width} shrink-0 py-2.5 px-4 ${idx === 0 ? 'bg-blue-500/20' : 'bg-[var(--deep-navy)]'} transition-colors`}
+                                                className={`${col.width} shrink-0 py-2.5 px-4 ${idx === 0 ? 'bg-[var(--color-primary)]/20' : 'bg-[var(--deep-navy)]'} transition-colors`}
                                             >
                                                 {col.isFilterable ? (
                                                     <Button
                                                         variant="custom"
                                                         type="button"
                                                         onClick={() => toggleFilter(col.key)}
-                                                        onKeyDown={(event) => {
-                                                            if (event.key === 'Enter' || event.key === ' ' || event.code === 'Space') {
-                                                                event.preventDefault();
-                                                                toggleFilter(col.key);
-                                                            }
-                                                        }}
                                                         ref={(el) => { filterRefs.current[col.key] = el; }}
                                                         aria-haspopup="dialog"
                                                         aria-expanded={activeFilter === col.key}
                                                         aria-label={`${col.label}${isFilterActive(columnFilters[col.key]) ? ', filtro activo' : ''}`}
-                                                        className="w-full flex items-center justify-between group rounded p-1 -m-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 hover:bg-white/5 transition-colors"
+                                                        className="w-full flex items-center justify-between group rounded p-1 -m-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-secondary)] hover:bg-[var(--white)]/5 transition-colors"
                                                     >
                                                         <Text as="span" variant="caption" weight="bold" color="inherit" className={`
                                                             text-xs font-bold uppercase tracking-wider !text-[11px] transition-colors
-                                                            ${idx === 0 ? 'text-blue-300' : 'text-white/70 group-hover:text-white'}
+                                                            ${idx === 0 ? 'text-[var(--color-secondary)]' : 'text-[var(--white)]/70 group-hover:text-[var(--white)]'}
                                                         `}>
                                                             {col.label}
                                                         </Text>
                                                         {isFilterActive(columnFilters[col.key]) && (
-                                                            <Text as="span" aria-hidden="true" className="w-2 h-2 rounded-full bg-yellow-400 shrink-0">{''}</Text>
+                                                            <Text as="span" aria-hidden="true" className="w-2 h-2 rounded-full bg-[var(--color-secondary)] shrink-0">{''}</Text>
                                                         )}
                                                     </Button>
                                                 ) : (
                                                     <div className="flex items-center justify-between p-1 -m-1">
                                                         <Text as="span" variant="caption" weight="bold" color="inherit" className={`
                                                             text-xs font-bold uppercase tracking-wider !text-[11px] transition-colors
-                                                            ${idx === 0 ? 'text-blue-300' : 'text-white/70'}
+                                                            ${idx === 0 ? 'text-[var(--color-secondary)]' : 'text-[var(--white)]/70'}
                                                         `}>
                                                             {col.label}
                                                         </Text>
@@ -446,7 +444,7 @@ const ConsolidatedTableById: React.FC<{ desarrolloId: string }> = ({ desarrolloI
                     onClear={(columnKey) => {
                         setColumnFilters((prev) => ({ ...prev, [columnKey]: new Set<string>() }));
                     }}
-                    onClose={() => toggleFilter(activeFilter)}
+                    onClose={(reason) => closeFilter(activeFilter, reason !== 'focus')}
                     anchorEl={filterRefs.current[activeFilter]}
                 />
             )}

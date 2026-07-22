@@ -21,9 +21,9 @@ El PR implementa filtros avanzados accesibles para `ConsolidatedTableById` y `Co
 - cancelación e ignorado de respuestas HTTP antiguas al cambiar de desarrollo;
 - envoltura estable de traducción en `Button` sin romper el layout flex ni producir HTML inválido.
 
-## Excepción de baseline aceptada
+## Excepción Formal De Alcance
 
-Se aceptan formalmente dentro de este PR cuatro ajustes test-only que alinean suites existentes con contratos de producción previos. No se contabilizan como funcionalidad ni cobertura del filtrado consolidado:
+Se aceptan formalmente dentro de este PR cuatro ajustes `test-only` que alinean suites existentes con contratos de producción vigentes. Permanecen de forma intencional para no reintroducir fallos de baseline; no constituyen una ampliación funcional ni una dependencia del filtrado consolidado. No se contabilizan como funcionalidad ni cobertura del filtrado consolidado:
 
 | Archivo | Justificación |
 |---|---|
@@ -32,14 +32,21 @@ Se aceptan formalmente dentro de este PR cuatro ajustes test-only que alinean su
 | `frontend/src/tests/MyDevelopmentsRequirements.test.tsx` | Restaura el mock de `getWithHeaders` y la acción vigente `Anular`. |
 | `frontend/src/tests/MyDevelopmentsReview.test.tsx` | Restaura el contrato paginado de `getWithHeaders`. |
 
-La deuda de aislamiento y cobertura funcional de `MyDevelopmentsReview` queda fuera de este feature y no altera producción.
+Decisión de alcance:
+
+- `test-only / baseline`: los cuatro cambios modifican únicamente expectativas y mocks.
+- `sin producción`: no cambian componentes, servicios ni contratos de runtime.
+- `sin cobertura del feature`: no se contabilizan dentro de los casos de filtros consolidados.
+- `necesarios para la suite`: retirarlos vuelve a dejar las pruebas alineadas con mensajes, endpoints, paginación y acciones obsoletas.
+
+La deuda de aislamiento y cobertura funcional de `MyDevelopmentsReview` queda fuera de este feature y no altera producción. Cualquier refactor funcional de esos módulos debe tramitarse en una PR separada.
 
 ## Evidencia final
 
 | Verificación | Resultado |
 |---|---|
-| Vitest focalizado | `21 passed` |
-| Vitest completo | `156 passed, 2 skipped` |
+| Vitest focalizado | `22 passed` |
+| Vitest completo | `157 passed, 2 skipped` |
 | ESLint focalizado | PASS |
 | ESLint completo | FAIL baseline: `502 errors, 56 warnings`, sin hallazgos en archivos focalizados |
 | Vite build | PASS |

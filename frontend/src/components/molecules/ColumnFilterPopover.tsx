@@ -3,6 +3,8 @@ import { createPortal } from 'react-dom';
 import { Search, X, Check } from 'lucide-react';
 import { Button, Input, Text } from '../atoms';
 
+type ColumnFilterCloseReason = 'escape' | 'outside-pointer' | 'focus';
+
 interface ColumnFilterPopoverProps {
   columnKey: string;
   title: string;
@@ -11,7 +13,7 @@ interface ColumnFilterPopoverProps {
   onToggleOption: (columnKey: string, option: string) => void;
   onSelectAll: (columnKey: string) => void;
   onClear: (columnKey: string) => void;
-  onClose: () => void;
+  onClose: (reason?: ColumnFilterCloseReason) => void;
   anchorEl: HTMLElement | null;
 }
 
@@ -107,19 +109,19 @@ export const ColumnFilterPopover: React.FC<ColumnFilterPopoverProps> = ({
     const handleClickOutside = (event: MouseEvent) => {
       if (popoverRef.current && !popoverRef.current.contains(event.target as Node) &&
           anchorEl && !anchorEl.contains(event.target as Node)) {
-        onClose();
+        onClose('outside-pointer');
       }
     };
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
-        onClose();
+        onClose('escape');
       }
     };
     const handleFocusIn = (event: FocusEvent) => {
       const target = event.target as Node;
       if (popoverRef.current && !popoverRef.current.contains(target) &&
           anchorEl && !anchorEl.contains(target)) {
-        onClose();
+        onClose('focus');
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -222,12 +224,6 @@ export const ColumnFilterPopover: React.FC<ColumnFilterPopoverProps> = ({
                 role="checkbox"
                 aria-checked={isChecked}
                 onClick={() => onToggleOption(columnKey, option)}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter' || event.key === ' ' || event.code === 'Space') {
-                    event.preventDefault();
-                    onToggleOption(columnKey, option);
-                  }
-                }}
                 className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors h-auto font-normal justify-start"
               >
                 <Text as="span" aria-hidden="true" className={`

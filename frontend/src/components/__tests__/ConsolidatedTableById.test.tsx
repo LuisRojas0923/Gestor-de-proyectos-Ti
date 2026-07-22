@@ -1,4 +1,5 @@
 import { act, render, screen, fireEvent, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import ConsolidatedTableById from '../ConsolidatedTableById';
 
@@ -163,7 +164,7 @@ describe('ConsolidatedTableById', () => {
             expect(within(dialog).getAllByRole('checkbox').every((checkbox) =>
                 checkbox.getAttribute('aria-checked') === 'false'
             )).toBe(true);
-            expect(estadoTrigger.querySelector('.bg-yellow-400')).toBeInTheDocument();
+            expect(estadoTrigger.querySelector('[aria-hidden="true"]')).toBeInTheDocument();
         });
 
         const pendienteCheckbox = within(dialog).getByRole('checkbox', { name: 'pendiente' });
@@ -216,7 +217,7 @@ describe('ConsolidatedTableById', () => {
         fireEvent.click(pendienteCheckbox);
         await waitFor(() => {
             expect(screen.queryByText('Tarea 2')).not.toBeInTheDocument();
-            expect(estadoTrigger.querySelector('.bg-yellow-400')).toBeInTheDocument();
+            expect(estadoTrigger.querySelector('[aria-hidden="true"]')).toBeInTheDocument();
         });
 
         fireEvent.click(within(dialog).getByText('Todo'));
@@ -225,7 +226,7 @@ describe('ConsolidatedTableById', () => {
             expect(within(dialog).getAllByRole('checkbox').every((checkbox) =>
                 checkbox.getAttribute('aria-checked') === 'true'
             )).toBe(true);
-            expect(estadoTrigger.querySelector('.bg-yellow-400')).not.toBeInTheDocument();
+            expect(estadoTrigger.querySelector('[aria-hidden="true"]')).not.toBeInTheDocument();
         });
 
         fireEvent.click(pendienteCheckbox);
@@ -237,7 +238,7 @@ describe('ConsolidatedTableById', () => {
             expect(within(dialog).getAllByRole('checkbox').every((checkbox) =>
                 checkbox.getAttribute('aria-checked') === 'true'
             )).toBe(true);
-            expect(estadoTrigger.querySelector('.bg-yellow-400')).not.toBeInTheDocument();
+            expect(estadoTrigger.querySelector('[aria-hidden="true"]')).not.toBeInTheDocument();
         });
     });
 
@@ -417,12 +418,13 @@ describe('ConsolidatedTableById', () => {
     });
 
     it('permite seleccion por teclado y filtra Estado vacío', async () => {
+        const user = userEvent.setup();
         render(<ConsolidatedTableById desarrolloId="HO-1" />);
         await screen.findByText('Tarea 1');
 
         const estadoTrigger = screen.getByRole('button', { name: /Estado/i });
         estadoTrigger.focus();
-        fireEvent.keyDown(estadoTrigger, { key: 'Enter', code: 'Enter' });
+        await user.keyboard('{Enter}');
         const dialog = await screen.findByRole('dialog');
         expect(estadoTrigger).toHaveAttribute('aria-expanded', 'true');
         const searchInput = within(dialog).getByRole('textbox', { name: 'Buscar en filtro de Estado' });
@@ -432,8 +434,7 @@ describe('ConsolidatedTableById', () => {
 
         sinEstadoCheckbox.focus();
         expect(sinEstadoCheckbox).toHaveFocus();
-        fireEvent.keyDown(sinEstadoCheckbox, { key: ' ', code: 'Space' });
-        fireEvent.keyUp(sinEstadoCheckbox, { key: ' ', code: 'Space' });
+        await user.keyboard(' ');
 
         await waitFor(() => {
             expect(sinEstadoCheckbox).toHaveAttribute('aria-checked', 'false');
@@ -443,8 +444,7 @@ describe('ConsolidatedTableById', () => {
             expect(screen.getByText('Tarea 2')).toBeInTheDocument();
         });
 
-        fireEvent.keyDown(sinEstadoCheckbox, { key: 'Enter', code: 'Enter' });
-        fireEvent.keyUp(sinEstadoCheckbox, { key: 'Enter', code: 'Enter' });
+        await user.keyboard('{Enter}');
 
         await waitFor(() => {
             expect(sinEstadoCheckbox).toHaveAttribute('aria-checked', 'true');
@@ -453,13 +453,13 @@ describe('ConsolidatedTableById', () => {
     });
 
     it('abre el filtro con Espacio sin doble activacion', async () => {
+        const user = userEvent.setup();
         render(<ConsolidatedTableById desarrolloId="HO-1" />);
         await screen.findByText('Tarea 1');
 
         const estadoTrigger = screen.getByRole('button', { name: /Estado/i });
         estadoTrigger.focus();
-        fireEvent.keyDown(estadoTrigger, { key: ' ', code: 'Space' });
-        fireEvent.keyUp(estadoTrigger, { key: ' ', code: 'Space' });
+        await user.keyboard(' ');
 
         expect(estadoTrigger).toHaveAttribute('aria-expanded', 'true');
         const dialog = await screen.findByRole('dialog');
