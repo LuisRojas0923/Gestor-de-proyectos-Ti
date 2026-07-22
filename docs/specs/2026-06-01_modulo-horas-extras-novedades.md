@@ -498,15 +498,17 @@ La clave funcional de consolidacion es `cedula + fecha + ot_cc + novedad`. Cuand
 
 El contrato contiene 23 propiedades. Las 19 columnas operativas son `cedula`, `empleado`, `salario`, `base_hora`, `aplica_he`, `empresa`, `sucursal`, `fecha`, `ot_cc`, `sub_subc`, `especialidad_ot`, `cantidad`, `ubicacion`, `novedad`, `cantidad_horas`, `observaciones`, `responsable`, `encargados` y `cliente`. `fila_id`, `calculo_id`, `costo_total` y `estado` son metadatos internos de UI.
 
-Salario, base hora, estado y responsable se leen del calculo semanal en el estado consultado. Las horas, conceptos e importes diarios se generan desde el snapshot inmutable y se validan por hash, periodo y conciliacion contra el detalle semanal. Si el snapshot no supera la validacion, se usa el detalle semanal historico.
+Estado y responsable se leen del calculo semanal en el estado consultado. Salario y base hora se proyectan con el salario vigente de `beneficio.salario` del ERP y los divisores legales configurados para la semana. Los costos diarios también se recalculan con esa misma base, el factor de la novedad y la carga prestacional del cálculo, para no mezclar salarios reales con importes estimados. Las horas y conceptos se leen del snapshot inmutable y se validan por hash, periodo y conciliacion contra el detalle semanal. Si el snapshot no supera la validacion, se usa el detalle semanal historico.
 
-CC, SCC y especialidad se proyectan desde las asignaciones vigentes del planificador porque esos campos no forman parte del snapshot diario persistido. Empresa, sucursal, jefe y metadatos OT/cliente tambien son lecturas ERP vigentes. Por tanto, estos metadatos descriptivos pueden cambiar respecto del momento de confirmacion; no deben interpretarse como evidencia historica inmutable. Si ERP no esta disponible, los campos opcionales quedan vacios sin impedir la consulta.
+CC, SCC y especialidad se proyectan desde las asignaciones vigentes del planificador porque esos campos no forman parte del snapshot diario persistido. Empresa, sucursal, jefe, salario y metadatos OT/cliente son lecturas ERP vigentes. Por tanto, salario, base hora, costo y metadatos descriptivos pueden cambiar respecto del momento de confirmacion; esta planilla es una proyección operativa vigente y no evidencia historica inmutable. El permiso critico `nomina_horas_extras.leer` autoriza esta consulta salarial únicamente para las cedulas dentro del alcance del usuario. Si ERP no esta disponible se responde `503`; si no puede determinarse un unico salario activo, positivo y finito se responde `422`. Nunca se reutiliza el salario estimado persistido.
 
-Evidencia focal del 2026-07-21:
+Evidencia focal del 2026-07-22:
 
 | Comando | Resultado |
 |---|---|
-| `cd backend_v2; python -m pytest ../testing/backend/test_horas_extras_calculos_planilla.py -q` | 17 passed |
+| `pytest.main([test_horas_extras_calculos_planilla.py, test_horas_extras_planilla_salarios_erp.py, -q])` con stub local del import `pdfplumber` ausente | 37 passed; salario ERP, reglas configurables, costos consistentes y fallos cerrados 503/422 |
+| `pytest.main([test_erp_empleados_offload.py, -q])` con el mismo stub local | 5 passed; consulta salarial masiva fuera del event loop |
+| `pytest.main([test_horas_extras_rbac_granular.py, -q])` con el mismo stub local | 15 passed; manifiesto y permisos granulares |
 | `cd backend_v2; python -m pytest ../testing/backend/test_horas_extras_ot_horarios.py -q` | 18 passed, 1 skipped; smoke ERP de produccion opt-in |
 | `cd frontend; npm run test -- --run src/tests/CalculoListView.test.tsx src/tests/horasExtrasPlanillaService.test.ts` | 11 passed |
 | `cd frontend; npx eslint src/pages/ServicePortal/pages/HORAS_EXTRAS/CalculoListView.tsx src/pages/ServicePortal/pages/HORAS_EXTRAS/calculoPlanillaColumns.tsx src/services/horasExtrasPlanillaService.ts src/types/horasExtrasPlanilla.ts src/tests/CalculoListView.test.tsx src/tests/horasExtrasPlanillaService.test.ts` | Sin hallazgos |

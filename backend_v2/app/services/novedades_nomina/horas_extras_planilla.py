@@ -5,7 +5,8 @@ from math import isclose
 from types import SimpleNamespace
 from typing import Optional
 
-from sqlalchemy import or_, text, tuple_
+from fastapi import HTTPException
+from sqlalchemy import or_, tuple_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 from starlette.concurrency import run_in_threadpool
@@ -17,56 +18,23 @@ from ...models.novedades_nomina.planificador_dia_ot import NominaPlanificadorDia
 from ...models.novedades_nomina.schemas_horas_extras_planilla import CalculoPlanillaRead
 from ..erp.empleados_service import EmpleadosService
 from .horas_extras_confirmacion import listar_calculos
+from .horas_extras_parametros import obtener_reglas_calculo
+from .horas_extras_planilla_valores import (
+    FactorCalculoInvalidoError,
+    ReglaCalculoInvalidaError,
+    SalarioErpInvalidoError,
+    _costo_con_salario_erp,
+    _salario_y_base_hora_erp,
+)
+from .horas_extras_planilla_ots import (
+    _clave_ot,
+    _consultar_ots_bulk,
+    _metadata_ot,
+    _texto,
+)
 from .snapshot_integridad import validar_hash_snapshot
 
 logger = logging.getLogger(__name__)
-
-
-def _texto(value) -> Optional[str]:
-    normalizado = str(value).strip() if value is not None else ""
-    return normalizado or None
-
-
-def _consultar_ots_bulk(db_erp, claves: set[tuple[str, str, str, str]]) -> dict:
-    ordenes = sorted({clave[0] for clave in claves if clave[0]})
-    if not ordenes:
-        return {}
-    placeholders = ", ".join(f":orden{i}" for i in range(len(ordenes)))
-    params = {f"orden{i}": orden for i, orden in enumerate(ordenes)}
-    rows = db_erp.execute(text(f"""
-        SELECT DISTINCT ON (orden, cc, scc, sub_indice)
-            orden::text AS orden,
-            cc::text AS cc,
-            scc::text AS scc,
-            sub_indice::text AS sub_indice,
-            descripcion::text AS descripcion,
-            cliente::text AS cliente
-        FROM public.OThorarios
-        WHERE orden::text IN ({placeholders})
-        ORDER BY orden, cc, scc, sub_indice,
-                 descripcion::text NULLS LAST, cliente::text NULLS LAST
-    """), params).fetchall()
-    return {
-        (
-            str(row.orden).strip(),
-            str(row.cc).strip() if row.cc is not None else "",
-            str(row.scc).strip() if row.scc is not None else "",
-            str(row.sub_indice).strip() if row.sub_indice is not None else "",
-        ): {
-            "descripcion": row.descripcion,
-            "cliente": row.cliente,
-        }
-        for row in rows
-    }
-
-
-def _clave_ot(asignacion) -> tuple[str, str, str, str]:
-    return (
-        _texto(getattr(asignacion, "orden", None)) or "",
-        _texto(getattr(asignacion, "cc", None)) or "",
-        _texto(getattr(asignacion, "scc", None)) or "",
-        _texto(getattr(asignacion, "sub_indice", None)) or "",
-    )
 
 
 def _distribuir_horas(total: float, asignaciones: list) -> list[float]:
@@ -84,16 +52,6 @@ def _distribuir_horas(total: float, asignaciones: list) -> list[float]:
     distribucion = [round(total * peso / suma, 2) for peso in pesos]
     distribucion[-1] = round(distribucion[-1] + total - sum(distribucion), 2)
     return distribucion
-
-
-def _metadata_ot(asignacion, ots: dict) -> tuple[Optional[str], Optional[str], Optional[str], Optional[str]]:
-    clave = _clave_ot(asignacion)
-    metadata = ots.get(clave, {})
-    ot_cc = _texto(getattr(asignacion, "cc", None)) or _texto(getattr(asignacion, "orden", None))
-    sub_subc = _texto(getattr(asignacion, "scc", None)) or _texto(getattr(asignacion, "sub_indice", None))
-    especialidad = _texto(getattr(asignacion, "descripcion", None)) or _texto(metadata.get("descripcion"))
-    cliente = _texto(metadata.get("cliente"))
-    return ot_cc, sub_subc, especialidad, cliente
 
 
 def _asignaciones_para_detalle(detalle, asignaciones: list) -> list:
@@ -118,7 +76,7 @@ def _asignaciones_para_detalle(detalle, asignaciones: list) -> list:
 def _construir_fila(
     *, calculo, fila_id: str, fecha, novedad: str, cantidad_horas: float,
     asignacion, observaciones, costo_total: float, empleados: dict,
-    horarios: dict, usuarios: dict, ots: dict,
+    horarios: dict, usuarios: dict, ots: dict, reglas=None,
 ) -> CalculoPlanillaRead:
     empleado = empleados.get(str(calculo.cedula).strip(), {})
     horario = horarios.get(str(calculo.cedula).strip())
@@ -135,13 +93,14 @@ def _construir_fila(
         aplica_he = calculo.estado != "PENDIENTE_AUTORIZACION"
     responsable_id = calculo.confirmado_por or calculo.calculado_por
     ot_cc, sub_subc, especialidad, cliente = _metadata_ot(asignacion, ots)
+    salario, base_hora = _salario_y_base_hora_erp(calculo, empleado, reglas)
     return CalculoPlanillaRead(
         fila_id=fila_id,
         calculo_id=calculo.id,
         cedula=str(calculo.cedula).strip(),
         empleado=_texto(empleado.get("nombre")),
-        salario=float(calculo.salario_base_mensual),
-        base_hora=float(calculo.valor_hora_ordinaria),
+        salario=salario,
+        base_hora=base_hora,
         aplica_he=bool(aplica_he),
         empresa=_texto(empleado.get("empresa")),
         sucursal=_texto(empleado.get("ciudadcontratacion")),
@@ -171,6 +130,7 @@ def _construir_filas_planilla(
     horarios: dict,
     usuarios: dict,
     ots: dict,
+    reglas=None,
 ) -> list[CalculoPlanillaRead]:
     diarios_por_calculo_fecha = defaultdict(list)
     for detalle in detalles_diarios:
@@ -233,6 +193,7 @@ def _construir_filas_planilla(
                         horarios=horarios,
                         usuarios=usuarios,
                         ots=ots,
+                        reglas=reglas,
                     ))
 
             for indice, detalle in enumerate(detalles):
@@ -244,8 +205,16 @@ def _construir_filas_planilla(
                     continue
                 asignaciones_detalle = _asignaciones_para_detalle(detalle, asignaciones_dia)
                 horas_repartidas = _distribuir_horas(cantidad_horas, asignaciones_detalle)
+                empleado = empleados.get(str(calculo.cedula).strip(), {})
+                costo_erp = _costo_con_salario_erp(
+                    calculo,
+                    empleado,
+                    cantidad_horas,
+                    detalle.factor_hora_ordinaria,
+                    reglas,
+                )
                 costos_repartidos = _distribuir_horas(
-                    float(detalle.costo_total or 0),
+                    costo_erp,
                     asignaciones_detalle,
                 )
                 for reparto, (asignacion, horas, costo) in enumerate(zip(
@@ -271,6 +240,7 @@ def _construir_filas_planilla(
                         horarios=horarios,
                         usuarios=usuarios,
                         ots=ots,
+                        reglas=reglas,
                     ))
 
         if grupos:
@@ -290,11 +260,18 @@ def _construir_filas_planilla(
                 cantidad_horas=detalle.horas,
                 asignacion=asignacion,
                 observaciones=calculo.observaciones,
-                costo_total=detalle.costo_total,
+                costo_total=_costo_con_salario_erp(
+                    calculo,
+                    empleados.get(str(calculo.cedula).strip(), {}),
+                    detalle.horas,
+                    detalle.factor_hora_ordinaria,
+                    reglas,
+                ),
                 empleados=empleados,
                 horarios=horarios,
                 usuarios=usuarios,
                 ots=ots,
+                reglas=reglas,
             ))
     consolidadas: dict[tuple[str, object, Optional[str], str], CalculoPlanillaRead] = {}
     for fila in filas:
@@ -375,6 +352,11 @@ async def listar_calculos_planilla(
     offset: int = 0,
     cedulas_permitidas: Optional[set[str]] = None,
 ) -> list[CalculoPlanillaRead]:
+    if db_erp is None:
+        raise HTTPException(
+            status_code=503,
+            detail="ERP no disponible para consultar salarios de horas extras",
+        )
     calculos = await listar_calculos(
         session,
         cedula=cedula,
@@ -390,6 +372,36 @@ async def listar_calculos_planilla(
 
     calculo_ids = [calculo.id for calculo in calculos]
     cedulas = sorted({str(calculo.cedula).strip() for calculo in calculos})
+    try:
+        empleados = await EmpleadosService.consultar_empleados_bulk_async(
+            db_erp,
+            cedulas,
+            incluir_datos_laborales=True,
+            incluir_salario=True,
+        )
+    except Exception as exc:
+        logger.warning("ERP no disponible al consultar salarios de planilla HE")
+        raise HTTPException(
+            status_code=503,
+            detail="ERP no disponible para consultar salarios de horas extras",
+        ) from exc
+    reglas = await obtener_reglas_calculo(session)
+    try:
+        for calculo in calculos:
+            empleado = empleados.get(str(calculo.cedula).strip(), {})
+            _salario_y_base_hora_erp(calculo, empleado, reglas)
+    except SalarioErpInvalidoError as exc:
+        logger.warning("Empleado de planilla HE sin salario vigente en ERP")
+        raise HTTPException(
+            status_code=422,
+            detail="Uno o más empleados no tienen salario base mensual vigente en ERP",
+        ) from exc
+    except ReglaCalculoInvalidaError as exc:
+        logger.error("Configuración de divisor de hora ordinaria inválida")
+        raise HTTPException(
+            status_code=503,
+            detail="Configuración legal de horas extras no disponible",
+        ) from exc
     detalles = list((await session.execute(
         select(NominaCalculoDiarioDetalle)
         .where(NominaCalculoDiarioDetalle.calculo_id.in_(calculo_ids))
@@ -431,17 +443,8 @@ async def listar_calculos_planilla(
             usuarios[usuario.id] = usuario.nombre
             usuarios[usuario.cedula] = usuario.nombre
 
-    empleados = {}
     ots = {}
     if db_erp is not None:
-        try:
-            empleados = await EmpleadosService.consultar_empleados_bulk_async(
-                db_erp,
-                cedulas,
-                incluir_datos_laborales=True,
-            )
-        except Exception:
-            logger.warning("ERP no disponible al enriquecer empleados de planilla HE")
         try:
             claves_ots = {_clave_ot(asignacion) for asignacion in asignaciones}
             claves_ots.update(
@@ -459,12 +462,20 @@ async def listar_calculos_planilla(
         except Exception:
             logger.warning("ERP no disponible al enriquecer OT de planilla HE")
 
-    return _construir_filas_planilla(
-        calculos,
-        _filtrar_detalles_integros(calculos, detalles),
-        asignaciones,
-        empleados=empleados,
-        horarios=horarios,
-        usuarios=usuarios,
-        ots=ots,
-    )
+    try:
+        return _construir_filas_planilla(
+            calculos,
+            _filtrar_detalles_integros(calculos, detalles),
+            asignaciones,
+            empleados=empleados,
+            horarios=horarios,
+            usuarios=usuarios,
+            ots=ots,
+            reglas=reglas,
+        )
+    except FactorCalculoInvalidoError as exc:
+        logger.warning("Cálculo de planilla HE con factor de hora inválido")
+        raise HTTPException(
+            status_code=422,
+            detail="Uno o más cálculos no tienen un factor de hora válido",
+        ) from exc

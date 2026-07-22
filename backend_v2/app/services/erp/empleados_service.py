@@ -176,6 +176,7 @@ class EmpleadosService:
         db_erp: Session,
         cedulas: List[str],
         incluir_datos_laborales: bool = False,
+        incluir_salario: bool = False,
     ) -> Dict[str, Dict]:
         """
         Consulta masiva al ERP: devuelve {cedula: {nombre, estado, empresa}}
@@ -189,17 +190,45 @@ class EmpleadosService:
         params = {f"c{i}": ced for i, ced in enumerate(cedulas)}
 
         tiene_jefe = incluir_datos_laborales and _existe_columna(db_erp, "contrato", "jefe")
-        tiene_contrato_numero = incluir_datos_laborales and _existe_columna(db_erp, "contrato", "numerocontrato")
+        tiene_contrato_numero = (incluir_datos_laborales or incluir_salario) and _existe_columna(
+            db_erp, "contrato", "numerocontrato"
+        )
+        tiene_beneficio_estado = (incluir_datos_laborales or incluir_salario) and _existe_columna(
+            db_erp, "beneficio", "estado"
+        )
         tiene_beneficio_autoriza = incluir_datos_laborales and all([
             tiene_contrato_numero,
             _existe_columna(db_erp, "beneficio", "contrato"),
             _existe_columna(db_erp, "beneficio", "autorizacionhorasextras"),
         ])
-        tiene_beneficio_estado = incluir_datos_laborales and _existe_columna(db_erp, "beneficio", "estado")
+        tiene_beneficio_salario = incluir_salario and all([
+            tiene_contrato_numero,
+            _existe_columna(db_erp, "beneficio", "contrato"),
+            _existe_columna(db_erp, "beneficio", "salario"),
+            tiene_beneficio_estado,
+        ])
         select_jefe = 'C.jefe::text AS "quien_reporta"' if tiene_jefe else 'NULL::text AS "quien_reporta"'
         select_autoriza = (
             'B.autorizacionhorasextras AS "autoriza_he"'
             if tiene_beneficio_autoriza else 'NULL::boolean AS "autoriza_he"'
+        )
+        select_salario = (
+            'B.salario AS "salario_base_mensual"'
+            if tiene_beneficio_salario else 'NULL::numeric AS "salario_base_mensual"'
+        )
+        select_beneficios_activos = (
+            'COUNT(B.contrato) OVER (PARTITION BY E.nrocedula) AS "beneficios_activos"'
+            if tiene_beneficio_salario else '0::bigint AS "beneficios_activos"'
+        )
+        select_contratos_activos = (
+            """(
+                SELECT COUNT(*)
+                FROM contrato C2
+                WHERE TRIM(CAST(C2.establecimiento AS TEXT)) = TRIM(CAST(E.nrocedula AS TEXT))
+                  AND C2.estado = 'Activo'
+            ) AS "contratos_activos"
+            """
+            if tiene_beneficio_salario else '0::bigint AS "contratos_activos"'
         )
         join_beneficio = """
             LEFT JOIN beneficio B
@@ -207,7 +236,7 @@ class EmpleadosService:
                 {estado_beneficio}
         """.format(
             estado_beneficio="AND B.estado = 'Activo'" if tiene_beneficio_estado else ""
-        ) if tiene_beneficio_autoriza else ""
+        ) if tiene_beneficio_autoriza or tiene_beneficio_salario else ""
 
         query = text(f"""
             SELECT DISTINCT ON (E.nrocedula)
@@ -217,19 +246,24 @@ class EmpleadosService:
                 C.empresa::text  AS "empresa",
                 C.ciudadcontratacion::text AS "ciudadcontratacion",
                 {select_jefe},
-                {select_autoriza}
+                {select_autoriza},
+                {select_salario},
+                {select_beneficios_activos},
+                {select_contratos_activos}
             FROM establecimiento E
             LEFT JOIN contrato C
                 ON TRIM(CAST(C.establecimiento AS TEXT)) = TRIM(CAST(E.nrocedula AS TEXT))
+                {"AND C.estado = 'Activo'" if incluir_salario else ""}
             {join_beneficio}
             WHERE E.nrocedula IN ({placeholders})
             ORDER BY E.nrocedula, C.fechainicio DESC NULLS LAST
+                {", B.salario DESC NULLS LAST" if tiene_beneficio_salario else ""}
         """)
 
         resultados = db_erp.execute(query, params).fetchall()
         mapa: Dict[str, Dict] = {}
         for r in resultados:
-            mapa[str(r.nrocedula).strip()] = {
+            empleado = {
                 "nombre": r.nombre,
                 "estado": r.estado or "Desconocido",
                 "empresa": r.empresa or "",
@@ -237,6 +271,15 @@ class EmpleadosService:
                 "quien_reporta": r.quien_reporta,
                 "autoriza_he": _normalizar_bool(r.autoriza_he),
             }
+            if incluir_salario:
+                empleado["salario_base_mensual"] = (
+                    float(r.salario_base_mensual)
+                    if r.salario_base_mensual is not None
+                    and int(r.beneficios_activos or 0) == 1
+                    and int(r.contratos_activos or 0) == 1
+                    else None
+                )
+            mapa[str(r.nrocedula).strip()] = empleado
         return mapa
 
     @staticmethod
@@ -244,8 +287,14 @@ class EmpleadosService:
         db_erp: Session,
         cedulas: List[str],
         incluir_datos_laborales: bool = False,
+        incluir_salario: bool = False,
     ) -> Dict[str, Dict]:
-        args = (db_erp, cedulas, True) if incluir_datos_laborales else (db_erp, cedulas)
+        if incluir_salario:
+            args = (db_erp, cedulas, incluir_datos_laborales, True)
+        elif incluir_datos_laborales:
+            args = (db_erp, cedulas, True)
+        else:
+            args = (db_erp, cedulas)
         return await run_in_threadpool(EmpleadosService.consultar_empleados_bulk, *args)
 
     @staticmethod
@@ -415,19 +464,6 @@ class EmpleadosService:
                 "autoriza_he": _normalizar_bool(r.autoriza_he),
             })
         return {"items": items, "total": total}
-
-    @staticmethod
-    async def consultar_solicitudes_externas(empresa: Optional[str] = None) -> List[Dict]:
-        """Consulta directa al API del ERP (Mock inicial)"""
-        return [
-            {
-                "solicitud_id": "ERP-001",
-                "asunto": "Mejora Módulo Compras",
-                "usuario": "Juan Perez",
-                "prioridad": "Alta"
-            }
-        ]
-
     @staticmethod
     def obtener_todos_los_empleados_activos(db_erp: Session) -> List[Dict]:
         """Consulta todos los empleados activos en la base de datos del ERP"""
@@ -454,16 +490,5 @@ class EmpleadosService:
         ]
 
     @staticmethod
-    async def obtener_todos_los_empleados_activos_async(
-        db_erp: Session,
-    ) -> List[Dict]:
-        return await run_in_threadpool(
-            EmpleadosService.obtener_todos_los_empleados_activos,
-            db_erp,
-        )
-
-    @staticmethod
-    async def sincronizar_solicitudes(db: Session):
-        """Descarga solicitudes del ERP y las crea en la BD local"""
-        solicitudes = await EmpleadosService.consultar_solicitudes_externas()
-        return len(solicitudes)
+    async def obtener_todos_los_empleados_activos_async(db_erp: Session) -> List[Dict]:
+        return await run_in_threadpool(EmpleadosService.obtener_todos_los_empleados_activos, db_erp)

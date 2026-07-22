@@ -114,6 +114,7 @@ export function DataTable<T>({
             if (!bodyGridRef.current || !headerGridRef.current) return;
             const computed = window.getComputedStyle(bodyGridRef.current).gridTemplateColumns;
             headerGridRef.current.style.gridTemplateColumns = computed;
+            headerGridRef.current.scrollLeft = bodyGridRef.current.scrollLeft;
         };
 
         sync();
@@ -223,7 +224,7 @@ export function DataTable<T>({
 
     return (
         <div
-            className={`relative flex flex-col overflow-x-auto overflow-y-hidden border border-[var(--color-border)] bg-[var(--color-surface)] shadow-sm ${maxHeight} ${minHeight} ${className}`}
+            className={`relative flex flex-col overflow-hidden border border-[var(--color-border)] bg-[var(--color-surface)] shadow-sm ${maxHeight} ${minHeight} ${className}`}
             role="table"
             aria-rowcount={data.length + 1}
         >
@@ -275,8 +276,8 @@ export function DataTable<T>({
                     }}
                     onApply={handleApplyFilter}
                     triggerHeight={40}
-                    sortDir={activeFilter === activeSortKey ? activeSortDir : null}
-                    onSort={onSort ? (dir) => { onSort(activeFilter!, dir); } : undefined}
+                    sortDir={(activeSubFilter || activeFilter) === activeSortKey ? activeSortDir : null}
+                    onSort={onSort ? (dir) => { onSort((activeSubFilter || activeFilter)!, dir); } : undefined}
                     subFilters={columns.find(c => c.key === activeFilter)?.subFilters}
                     activeSubFilter={activeSubFilter || undefined}
                     onSubFilterChange={(subKey) => {
@@ -309,7 +310,16 @@ export function DataTable<T>({
                             </div>
                         )}
                         {columns.map((col) => (
-                            <div key={col.key} role="columnheader" className="min-w-0">
+                            <div
+                                key={col.key}
+                                role="columnheader"
+                                aria-sort={
+                                    (activeSortKey === col.key || col.subFilters?.some((sub) => sub.key === activeSortKey)) && activeSortDir
+                                        ? activeSortDir === 'asc' ? 'ascending' : 'descending'
+                                        : undefined
+                                }
+                                className="min-w-0"
+                            >
                               <Button
                                 ref={(el) => { headerRefs.current[col.key] = el; }}
                                 variant="custom"
@@ -338,7 +348,7 @@ export function DataTable<T>({
                                     >
                                         {col.label}
                                     </Text>
-                                    {activeSortKey === col.key && activeSortDir && (
+                                    {(activeSortKey === col.key || col.subFilters?.some((sub) => sub.key === activeSortKey)) && activeSortDir && (
                                         activeSortDir === 'asc' ? (
                                             <ArrowUp size={11} className="text-yellow-400 shrink-0 animate-in fade-in slide-in-from-bottom-1 duration-200" />
                                         ) : (
@@ -361,20 +371,26 @@ export function DataTable<T>({
                         )}
                     </div>
 
-                    {data.length === 0 ? (
-                        <div className="flex-1 flex flex-col items-center justify-center gap-3 py-10" role="status">
-                            {emptyIcon}
-                            <Text variant="body2" color="text-secondary" weight="medium">{emptyMessage}</Text>
-                        </div>
-                    ) : (
-                        <div
-                            ref={(el) => {
-                                (bodyGridRef as React.MutableRefObject<HTMLDivElement | null>).current = el;
-                                if (bodyRef) bodyRef.current = el;
-                            }}
-                            className="overflow-y-auto custom-scrollbar"
-                            role="rowgroup"
-                        >
+                    <div
+                        ref={(el) => {
+                            (bodyGridRef as React.MutableRefObject<HTMLDivElement | null>).current = el;
+                            if (bodyRef) bodyRef.current = el;
+                        }}
+                        onScroll={(event) => {
+                            if (headerGridRef.current) {
+                                headerGridRef.current.scrollLeft = event.currentTarget.scrollLeft;
+                            }
+                        }}
+                        className="flex-1 overflow-auto custom-scrollbar"
+                        role="rowgroup"
+                    >
+                        {data.length === 0 ? (
+                            <div className="col-span-full flex min-h-[100px] flex-col items-center justify-center gap-3 py-10" role="status">
+                                {emptyIcon}
+                                <Text variant="body2" color="text-secondary" weight="medium">{emptyMessage}</Text>
+                            </div>
+                        ) : (
+                            <>
                             {data.map((row, rowIndex) => {
                                 const rowKey = keyExtractor(row);
                                 if (isRowDraggable) {
@@ -506,8 +522,9 @@ export function DataTable<T>({
                                     />
                                 );
                             })}
-                        </div>
-                    )}
+                            </>
+                        )}
+                    </div>
                 </>
             )}
         </div>

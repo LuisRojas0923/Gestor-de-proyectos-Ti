@@ -141,6 +141,7 @@ export const API_ENDPOINTS = {
   ALCANCE_GESTOR_EMPLEADOS: (id: string) => `/alcance-empleados/gestores/${id}/empleados`,
   ALCANCE_GESTOR_RELACIONES: (id: string) => `/alcance-empleados/gestores/${id}/relaciones`,
   PLANIFICADOR_EMPLEADOS_ERP: '/novedades-nomina/horas-extras/planificador/empleados-erp',
+  PLANIFICADOR_OTS_HORARIOS: '/novedades-nomina/horas-extras/planificador/ots-horarios',
 
   // ERP
   ERP_SOLICITUDES: '/erp/solicitudes',

@@ -135,16 +135,46 @@ const VistaTabularHorarios: React.FC<VistaTabularHorariosProps> = ({
   ), [editarFila]);
   useEffect(() => setPagina((actual) => Math.min(actual, totalPaginas)), [totalPaginas]);
   const columns = useMemo<DataTableColumn<FilaHorarioTabular>[]>(() => [
-    { key: 'cedula', label: 'Cédula', minWidth: '130px', filterable: true },
-    { key: 'empleado', label: 'Empleado', minWidth: '190px', filterable: true, flex: true },
+    {
+      key: 'empleado',
+      label: 'Empleado / cédula',
+      minWidth: '240px',
+      filterable: true,
+      flex: true,
+      subFilters: [
+        { key: 'empleado', label: 'Nombre' },
+        { key: 'cedula', label: 'Cédula' },
+      ],
+      render: (fila) => (
+        <div className="flex min-w-0 flex-col gap-0.5 py-1 text-left">
+          <Text className="truncate text-xs font-semibold text-[var(--color-text-primary)]">{fila.empleado}</Text>
+          <Text className="truncate font-mono text-[11px] text-[var(--color-text-secondary)]">{fila.cedula}</Text>
+        </div>
+      ),
+    },
     { key: 'fecha', label: 'Fecha', minWidth: '110px', filterable: true },
     { key: 'dia', label: 'Día', minWidth: '72px', filterable: true },
-    { key: 'cliente', label: 'Cliente', minWidth: '150px', filterable: true, flex: true },
+    {
+      key: 'orden',
+      label: 'OS / OT / cliente',
+      minWidth: '210px',
+      filterable: true,
+      flex: true,
+      subFilters: [
+        { key: 'orden', label: 'OS / OT' },
+        { key: 'cliente', label: 'Cliente' },
+      ],
+      render: (fila) => (
+        <div className="flex min-w-0 flex-col gap-0.5 py-1 text-left">
+          <Text className="truncate font-mono text-xs font-semibold text-[var(--color-text-primary)]">{fila.orden}</Text>
+          <Text className="truncate text-[11px] text-[var(--color-text-secondary)]">{fila.cliente}</Text>
+        </div>
+      ),
+    },
     {
       key: 'actividad', label: 'Actividad / observación', minWidth: '280px', filterable: true, flex: true,
       render: (fila) => <Text className="line-clamp-2 text-xs font-medium text-[var(--color-text-primary)]">{fila.actividad}</Text>,
     },
-    { key: 'orden', label: 'OS / OT', minWidth: '90px', centered: true, filterable: true },
     { key: 'cc', label: 'CC costo', minWidth: '95px', centered: true, filterable: true },
     { key: 'entrada', label: 'Entrada', minWidth: '90px', centered: true, filterable: true },
     { key: 'almuerzo', label: 'Almuerzo', minWidth: '90px', centered: true, filterable: true },

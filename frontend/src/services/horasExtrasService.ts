@@ -60,7 +60,8 @@ async function request<T>(
   init: RequestInit & { token: string },
 ): Promise<T> {
   const { token, headers, ...rest } = init;
-  const res = await fetch(`${BASE}${path}`, {
+  const url = path.startsWith(API_CONFIG.BASE_URL) ? path : `${BASE}${path}`;
+  const res = await fetch(url, {
     ...rest,
     headers: {
       'Content-Type': 'application/json',
@@ -501,7 +502,7 @@ export async function buscarOtManoObra(
   token: string,
 ): Promise<OtManoObraListResponse> {
   const qs = buildQuery({ q: query, limit, offset });
-  return request<OtManoObraListResponse>(`/planificador/ots-mano-obra${qs}`, {
+  return request<OtManoObraListResponse>(`${API_CONFIG.BASE_URL}${API_ENDPOINTS.PLANIFICADOR_OTS_HORARIOS}${qs}`, {
     method: 'GET',
     token,
   });

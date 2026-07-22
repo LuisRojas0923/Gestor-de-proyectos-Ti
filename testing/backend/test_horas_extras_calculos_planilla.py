@@ -31,6 +31,7 @@ def _calculo(**overrides):
         "fecha_fin": date(2026, 6, 7),
         "salario_base_mensual": 3_000_000,
         "valor_hora_ordinaria": 14_286,
+        "factor_prestacional": 0.334,
         "total_horas_extras": 1.0,
         "estado": "CONFIRMADO",
         "confirmado_por": "USR-CAMILA",
@@ -123,6 +124,7 @@ def _contexto():
                 "ciudadcontratacion": "BOGOTA",
                 "quien_reporta": "ADN",
                 "autoriza_he": True,
+                "salario_base_mensual": 3_300_000,
             }
         },
         "horarios": {},
@@ -134,6 +136,20 @@ def _contexto():
             }
         },
     }
+
+
+def _simular_erp_planilla(monkeypatch):
+    monkeypatch.setattr(
+        EmpleadosService,
+        "consultar_empleados_bulk_async",
+        AsyncMock(return_value=_contexto()["empleados"]),
+    )
+    monkeypatch.setattr(
+        planilla_module,
+        "obtener_reglas_calculo",
+        AsyncMock(return_value=None),
+    )
+    return SimpleNamespace()
 
 
 def test_construye_fila_salario_y_fila_hora_extra_por_empleado_fecha_ot():
@@ -153,8 +169,8 @@ def test_construye_fila_salario_y_fila_hora_extra_por_empleado_fecha_ot():
     salario = filas[0]
     assert salario.cedula == "80167661"
     assert salario.empleado == "MOLANO ANTURY MIGUEL ANGEL"
-    assert salario.salario == 3_000_000
-    assert salario.base_hora == 14_286
+    assert salario.salario == 3_300_000
+    assert salario.base_hora == 15_000
     assert salario.aplica_he is True
     assert salario.empresa == "SUMMAR TEMPORALES"
     assert salario.sucursal == "BOGOTA"
@@ -166,6 +182,7 @@ def test_construye_fila_salario_y_fila_hora_extra_por_empleado_fecha_ot():
     assert salario.responsable == "CAMILA BAHOZ"
     assert salario.encargados == "ADN"
     assert salario.cliente == "ADN"
+    assert filas[1].costo_total == pytest.approx(25_012.5)
 
 
 def test_distribuye_salario_por_porcentaje_sin_duplicar_horas_ordinarias():
@@ -241,8 +258,8 @@ def test_distribuye_novedad_y_costo_entre_cc_de_la_misma_ot():
         (fila.ot_cc, fila.cantidad_horas, fila.costo_total)
         for fila in novedades
     ] == [
-        ("CC-1", 1.8, 18_000),
-        ("CC-2", 1.2, 12_000),
+        ("CC-1", 1.8, 45_022.5),
+        ("CC-2", 1.2, 30_015.0),
     ]
 
 
@@ -251,6 +268,7 @@ def test_calculo_historico_sin_snapshot_conserva_detalles_semanales():
         id=5,
         codigo_novedad="HEN",
         horas=2.0,
+        factor_hora_ordinaria=1.75,
         ot_codigo="5000",
         costo_total=40_000,
     )
@@ -296,6 +314,9 @@ def test_bulk_empleados_incluye_autorizacion_y_jefe_solo_para_planilla(monkeypat
         ciudadcontratacion="BOGOTA",
         quien_reporta="ADN",
         autoriza_he=True,
+        salario_base_mensual=3_300_000,
+        beneficios_activos=1,
+        contratos_activos=1,
     )
     resultado = SimpleNamespace(fetchall=lambda: [row])
     db_erp = SimpleNamespace(execute=lambda *_args: resultado)
@@ -304,10 +325,12 @@ def test_bulk_empleados_incluye_autorizacion_y_jefe_solo_para_planilla(monkeypat
         db_erp,
         ["80167661"],
         incluir_datos_laborales=True,
+        incluir_salario=True,
     )
 
     assert empleados["80167661"]["quien_reporta"] == "ADN"
     assert empleados["80167661"]["autoriza_he"] is True
+    assert empleados["80167661"]["salario_base_mensual"] == 3_300_000
 
 
 def test_bulk_ot_planilla_conserva_combinacion_exacta():
@@ -400,8 +423,9 @@ async def test_servicio_resuelve_responsable_por_cedula_y_filtra_periodos_exacto
         [SimpleNamespace(id="UUID-1", cedula="101010", nombre="CAMILA BAHOZ")],
     ])
     monkeypatch.setattr(planilla_module, "listar_calculos", AsyncMock(return_value=[calculo]))
+    db_erp = _simular_erp_planilla(monkeypatch)
 
-    filas = await listar_calculos_planilla(sesion)
+    filas = await listar_calculos_planilla(sesion, db_erp=db_erp)
 
     assert filas[0].responsable == "CAMILA BAHOZ"
     consulta_asignaciones = str(sesion.sentencias[1])
@@ -414,6 +438,7 @@ async def test_snapshot_invalido_degrada_al_detalle_semanal(monkeypatch):
         id=5,
         codigo_novedad="HEN",
         horas=2.0,
+        factor_hora_ordinaria=1.75,
         ot_codigo="5000",
         costo_total=40_000,
     )
@@ -424,8 +449,9 @@ async def test_snapshot_invalido_degrada_al_detalle_semanal(monkeypatch):
     )
     sesion = _Sesion([[ _diario(hash_snapshot="alterado") ], [], []])
     monkeypatch.setattr(planilla_module, "listar_calculos", AsyncMock(return_value=[calculo]))
+    db_erp = _simular_erp_planilla(monkeypatch)
 
-    filas = await listar_calculos_planilla(sesion)
+    filas = await listar_calculos_planilla(sesion, db_erp=db_erp)
 
     assert [(fila.novedad, fila.cantidad_horas) for fila in filas] == [("HEN", 2.0)]
 
@@ -436,6 +462,7 @@ async def test_snapshot_rechaza_concepto_calculado_adicional_aun_con_hash_valido
         id=5,
         codigo_novedad="HED",
         horas=1.0,
+        factor_hora_ordinaria=1.25,
         ot_codigo="3080",
         costo_total=23_818,
     )
@@ -453,8 +480,9 @@ async def test_snapshot_rechaza_concepto_calculado_adicional_aun_con_hash_valido
         [],
     ])
     monkeypatch.setattr(planilla_module, "listar_calculos", AsyncMock(return_value=[calculo]))
+    db_erp = _simular_erp_planilla(monkeypatch)
 
-    filas = await listar_calculos_planilla(sesion)
+    filas = await listar_calculos_planilla(sesion, db_erp=db_erp)
 
     assert [(fila.fecha, fila.novedad) for fila in filas] == [
         (date(2026, 6, 1), "HED")
@@ -466,8 +494,9 @@ async def test_responsable_no_resuelto_no_expone_identificador(monkeypatch):
     calculo = _calculo(confirmado_por="101010", calculado_por=None)
     sesion = _Sesion([[_con_hash(_diario())], [_asignacion()], [], []])
     monkeypatch.setattr(planilla_module, "listar_calculos", AsyncMock(return_value=[calculo]))
+    db_erp = _simular_erp_planilla(monkeypatch)
 
-    filas = await listar_calculos_planilla(sesion)
+    filas = await listar_calculos_planilla(sesion, db_erp=db_erp)
 
     assert filas[0].responsable is None
 

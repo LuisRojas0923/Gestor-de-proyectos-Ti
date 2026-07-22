@@ -285,7 +285,7 @@ SYSTEM_MODULES_REGISTRY: List[Dict[str, Any]] = [
         "nombre": "Horas Extras — Consulta",
         "categoria": "portal",
         "es_critico": True,
-        "descripcion": "Consulta de catálogos, horarios, autorizaciones, cálculos, costos OT, novedades, festivos y bolsa de horas.",
+        "descripcion": "Consulta de catálogos, horarios, autorizaciones, cálculos, salarios y costos OT dentro del alcance autorizado, novedades, festivos y bolsa de horas.",
     },
     {
         "id": "nomina_horas_extras.planificar",

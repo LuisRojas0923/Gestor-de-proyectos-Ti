@@ -77,6 +77,84 @@ describe('DataTable — drag/drop', () => {
   });
 });
 
+describe('DataTable — desplazamiento', () => {
+  it('mantiene el encabezado alineado con el desplazamiento horizontal del cuerpo', () => {
+    render(
+      <DataTable<Row>
+        columns={columns}
+        data={rows}
+        keyExtractor={row => row.id}
+      />
+    );
+
+    const table = screen.getByRole('table');
+    const body = screen.getByRole('rowgroup');
+    const header = screen.getByRole('button', { name: 'Nombre' }).closest('[role="row"]') as HTMLElement;
+
+    expect(table).toHaveClass('overflow-hidden');
+    expect(body).toHaveClass('overflow-auto');
+    body.scrollLeft = 240;
+    fireEvent.scroll(body);
+
+    expect(header.scrollLeft).toBe(240);
+  });
+
+  it('conserva el desplazamiento horizontal cuando no hay resultados', () => {
+    render(
+      <DataTable<Row>
+        columns={columns}
+        data={[]}
+        keyExtractor={row => row.id}
+      />
+    );
+
+    const body = screen.getByRole('rowgroup');
+    const header = screen.getByRole('button', { name: 'Nombre' }).closest('[role="row"]') as HTMLElement;
+    expect(body).toHaveClass('flex-1', 'overflow-auto');
+    body.scrollLeft = 180;
+    fireEvent.scroll(body);
+
+    expect(header.scrollLeft).toBe(180);
+  });
+});
+
+describe('DataTable — columnas agrupadas', () => {
+  it('muestra el orden activo y ordena por el subfiltro seleccionado', () => {
+    const onSort = vi.fn();
+    render(
+      <DataTable<Row>
+        columns={[{
+          key: 'name',
+          label: 'Empleado',
+          filterable: true,
+          subFilters: [
+            { key: 'name', label: 'Nombre' },
+            { key: 'id', label: 'Cédula' },
+          ],
+        }]}
+        data={rows}
+        keyExtractor={row => row.id}
+        columnOptions={{ name: rows.map(row => row.name), id: rows.map(row => row.id) }}
+        onFilterChange={vi.fn()}
+        activeSortKey="id"
+        activeSortDir="asc"
+        onSort={onSort}
+      />
+    );
+
+    const header = screen.getByRole('button', { name: 'Empleado' });
+    expect(header.closest('[role="columnheader"]')).toHaveAttribute('aria-sort', 'ascending');
+    expect(header.querySelector('.lucide-arrow-up')).not.toBeNull();
+    fireEvent.click(header);
+    const cedulaFilter = screen.getByRole('button', { name: 'Cédula' });
+    fireEvent.click(cedulaFilter);
+    expect(cedulaFilter).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.click(screen.getByTitle('Descendente (Z → A)'));
+
+    expect(onSort).toHaveBeenCalledWith('id', 'desc');
+  });
+});
+
 describe('DataTable — filtros remotos', () => {
   it('mantiene abierto el filtro con scroll interno y lo cierra con scroll externo', () => {
     render(

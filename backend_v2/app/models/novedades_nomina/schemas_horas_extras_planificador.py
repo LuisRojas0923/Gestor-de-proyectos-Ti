@@ -48,7 +48,7 @@ class EmpleadoERPListResponse(SQLModel):
 
 
 class OtManoObraRead(SQLModel):
-    """Combinacion OT/centro de costo disponible en basegeneralcostos."""
+    """Combinacion OT/centro de costo disponible para el planificador."""
     orden: str
     cc: Optional[str] = None
     scc: Optional[str] = None

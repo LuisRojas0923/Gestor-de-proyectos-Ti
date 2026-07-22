@@ -323,6 +323,7 @@ export const FilterDropdown: React.FC<FilterDropdownProps> = (props) => {
                                 variant="custom"
                                 size="xs"
                                 onClick={() => onSubFilterChange?.(sub.key)}
+                                aria-pressed={isActive}
                                 className={`flex-1 !py-1 !text-[9px] font-semibold rounded-lg transition-all ${
                                     isActive
                                         ? 'bg-primary-50 dark:bg-primary-950/30 text-primary-600 dark:text-primary-400 border border-primary-100 dark:border-primary-900/40 shadow-sm'

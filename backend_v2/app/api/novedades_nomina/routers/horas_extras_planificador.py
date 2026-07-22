@@ -5,6 +5,7 @@ Separado de horas_extras.py para mantenerlo bajo el limite de 500 lineas.
 
 Endpoints:
   GET    planificador/empleados-erp     Lista paginada con busqueda
+  GET    planificador/ots-horarios      OT habilitadas desde el ERP
   POST   horario/registros/bulk         Guarda borrador (upsert horario + novedades)
   POST   planificador/pre-calcular      Calculo en vivo SIN persistir
   POST   planificador/confirmar         Genera nomina_calculo_semanal por empleado
@@ -21,6 +22,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ....database import obtener_db
+from ....core.rate_limiter import limiter
 from ....models.auth.usuario import Usuario
 from ....models.novedades_nomina.schemas_horas_extras_planificador import (
     EmpleadoERPListResponse,
@@ -40,7 +42,10 @@ from ....services.erp.empleados_horarios_service import (
     filtrar_paginar_empleados,
     validar_semana_iso,
 )
-from ....services.erp.ordenes_trabajo_service import consultar_ots_mano_obra_worker
+from ....services.erp.ordenes_trabajo_service import (
+    consultar_ots_horarios_worker,
+    consultar_ots_mano_obra_worker,
+)
 from ....services.novedades_nomina.planificador_service import (
     confirmar_plan,
     guardar_borrador_plan,
@@ -147,6 +152,38 @@ async def listar_ots_mano_obra(
         return OtManoObraListResponse(**resultado)
     except Exception:
         logger.error("Error consultando OT/CC del ERP")
+        raise HTTPException(status_code=503, detail="ERP no disponible")
+
+
+@router.get("/planificador/ots-horarios", response_model=OtManoObraListResponse)
+@limiter.limit("30/minute")
+async def listar_ots_horarios(
+    request: Request,
+    response: Response,
+    q: str = Query(
+        ...,
+        min_length=2,
+        max_length=100,
+        description="Filtro sobre orden, descripcion, CC, SCC, subindice o cliente",
+    ),
+    limit: int = Query(20, ge=1, le=100),
+    offset: int = Query(0, ge=0, le=10_000),
+    _: Usuario = Depends(requiere_permiso_he_planificar),
+):
+    """Lista las OT disponibles en la vista OThorarios del ERP."""
+    if len(q.strip()) < 2:
+        raise HTTPException(status_code=422, detail="q requiere al menos 2 caracteres")
+    try:
+        resultado = await run_in_threadpool(
+            consultar_ots_horarios_worker, q, limit, offset
+        )
+        response.headers["Cache-Control"] = "no-store, private"
+        return OtManoObraListResponse(**resultado)
+    except Exception as exc:
+        logger.error(
+            "Error consultando la vista OThorarios del ERP: %s",
+            type(exc).__name__,
+        )
         raise HTTPException(status_code=503, detail="ERP no disponible")
 
 

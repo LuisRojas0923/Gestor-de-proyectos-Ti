@@ -160,9 +160,10 @@ describe('Planificador semanal festivo', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /Vista tabular/i }));
 
-    expect(await screen.findByText('Cédula')).toBeTruthy();
-    expect(screen.getByText('Cliente')).toBeTruthy();
-    expect(screen.getByText('OS / OT')).toBeTruthy();
+    expect(await screen.findByText('Empleado / cédula')).toBeTruthy();
+    expect(screen.getByText('OS / OT / cliente')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Cédula' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Cliente' })).toBeNull();
     expect(screen.getByText('CC costo')).toBeTruthy();
     expect(screen.getByText('Total laborado')).toBeTruthy();
     expect(screen.getByText('COLCAFE')).toBeTruthy();
@@ -215,9 +216,9 @@ describe('Planificador semanal festivo', () => {
         items: [{ ...empleado, cedula: '999', nombre: 'Empleado nuevo' }],
         total: 1, limit: 25, offset: 0,
       });
-    const { container } = renderConSeleccion();
+    renderConSeleccion();
     await screen.findByText('Juan');
-    const body = container.querySelector('.overflow-y-auto.custom-scrollbar') as HTMLDivElement;
+    const body = screen.getByRole('rowgroup');
     Object.defineProperties(body, {
       scrollHeight: { value: 500, configurable: true },
       clientHeight: { value: 300, configurable: true },
