@@ -67,14 +67,55 @@ Decisiones validadas con el usuario:
 | Método | Path | Descripción |
 |---|---|---|
 | GET | `/planificador/empleados-erp` | Lista paginada de empleados del ERP con búsqueda |
+| GET | `/planificador/ots-horarios` | Lista paginada de OT habilitadas por la vista ERP `OThorarios` |
 | POST | `/horario/registros/bulk` | Upsert masivo de horario + insert masivo de novedades (BORRADOR) |
 | POST | `/planificador/pre-calcular` | Cálculo en vivo, SIN persistir |
 | POST | `/planificador/confirmar` | Genera cálculo `CONFIRMADO` o `PENDIENTE_AUTORIZACION` por empleado; requiere `nomina_horas_extras.confirmar` |
 | POST | `/calculos/{calculo_id}/autorizar` | Autoriza un cálculo pendiente y acredita la bolsa una vez; requiere `nomina_horas_extras.autorizar` |
 
-Permisos requeridos: `nomina_horas_extras.planificar` para borrador/pre-cálculo y `nomina_horas_extras.confirmar` para confirmar.
+Permisos requeridos: `nomina_horas_extras.planificar` para consultar OT, borrador/pre-cálculo y `nomina_horas_extras.confirmar` para confirmar.
 
-### 2.2 DTOs clave
+### 2.2 Contrato de consulta OT
+
+`GET /planificador/ots-horarios` requiere autenticación y el permiso
+`nomina_horas_extras.planificar`. Parámetros:
+
+- `q`: obligatorio, entre 2 y 100 caracteres; busca orden, descripción, CC,
+  SCC, subíndice o cliente. Se recorta whitespace y `%`, `_` y `\\` se tratan
+  como caracteres literales, no como comodines SQL.
+- `limit`: entre 1 y 100; valor predeterminado 20.
+- `offset`: entre 0 y 10000; la ruta es un buscador acotado, no una
+  exportación completa.
+
+La respuesta usa `Cache-Control: no-store, private` y contiene `items`,
+`total`, `limit` y `offset`. Cada item expone `orden` y
+`categoria_sub_indice` como textos obligatorios; `cc`, `scc`, `sub_indice`,
+`descripcion`, `vr_contratado`, `estado` y `cliente` pueden ser nulos. La vista
+ERP debe proporcionar las columnas `orden`, `cc`, `scc`, `sub_indice`,
+`categoria_sub_indice`, `descripcion`, `vr_contratado`, `estado` y `cliente`.
+Filas sin orden o categoría se excluyen y los duplicados se resuelven con un
+orden determinista.
+
+Errores HTTP: `401` sin autenticación, `403` sin permiso, `422` para parámetros
+fuera de contrato y `503` cuando el ERP o el contrato de la vista no están
+disponibles.
+
+La validación de producción es una puerta de despliegue, no de merge. El equipo
+de despliegue/ERP es responsable y debe completarla antes del despliegue, con
+fecha objetivo 2026-07-22. Debe confirmar relación/casing, permiso `SELECT`,
+columnas, tipos, nulabilidad, búsqueda representativa, página vacía, total y
+tiempo de respuesta dentro del timeout de 30 segundos:
+
+```powershell
+$env:RUN_ERP_PROD_CONTRACT = "1"
+$env:ERP_PROD_OT_QUERY = "<orden o cliente de prueba>"
+docker compose run --rm -v "$((Get-Location).Path):/workspace" -w /workspace -e PYTHONPATH=/workspace/backend_v2 -e RUN_ERP_PROD_CONTRACT -e ERP_PROD_OT_QUERY backend pytest testing/backend/test_horas_extras_ot_horarios.py -k contrato_erp_produccion -q
+```
+
+Si el smoke falla, no se despliega el endpoint: la ruta permanece fail-closed
+con `503` y no se modifica información del ERP.
+
+### 2.3 DTOs clave
 
 ```typescript
 // Request bulk (mismo para pre-calcular, guardar y como base de confirmar)
@@ -144,11 +185,11 @@ interface PlanConfirmarResponse {
 }
 ```
 
-Semántica de borrador: `actividad` se conserva en `sessionStorage` mientras el usuario edita y se persiste de forma durable en `nomina_calculo_diario_detalle.observaciones` al confirmar. El endpoint `/horario/registros/bulk` mantiene el horario pactado, novedades y asignaciones OT, pero no convierte la actividad semanal en un atributo del horario contractual recurrente. `cliente` proviene de la consulta ERP y se usa como dato de presentación; no es una fuente contable autoritativa ni se persiste desde el payload.
+Semántica de borrador: `actividad` se conserva en `sessionStorage` mientras el usuario edita y se persiste de forma durable en `nomina_calculo_diario_detalle.observaciones` al confirmar. El endpoint `/horario/registros/bulk` mantiene el horario pactado, novedades y asignaciones OT, pero no convierte la actividad semanal en un atributo del horario contractual recurrente. El selector obtiene OT y `cliente` desde la vista ERP `OThorarios`; esos datos se usan para planificación y presentación. `basegeneralcostos` conserva su responsabilidad sobre costos y presupuesto, y el cliente enviado por el navegador no es una fuente contable autoritativa.
 
 Cada empleado admite como máximo siete días y no puede repetir `dia_semana`.
 
-### 2.3 Archivos backend
+### 2.4 Archivos backend
 
 | Tipo | Ruta |
 |---|---|
@@ -159,6 +200,7 @@ Cada empleado admite como máximo siete días y no puede repetir `dia_semana`.
 | Helpers | `backend_v2/app/services/novedades_nomina/_planificador_common.py` |
 | Router | `backend_v2/app/api/novedades_nomina/routers/horas_extras_planificador.py` |
 | ERP | `app/services/erp/empleados_service.listar_empleados_paginado()` |
+| ERP OT | `app/services/erp/ordenes_trabajo_service.listar_ot_horarios()` |
 | Integración | `app/api/novedades_nomina/routers/horas_extras.py` (include_router) |
 
 ---
@@ -186,8 +228,9 @@ Layout mobile-first, grid responsive. Selector de empleados, herramientas masiva
 
 ### 3.3 Servicio y tipos
 
-`frontend/src/services/horasExtrasService.ts` — 4 funciones nuevas:
+`frontend/src/services/horasExtrasService.ts` — funciones del planificador:
 - `buscarEmpleadosERP(q, limit, offset, token, soloActivos)`
+- `buscarOtManoObra(q, limit, offset, token)` → `/planificador/ots-horarios`
 - `guardarBorradorPlan(payload, token)`
 - `preCalcularPlan(payload, token)`
 - `confirmarPlan(payload, token)`
@@ -219,6 +262,11 @@ Layout mobile-first, grid responsive. Selector de empleados, herramientas masiva
 `testing/backend/test_horas_extras_s8_ot_mano_obra.py`:
 - Distribución festiva por horas o porcentajes, conciliación de residuo y reversión al anular.
 
+`testing/backend/test_horas_extras_ot_horarios.py`:
+- Contrato SQL/mapeo mock, selección determinista y exclusión de categorías nulas.
+- Autenticación, límites HTTP, `503`, `no-store`, paginación y cierre de sesión.
+- Smoke ERP producción opt-in mediante `RUN_ERP_PROD_CONTRACT=1`.
+
 Cédulas prefijo `TEST-S7-*`. OTs 9301-9302.
 
 ### 4.2 Frontend
@@ -227,6 +275,13 @@ Cédulas prefijo `TEST-S7-*`. OTs 9301-9302.
 
 `frontend/src/tests/PlanificadorSemanalFestivos.test.tsx`: visualización simultánea
 `HF + HEFD`, nombre accesible, limpieza al cambiar semana y vista tabular con cliente/OT/CC, actividad masiva y persistencia local.
+
+`frontend/src/components/molecules/__tests__/DataTable.test.tsx`: sincronización
+horizontal con y sin resultados, filtros agrupados, orden por subfiltro y
+semántica `aria-sort`.
+
+`frontend/src/tests/horasExtrasOtHorariosService.test.ts`: URL, parámetros y
+token bearer de la consulta `OThorarios`.
 
 ---
 
@@ -260,6 +315,8 @@ Idempotencia: el guardado bulk re-ejecutable actualiza horario existente, no dup
 | Actividad semanal confundida con horario contractual | El borrador local conserva la actividad; solo la confirmación la lleva al snapshot diario, sin modificar el horario recurrente |
 | Cliente enviado por navegador | Se usa únicamente para presentación; la imputación conserva OT/CC y no confía en cliente como dato contable |
 | ERP no disponible | UI muestra mensaje claro + permite digitar cédulas manualmente (en `observaciones`) |
+| Contrato `OThorarios` distinto en producción | Smoke read-only opt-in obligatorio antes del despliegue; fallo mantiene la ruta en `503` |
+| Consulta amplia o automatizada al ERP | `q` obligatorio de 2-100 caracteres, `limit <= 100`, `offset <= 10000` y timeout ERP de 30 segundos |
 | Pre-cálculo divergente del confirmado | Mismas funciones puras en ambos paths; advertencia visual si cambia la semana entre pre-calcular y confirmar |
 | Atomicidad parcial en bulk | `try/except` por empleado con rollback al savepoint implícito; errores van a `errores[]` |
 | RBAC | Planificación y confirmación usan permisos granulares independientes |
@@ -288,7 +345,7 @@ npm run test -- src/tests/PlanificadorSemanalView.test.tsx
 # 3. Buscar "Juan" en ERP → seleccionar 3 empleados
 # 4. Set default horario Lun-Vie 7:30/17:00 + 60min almuerzo
 # 5. Click "Aplicar a todos" → ver 3 filas × 7 días con valores
-# 6. Cambiar a "Vista tabular" → filtrar por cédula/cliente y verificar OT/CC/total
+# 6. Cambiar a "Vista tabular" → usar los grupos "Empleado / cédula" y "OS / OT / cliente"; verificar filtros independientes, OT/CC y total
 # 7. Escribir actividad, seleccionar días y aplicar; recargar y comprobar el borrador local
 # 8. Editar una fila → cambiar jornada/actividad o agregar novedad AUS
 # 9. Click "Pre-calcular" → revisar resumen y volver a la vista tabular
