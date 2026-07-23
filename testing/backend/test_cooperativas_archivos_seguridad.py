@@ -3,6 +3,7 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
 import pytest
+import openpyxl
 from fastapi import HTTPException, UploadFile
 from httpx import ASGITransport, AsyncClient
 from starlette.datastructures import Headers
@@ -24,6 +25,14 @@ def _upload(nombre: str | None, contenido: bytes, content_type: str) -> UploadFi
         file=io.BytesIO(contenido),
         headers=Headers({"content-type": content_type}),
     )
+
+
+def _xlsx_valido() -> bytes:
+    workbook = openpyxl.Workbook()
+    workbook.active.append(["CEDULA", "VALOR"])
+    output = io.BytesIO()
+    workbook.save(output)
+    return output.getvalue()
 
 
 @pytest.mark.asyncio
@@ -52,11 +61,24 @@ async def test_grancoop_rechaza_archivo_invalido(nombre, contenido, content_type
 
 @pytest.mark.asyncio
 async def test_beneficiar_acepta_xlsx_valido():
+    contenido = _xlsx_valido()
     archivos = await leer_archivos_beneficiar(
-        [_upload("beneficiar.xlsx", b"PK\x03\x04contenido", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")]
+        [_upload("beneficiar.xlsx", contenido, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")]
     )
 
-    assert archivos == [b"PK\x03\x04contenido"]
+    assert archivos == [contenido]
+
+
+@pytest.mark.asyncio
+async def test_beneficiar_rechaza_zip_que_no_es_xlsx():
+    with pytest.raises(ValueError, match="libro Excel|corrupto"):
+        await leer_archivos_beneficiar([
+            _upload(
+                "beneficiar.xlsx",
+                b"PK\x03\x04contenido",
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            )
+        ])
 
 
 @pytest.mark.asyncio
@@ -93,6 +115,25 @@ async def test_cooperativa_rechaza_archivo_mayor_a_20_mb():
         await leer_archivos_grancoop(
             [_upload("grancoop.pdf", contenido, "application/pdf")]
         )
+
+
+@pytest.mark.asyncio
+async def test_beneficiar_rechaza_expansion_agregada(monkeypatch):
+    from app.services.novedades_nomina import validacion_archivos_cooperativas as modulo
+
+    monkeypatch.setattr(modulo, "MAX_BYTES_EXPANDIDOS_TOTAL", 100)
+    monkeypatch.setattr(modulo, "validar_contenido_nomina", lambda *_args: 60)
+    archivos = [
+        _upload(
+            f"beneficiar-{indice}.xlsx",
+            b"PK\x03\x04contenido",
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+        for indice in range(2)
+    ]
+
+    with pytest.raises(ValueError, match="expandida"):
+        await leer_archivos_beneficiar(archivos)
 
 
 @pytest.mark.asyncio

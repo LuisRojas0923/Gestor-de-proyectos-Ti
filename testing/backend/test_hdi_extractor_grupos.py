@@ -354,9 +354,18 @@ def test_hdi_api_data_preservation_on_empty_extraction():
     mock_session = AsyncMock()
     mock_db_erp = AsyncMock()
 
+    import io
+    import zipfile
+
+    contenido = io.BytesIO()
+    with zipfile.ZipFile(contenido, "w") as archive:
+        archive.writestr("[Content_Types].xml", "<Types />")
+        archive.writestr("xl/workbook.xml", "<workbook />")
+
     mock_file = AsyncMock()
-    mock_file.read = AsyncMock(return_value=b"dummy content")
+    mock_file.read = AsyncMock(return_value=contenido.getvalue())
     mock_file.filename = "test.xlsx"
+    mock_file.content_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 
     # Función extractora que devuelve 0 filas
     mock_extractor_vacio = lambda files: ([], {"total_asociados": 0}, ["Advertencia: 0 filas"])

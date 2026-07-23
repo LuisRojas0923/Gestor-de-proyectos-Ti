@@ -1,3 +1,4 @@
+import asyncio
 import os
 import hashlib
 import logging
@@ -5,7 +6,7 @@ from datetime import datetime
 from pathlib import Path
 
 from typing import List, Optional
-from fastapi import APIRouter, Depends, UploadFile, File, Form, HTTPException, Query
+from fastapi import APIRouter, Depends, UploadFile, File, Form, HTTPException, Query, Request
 from fastapi.responses import FileResponse
 from sqlmodel import select, func, delete
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -17,6 +18,12 @@ from ...models.novedades_nomina.nomina import (
 )
 from ...services.novedades_nomina.extractor import NominaExtractor
 from ...services.novedades_nomina.processor import NominaProcessor
+from ...services.novedades_nomina.validacion_archivos_nomina import (
+    leer_archivos_nomina_http,
+)
+from ...services.novedades_nomina.errores_http import resumen_error_interno
+from ...services.novedades_nomina.almacenamiento import guardar_archivo_nomina
+from ...core.rate_limiter import limiter
 from .dependencies import requiere_permiso_comisiones, requiere_permiso_nomina_novedades
 from .routers import (
     cooperativas_router, libranzas_router, funebres_router, otros_router,
@@ -68,7 +75,9 @@ async def obtener_catalogo():
     response_model=NominaUploadResponse,
     dependencies=[Depends(requiere_permiso_nomina_novedades)],
 )
+@limiter.limit("5/minute")
 async def cargar_archivo(
+    request: Request,
     mes: int = Form(...),
     año: int = Form(...),
     subcategoria: str = Form(...),
@@ -77,19 +86,23 @@ async def cargar_archivo(
     session: AsyncSession = Depends(obtener_db)
 ):
     """Carga un archivo y guarda sus metadatos"""
-    content = await file.read()
+    contenidos, nombres, extensiones = await leer_archivos_nomina_http([file])
+    content = contenidos[0]
+    nombre_original = nombres[0]
+    ext = extensiones[0]
     file_hash = hashlib.sha256(content).hexdigest()
-    
-    # Guardar en disco (siempre, por si se perdió físicamente)
-    ext = file.filename.split('.')[-1].lower()
+
     filename = f"{file_hash}.{ext}"
     path = os.path.join(STORAGE_DIR, filename)
+
     try:
-        with open(path, "wb") as f_out:
-            f_out.write(content)
+        await guardar_archivo_nomina(path, content)
     except Exception as e:
-        logger.error(f"Error guardando archivo físico: {str(e)}")
-        # Continuamos, el error real saltará en la descarga si falla
+        logger.exception("Error guardando archivo físico")
+        raise HTTPException(
+            status_code=500,
+            detail="No fue posible almacenar el archivo.",
+        ) from e
 
     # Verificar si ya existe en DB para actualizar metadatos
     try:
@@ -105,12 +118,12 @@ async def cargar_archivo(
             await session.commit()
             await session.refresh(existing)
             return existing
-    except Exception as e:
-        logger.error(f"Error al verificar duplicado: {str(e)}")
+    except Exception:
+        logger.exception("Error al verificar duplicado de nómina")
     
     try:
         archivo = NominaArchivo(
-            nombre_archivo=file.filename,
+            nombre_archivo=nombre_original,
             hash_archivo=file_hash,
             tamaño_bytes=len(content),
             tipo_archivo=ext,
@@ -221,7 +234,7 @@ async def procesar_archivo(
             archivo_error = await session.get(NominaArchivo, archivo_id)
             if archivo_error:
                 archivo_error.estado = "Error"
-                archivo_error.error_log = str(e)
+                archivo_error.error_log = resumen_error_interno()
                 await session.commit()
         except Exception:
             await session.rollback()

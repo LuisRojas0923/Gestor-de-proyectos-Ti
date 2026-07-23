@@ -6,6 +6,11 @@ from sqlalchemy import text
 async def asegurar_historial_excepcion_unico(conn) -> None:
     """Conserva el registro más reciente y garantiza uno por período."""
     await conn.execute(text("""
+        SELECT pg_advisory_xact_lock(
+            hashtextextended('migration:uq_excepcion_historial_periodo', 0)
+        )
+    """))
+    await conn.execute(text("""
         DELETE FROM nomina_excepciones_historial anterior
         USING nomina_excepciones_historial reciente
         WHERE anterior.excepcion_id = reciente.excepcion_id

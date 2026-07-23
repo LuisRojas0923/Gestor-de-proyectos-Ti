@@ -15,6 +15,7 @@ from ....services.erp.empleados_service import EmpleadosService
 from ....services.novedades_nomina.beneficiar_extractor import extraer_beneficiar
 from ....services.novedades_nomina.excepcion_service import ExcepcionService
 from ....services.novedades_nomina.validacion_archivos_cooperativas import leer_archivos_beneficiar
+from ....services.novedades_nomina.almacenamiento import guardar_archivo_nomina
 from ..dependencies import requiere_permiso_nomina_novedades
 from ....core.rate_limiter import limiter
 
@@ -184,7 +185,7 @@ async def preview_beneficiar(
         file_hash = hashlib.sha256(contenido).hexdigest()
         filename = f"{file_hash}.xls"
         path = os.path.join(STORAGE_DIR, filename)
-        with open(path, "wb") as f_out: f_out.write(contenido)
+        await guardar_archivo_nomina(path, contenido)
 
         await session.execute(delete(NominaRegistroNormalizado).where(NominaRegistroNormalizado.subcategoria_final == "BENEFICIAR", NominaRegistroNormalizado.mes_fact == mes, NominaRegistroNormalizado.año_fact == anio))
         archivo = NominaArchivo(nombre_archivo=f"beneficiar_{mes}_{anio}.xls", hash_archivo=file_hash, tamaño_bytes=sum(len(b) for b in archivos_binarios), tipo_archivo="xls", ruta_almacenamiento=path, mes_fact=mes, año_fact=anio, categoria="COOPERATIVAS", subcategoria="BENEFICIAR", estado="Procesado")

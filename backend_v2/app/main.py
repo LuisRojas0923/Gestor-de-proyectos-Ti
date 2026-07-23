@@ -262,6 +262,7 @@ _config_core = obtener_configuracion_core()
 app.add_middleware(
     LimiteCargaActividadMiddleware,
     max_body_size=(_config_core.storage_max_size_mb * 1024 * 1024) + (64 * 1024),
+    max_nomina_body_size=(50 * 1024 * 1024) + (256 * 1024),
 )
 app.include_router(
     actividad_archivos_router,

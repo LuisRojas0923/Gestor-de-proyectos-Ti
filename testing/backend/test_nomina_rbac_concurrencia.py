@@ -1,6 +1,8 @@
 """Regresiones de seguridad y serialización del flujo compartido de nómina."""
 
 import asyncio
+import io
+import zipfile
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -28,6 +30,22 @@ from app.models.novedades_nomina.nomina import (
 )
 from sqlmodel import delete, select
 
+def _contenido_xlsx_minimo() -> bytes:
+    output = io.BytesIO()
+    with zipfile.ZipFile(output, "w") as archive:
+        archive.writestr("[Content_Types].xml", "<Types />")
+        archive.writestr("xl/workbook.xml", "<workbook />")
+    return output.getvalue()
+
+
+def _upload_xlsx(nombre: str = "fuente.xlsx"):
+    archivo = AsyncMock()
+    archivo.filename = nombre
+    archivo.content_type = (
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+    archivo.read = AsyncMock(return_value=_contenido_xlsx_minimo())
+    return archivo
 
 RUTAS_SENSIBLES = (
     ("GET", "/api/v2/novedades-nomina/catalogo"),
@@ -192,10 +210,7 @@ async def test_dos_flujos_completos_serializan_saldo_y_reemplazo(
         excepcion_id = excepcion.id
 
     def upload(nombre: str):
-        archivo = AsyncMock()
-        archivo.filename = nombre
-        archivo.read = AsyncMock(return_value=nombre.encode())
-        return archivo
+        return _upload_xlsx(nombre)
 
     rows = [{
         "cedula": cedula,
@@ -311,9 +326,7 @@ async def test_servicio_compartido_conserva_flujo_exitoso(
     monkeypatch.chdir(tmp_path)
     session = AsyncMock()
     session.execute.side_effect = [MagicMock(), MagicMock()]
-    upload = AsyncMock()
-    upload.filename = "fuente.xlsx"
-    upload.read = AsyncMock(return_value=b"contenido")
+    upload = _upload_xlsx()
     rows = [{"cedula": "94416010", "valor": 100.0}]
 
     with (
@@ -359,9 +372,7 @@ async def test_servicio_bloquea_antes_de_cargar_excepciones(tmp_path, monkeypatc
     monkeypatch.chdir(tmp_path)
     eventos = []
     session = AsyncMock()
-    upload = AsyncMock()
-    upload.filename = "fuente.xlsx"
-    upload.read = AsyncMock(return_value=b"contenido")
+    upload = _upload_xlsx()
 
     async def bloquear(*_args, **_kwargs):
         eventos.append("lock")
@@ -454,9 +465,7 @@ async def test_reproceso_generico_no_borra_si_extraccion_esta_vacia(
 async def test_servicio_compartido_revierte_si_falla_escritura(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     session = AsyncMock()
-    upload = AsyncMock()
-    upload.filename = "fuente.xlsx"
-    upload.read = AsyncMock(return_value=b"contenido")
+    upload = _upload_xlsx()
 
     with (
         patch(
@@ -464,7 +473,10 @@ async def test_servicio_compartido_revierte_si_falla_escritura(tmp_path, monkeyp
             new=AsyncMock(return_value=[]),
         ),
         patch.object(NominaService, "get_mapa_erp", new=AsyncMock(return_value={})),
-        patch("builtins.open", side_effect=OSError("disco no disponible")),
+        patch(
+            "app.services.novedades_nomina.nomina_service.guardar_archivo_nomina",
+            new=AsyncMock(side_effect=OSError("disco no disponible")),
+        ),
         pytest.raises(OSError, match="disco no disponible"),
     ):
         await NominaService.procesar_flujo(
@@ -486,9 +498,7 @@ async def test_servicio_compartido_revierte_si_falla_escritura(tmp_path, monkeyp
 
 @pytest.mark.asyncio
 async def test_error_estructural_seguro_llega_como_422():
-    upload = AsyncMock()
-    upload.filename = "hdi.xlsx"
-    upload.read = AsyncMock(return_value=b"contenido")
+    upload = _upload_xlsx("hdi.xlsx")
 
     def extractor(_archivos):
         raise ErrorEstructuraNomina("Hoja 'HDI', fila 8: PRIMA ANUAL es inválida.")

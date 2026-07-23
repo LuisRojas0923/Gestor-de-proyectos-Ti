@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ....database import obtener_db, obtener_erp_db_opcional
 from ....services.novedades_nomina.nomina_service import NominaService
 from ....services.novedades_nomina.nomina_manual_service import NominaManualService
+from ....services.novedades_nomina.errores_http import error_interno, resumen_error_interno
 from ....services.erp.empleados_service import EmpleadosService
 from ....api.auth.router import obtener_usuario_actual_db
 from ....models.auth.usuario import Usuario
@@ -55,7 +56,7 @@ async def datos_comisiones(
         result = await session.execute(stmt)
         favs = result.scalars().all()
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al consultar favoritos: {str(e)}")
+        raise error_interno("Error consultando favoritos de comisiones") from e
     fav_set = set(favs)
 
     for row in res.get("rows", []):
@@ -86,9 +87,7 @@ async def listar_favoritos_comisiones(
         result = await session.execute(stmt)
         cedulas = result.scalars().all()
     except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"Error al consultar favoritos del usuario: {str(e)}"
-        )
+        raise error_interno("Error consultando favoritos del usuario en comisiones") from e
 
     if not cedulas:
         return []
@@ -141,7 +140,7 @@ async def toggle_favorito_comisiones(
         result = await session.execute(stmt)
         fav = result.scalar_one_or_none()
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al verificar estado de favorito: {str(e)}")
+        raise error_interno("Error verificando favorito de comisiones") from e
 
     try:
         if fav:
@@ -175,7 +174,7 @@ async def toggle_favorito_comisiones(
         return {"status": "added", "cedula": cedula}
     except Exception as e:
         await session.rollback()
-        raise HTTPException(status_code=500, detail=f"Error al actualizar favorito: {str(e)}")
+        raise error_interno("Error actualizando favorito de comisiones") from e
 
 
 @router.post("/procesar-manual")
@@ -230,9 +229,14 @@ async def procesar_manual_comisiones(
             accion="actualizar",
             entidad_tipo="periodo_comisiones",
             entidad_id=_periodo_entidad_id(int(mes), int(anio)),
-            metadatos={"mes": mes, "anio": anio, "resultado": "fallo", "error": str(e)[:200]},
+            metadatos={
+                "mes": mes,
+                "anio": anio,
+                "resultado": "fallo",
+                "error": resumen_error_interno(),
+            },
         )
-        raise HTTPException(status_code=500, detail=f"Error en procesamiento manual: {str(e)}")
+        raise error_interno("Error procesando comisiones manuales") from e
 
 
 @router.get("/empleado/{cedula}")
@@ -265,4 +269,4 @@ async def buscar_empleado_comisiones(
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error consultando empleado: {str(e)}")
+        raise error_interno("Error consultando empleado para comisiones") from e

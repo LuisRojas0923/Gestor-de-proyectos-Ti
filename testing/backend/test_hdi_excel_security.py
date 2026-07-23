@@ -54,6 +54,16 @@ def _xlsx_bytes(*, rows=1, cols=5, sheets=1):
     return output.getvalue()
 
 
+def _upload_xlsx():
+    upload = AsyncMock()
+    upload.filename = "hdi.xlsx"
+    upload.content_type = (
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+    upload.read = AsyncMock(return_value=_xlsx_bytes())
+    return upload
+
+
 def test_validar_excel_hdi_rechaza_pdf_disfrazado_y_zip_generico():
     with pytest.raises(ArchivoHdiInvalido):
         validar_excel_hdi(b"%PDF-1.4", "nomina.xlsx")
@@ -136,9 +146,7 @@ def test_validar_excel_hdi_rechaza_limites_sin_truncar(rows, cols, sheets, mensa
 async def test_procesar_flujo_no_guarda_ni_elimina_si_extraccion_falla(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     session = AsyncMock()
-    upload = AsyncMock()
-    upload.filename = "hdi.xlsx"
-    upload.read = AsyncMock(return_value=b"contenido")
+    upload = _upload_xlsx()
 
     def extractor(_archivos):
         raise ValueError("libro corrupto")
@@ -167,9 +175,7 @@ async def test_procesar_flujo_no_guarda_ni_elimina_si_extraccion_falla(tmp_path,
 async def test_procesar_flujo_preserva_periodo_si_extraccion_esta_vacia(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     session = AsyncMock()
-    upload = AsyncMock()
-    upload.filename = "hdi.xlsx"
-    upload.read = AsyncMock(return_value=b"contenido")
+    upload = _upload_xlsx()
 
     with pytest.raises(HTTPException, match="preservar los datos existentes"):
         await NominaService.procesar_flujo(
@@ -196,9 +202,7 @@ async def test_procesar_flujo_limpia_archivo_si_falla_despues_de_escribir(
     monkeypatch.chdir(tmp_path)
     session = AsyncMock()
     session.execute.side_effect = [MagicMock(), error]
-    upload = AsyncMock()
-    upload.filename = "hdi.xlsx"
-    upload.read = AsyncMock(return_value=b"contenido valido")
+    upload = _upload_xlsx()
     rows = [{"cedula": "94416010", "valor": 100.0}]
 
     with (
@@ -224,7 +228,7 @@ async def test_procesar_flujo_limpia_archivo_si_falla_despues_de_escribir(
     session.rollback.assert_awaited_once()
     storage = tmp_path / "uploads" / "nomina"
     assert storage.exists()
-    assert list(storage.iterdir()) == []
+    assert [path for path in storage.iterdir() if path.name != ".quota.lock"] == []
 
 
 @pytest.mark.asyncio
@@ -242,9 +246,7 @@ async def test_cancelacion_durante_commit_no_elimina_archivo_confirmado(
         await permitir_commit.wait()
 
     session.commit.side_effect = commit_demorado
-    upload = AsyncMock()
-    upload.filename = "hdi.xlsx"
-    upload.read = AsyncMock(return_value=b"contenido valido")
+    upload = _upload_xlsx()
     registro = SimpleNamespace(
         cedula="94416010",
         nombre_asociado="PRECIADO JOSE",
@@ -297,4 +299,6 @@ async def test_cancelacion_durante_commit_no_elimina_archivo_confirmado(
             await tarea
 
     storage = tmp_path / "uploads" / "nomina"
-    assert len(list(storage.iterdir())) == 1
+    assert len([
+        path for path in storage.iterdir() if path.name != ".quota.lock"
+    ]) == 1

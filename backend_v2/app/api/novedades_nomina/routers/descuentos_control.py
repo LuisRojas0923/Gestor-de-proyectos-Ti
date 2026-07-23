@@ -1,7 +1,7 @@
 import hashlib
 from datetime import datetime, date, timedelta
 from typing import List, Optional, Dict, Any
-from fastapi import APIRouter, Depends, UploadFile, File, Form, HTTPException, Query
+from fastapi import APIRouter, Depends, UploadFile, File, Form, HTTPException, Query, Request
 from sqlmodel import Session, select, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from pydantic import BaseModel
@@ -12,6 +12,11 @@ from ....models.novedades_nomina.nomina import (
 from ....services.erp.empleados_service import EmpleadosService
 from ....services.novedades_nomina.control_descuentos_extractor import extraer_control_descuentos
 from ....services.novedades_nomina.excepcion_service import ExcepcionService
+from ....services.novedades_nomina.errores_http import error_interno
+from ....services.novedades_nomina.validacion_archivos_nomina import leer_archivos_nomina_http
+from ....services.novedades_nomina.almacenamiento import guardar_archivo_nomina
+from ....services.novedades_nomina.procesamiento_seguro import ejecutar_extractor_proceso
+from ....core.rate_limiter import limiter
 
 router = APIRouter(tags=["Descuentos - Control"])
 
@@ -135,7 +140,7 @@ async def _sincronizar_descuento_nomina(session: AsyncSession, db_erp, registro:
             session.add(reg)
     except Exception as e:
         import logging
-        logging.getLogger(__name__).error(f"Error sincronizando control descuento: {e}")
+        logging.getLogger(__name__).exception("Error sincronizando control descuento")
         raise e
 
 # ── MODELS ──────────────────────────────────────────────────────────────────
@@ -160,9 +165,14 @@ class ConceptoRequest(BaseModel):
 # ── CONTROL DE DESCUENTOS ───────────────────────────────────────────────────
 
 @router.post("/control_descuentos/preview")
-async def preview_control_descuentos(mes: int = Form(...), anio: int = Form(...), files: List[UploadFile] = File(...), session: AsyncSession = Depends(obtener_db), db_erp = Depends(obtener_erp_db_opcional)):
-    archivos_binarios = [await f.read() for f in files]
-    rows, summary, warnings_txt = extraer_control_descuentos(archivos_binarios)
+@limiter.limit("5/minute")
+async def preview_control_descuentos(request: Request, mes: int = Form(...), anio: int = Form(...), files: List[UploadFile] = File(...), session: AsyncSession = Depends(obtener_db), db_erp = Depends(obtener_erp_db_opcional)):
+    archivos_binarios, _, _ = await leer_archivos_nomina_http(
+        files, extensiones_permitidas={".xls", ".xlsx", ".xlsm"}
+    )
+    rows, summary, warnings_txt = await ejecutar_extractor_proceso(
+        extraer_control_descuentos, archivos_binarios
+    )
     
     stmt_exc = select(NominaExcepcion).where(
         NominaExcepcion.subcategoria == "CONTROL DE DESCUENTOS",
@@ -172,7 +182,7 @@ async def preview_control_descuentos(mes: int = Form(...), anio: int = Form(...)
         result_exc = await session.execute(stmt_exc)
         excepciones_db = result_exc.scalars().all()
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al consultar excepciones para Control de Descuentos: {str(e)}")
+        raise error_interno("Error consultando excepciones de Control de Descuentos") from e
     
     mapa_excepciones = {
         e.cedula: {
@@ -232,7 +242,7 @@ async def preview_control_descuentos(mes: int = Form(...), anio: int = Form(...)
         file_hash = hashlib.sha256(contenido).hexdigest()
         filename = f"{file_hash}.xlsx"
         path = os.path.join(STORAGE_DIR, filename)
-        with open(path, "wb") as f_out: f_out.write(contenido)
+        await guardar_archivo_nomina(path, contenido)
 
         await session.execute(delete(NominaRegistroNormalizado).where(NominaRegistroNormalizado.subcategoria_final == "CONTROL DE DESCUENTOS", NominaRegistroNormalizado.mes_fact == mes, NominaRegistroNormalizado.año_fact == anio))
         archivo = NominaArchivo(nombre_archivo=f"control_descuentos_{mes}_{anio}.xlsx", hash_archivo=file_hash, tamaño_bytes=sum(len(b) for b in archivos_binarios), tipo_archivo="xlsx", ruta_almacenamiento=path, mes_fact=mes, año_fact=anio, categoria="DESCUENTOS", subcategoria="CONTROL DE DESCUENTOS", estado="Procesado")
@@ -243,7 +253,7 @@ async def preview_control_descuentos(mes: int = Form(...), anio: int = Form(...)
         await session.commit()
     except Exception as e:
         await session.rollback()
-        raise HTTPException(status_code=500, detail=f"Error al guardar registros de Control de Descuentos: {str(e)}")
+        raise error_interno("Error guardando Control de Descuentos") from e
     return {"rows": rows, "summary": summary, "warnings": warnings_txt, "warnings_detalle": warnings_detalle}
 
 @router.get("/control_descuentos/datos")
@@ -252,7 +262,7 @@ async def obtener_datos_control_descuentos(mes: int = Query(...), anio: int = Qu
     try:
         result = await session.execute(stmt); registros = result.scalars().all()
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al consultar datos de Control de Descuentos: {str(e)}")
+        raise error_interno("Error consultando Control de Descuentos") from e
     rows, warnings_detalle, total_valor = [], [], 0.0
     for r in registros:
         item = {"cedula": r.cedula, "nombre_asociado": r.nombre_asociado or "", "empresa": r.empresa, "valor": r.valor, "concepto": r.concepto, "estado_validacion": r.estado_validacion}
@@ -280,7 +290,7 @@ async def registrar_control_descuento(req: RegistroDescuentoRequest, session: As
         
         await session.commit()
         return {"mensaje": "Registro guardado", "id": nuevo.id}
-    except Exception as e: await session.rollback(); raise HTTPException(status_code=500, detail=str(e))
+    except Exception as e: await session.rollback(); raise error_interno("Error registrando Control de Descuentos") from e
 
 @router.get("/control_descuentos/activos")
 async def obtener_activos(session: AsyncSession = Depends(obtener_db)):
@@ -288,7 +298,7 @@ async def obtener_activos(session: AsyncSession = Depends(obtener_db)):
         result = await session.execute(select(ControlDescuentoActivo).order_by(ControlDescuentoActivo.id.desc()))
         registros = result.scalars().all()
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al consultar descuentos activos: {str(e)}")
+        raise error_interno("Error consultando descuentos activos") from e
     hoy = date.today(); resultado = []
     for r in registros:
         saldo, estado = calcular_saldo_y_estado(r, hoy)
@@ -305,7 +315,7 @@ async def listar_conceptos(session: AsyncSession = Depends(obtener_db)):
         resultados = await session.execute(statement)
         return resultados.scalars().all()
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error listando conceptos: {str(e)}")
+        raise error_interno("Error listando conceptos de descuentos") from e
 
 @router.post("/control_descuentos/conceptos")
 async def crear_concepto(req: ConceptoRequest, session: AsyncSession = Depends(obtener_db)):
@@ -317,7 +327,7 @@ async def crear_concepto(req: ConceptoRequest, session: AsyncSession = Depends(o
         session.add(nuevo); await session.commit(); await session.refresh(nuevo)
         return nuevo
     except HTTPException: raise
-    except Exception as e: raise HTTPException(status_code=500, detail=f"Error creando concepto: {str(e)}")
+    except Exception as e: raise error_interno("Error creando concepto de descuento") from e
 
 @router.get("/control_descuentos/tabla-quincenal")
 async def obtener_tabla_quincenal(anio: int, mes: int, quincena: int, session: AsyncSession = Depends(obtener_db)):
@@ -357,7 +367,7 @@ async def obtener_tabla_quincenal(anio: int, mes: int, quincena: int, session: A
             emp = f["empresa"] or "N/A"
             por_empresa[emp] = por_empresa.get(emp, 0) + f["valor"]
         return {"filas": filas, "summary": {"total_registros": len(filas), "total_valor": total_valor, "por_empresa": por_empresa, "anio": anio, "mes": mes, "quincena": label_quincena}}
-    except Exception as e: raise HTTPException(status_code=500, detail=str(e))
+    except Exception as e: raise error_interno("Error actualizando concepto de descuento") from e
 
 @router.put("/control_descuentos/registro/{id}")
 async def actualizar_control_descuento(id: int, req: RegistroDescuentoRequest, session: AsyncSession = Depends(obtener_db), db_erp = Depends(obtener_erp_db_opcional)):
@@ -394,7 +404,7 @@ async def actualizar_control_descuento(id: int, req: RegistroDescuentoRequest, s
     except HTTPException: raise
     except Exception as e:
         await session.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise error_interno("Error eliminando concepto de descuento") from e
 
 @router.delete("/control_descuentos/registro/{id}")
 async def eliminar_control_descuento(id: int, session: AsyncSession = Depends(obtener_db)):
@@ -415,4 +425,4 @@ async def eliminar_control_descuento(id: int, session: AsyncSession = Depends(ob
     except HTTPException: raise
     except Exception as e:
         await session.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise error_interno("Error consultando concepto de descuento") from e

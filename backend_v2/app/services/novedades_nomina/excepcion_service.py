@@ -83,7 +83,14 @@ class ExcepcionService:
             session.add(excepcion)
 
     @staticmethod
-    async def aplicar_saldo_favor(session: AsyncSession, excepcion: NominaExcepcion, valor_cobro: float, mes: int, anio: int) -> float:
+    async def aplicar_saldo_favor(
+        session: AsyncSession,
+        excepcion: NominaExcepcion,
+        valor_cobro: float,
+        mes: int,
+        anio: int,
+        acumular_periodo: bool = False,
+    ) -> float:
         """
         Aplica un saldo a favor a un cobro, disminuyendo el saldo actual.
         Implementa idempotencia: si ya se aplicó en el mismo periodo, revierte antes de aplicar.
@@ -98,7 +105,7 @@ class ExcepcionService:
         result = await session.execute(stmt)
         historial_previo = result.scalars().first()
         
-        if historial_previo:
+        if historial_previo and not acumular_periodo:
             # Revertir saldo anterior al saldo_actual de la excepción
             excepcion.saldo_actual += historial_previo.valor_aplicado
             # Borrar historial previo para reemplazarlo
@@ -120,7 +127,13 @@ class ExcepcionService:
         excepcion.actualizado_en = datetime.now()
         
         # 4. Registrar nuevo historial si hubo descuento
-        if descuento > 0:
+        if descuento > 0 and historial_previo and acumular_periodo:
+            historial_previo.valor_aplicado += descuento
+            historial_previo.mensaje = (
+                f"Aplicado saldo favor acumulado: ${historial_previo.valor_aplicado:,.0f}."
+            )
+            session.add(historial_previo)
+        elif descuento > 0:
             nuevo_hist = NominaExcepcionHistorial(
                 excepcion_id=excepcion.id,
                 mes=mes,

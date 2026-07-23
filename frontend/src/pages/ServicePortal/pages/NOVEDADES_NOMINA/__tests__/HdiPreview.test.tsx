@@ -1,5 +1,5 @@
 import React from 'react';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 
@@ -37,9 +37,10 @@ describe('HdiPreview', () => {
   it('acepta un único archivo Excel', async () => {
     renderComponent();
     await waitFor(() => expect(mocks.apiGet).toHaveBeenCalledTimes(1));
-    expect(mocks.apiGet).toHaveBeenCalledWith(expect.stringMatching(
-      /^\/novedades-nomina\/hdi\/datos\?mes=\d{1,2}&anio=\d{4}$/,
-    ));
+    expect(mocks.apiGet).toHaveBeenCalledWith(
+      expect.stringMatching(/^\/novedades-nomina\/hdi\/datos\?mes=\d{1,2}&anio=\d{4}$/),
+      { notifyOnError: false },
+    );
 
     const fileInput = document.getElementById('file-upload') as HTMLInputElement;
     expect(screen.getByLabelText(/Archivo Excel/i)).toBe(fileInput);
@@ -98,6 +99,7 @@ describe('HdiPreview', () => {
     await waitFor(() => expect(mocks.apiPost).toHaveBeenCalledWith(
       '/novedades-nomina/hdi/preview',
       expect.any(FormData),
+      { notifyOnError: false },
     ));
     const formData = mocks.apiPost.mock.calls[0][1] as FormData;
     expect((formData.get('files') as File).name).toBe('nomina.xlsx');
@@ -166,8 +168,66 @@ describe('HdiPreview', () => {
     resolveSecond(response('PERIODO NUEVO'));
     expect(await screen.findByText('PERIODO NUEVO')).toBeInTheDocument();
 
-    resolveFirst(response('PERIODO ANTERIOR'));
+    await act(async () => {
+      resolveFirst(response('PERIODO ANTERIOR'));
+      await Promise.resolve();
+    });
     await waitFor(() => expect(screen.queryByText('PERIODO ANTERIOR')).not.toBeInTheDocument());
     expect(screen.getByText('PERIODO NUEVO')).toBeInTheDocument();
+  });
+
+  it('descarta un POST obsoleto después de cambiar de periodo', async () => {
+    let resolvePost!: (value: unknown) => void;
+    mocks.apiPost.mockReturnValueOnce(new Promise(resolve => { resolvePost = resolve; }));
+    renderComponent();
+    await waitFor(() => expect(mocks.apiGet).toHaveBeenCalledTimes(1));
+
+    const fileInput = document.getElementById('file-upload') as HTMLInputElement;
+    fireEvent.change(fileInput, {
+      target: { files: [new File(['excel'], 'nomina.xlsx')] },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /Procesar Excel/i }));
+    await waitFor(() => expect(mocks.apiPost).toHaveBeenCalledTimes(1));
+
+    const month = screen.getAllByRole('combobox')[0] as HTMLSelectElement;
+    fireEvent.change(month, { target: { value: month.value === '1' ? '2' : '1' } });
+    await waitFor(() => expect(mocks.apiGet).toHaveBeenCalledTimes(2));
+
+    await act(async () => {
+      resolvePost({
+        rows: [{ cedula: '1', nombre_asociado: 'POST OBSOLETO', empresa: 'R', valor: 1, concepto: 'HDI' }],
+        summary: { total_asociados: 1, total_filas: 1, total_valor: 1 },
+        warnings_detalle: [],
+      });
+      await Promise.resolve();
+    });
+
+    await waitFor(() => expect(screen.queryByText('POST OBSOLETO')).not.toBeInTheDocument());
+    expect(mocks.addNotification).not.toHaveBeenCalledWith('success', expect.any(String));
+  });
+
+  it('impide que un GET anterior sobrescriba un POST más reciente', async () => {
+    let resolveGet!: (value: unknown) => void;
+    mocks.apiGet.mockReturnValueOnce(new Promise(resolve => { resolveGet = resolve; }));
+    mocks.apiPost.mockResolvedValueOnce({
+      rows: [{ cedula: '2', nombre_asociado: 'POST VIGENTE', empresa: 'R', valor: 2, concepto: 'HDI' }],
+      summary: { total_asociados: 1, total_filas: 1, total_valor: 2 },
+      warnings_detalle: [],
+    });
+    renderComponent();
+    await waitFor(() => expect(mocks.apiGet).toHaveBeenCalledTimes(1));
+
+    const fileInput = document.getElementById('file-upload') as HTMLInputElement;
+    fireEvent.change(fileInput, {
+      target: { files: [new File(['excel'], 'nomina.xlsx')] },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /Procesar Excel/i }));
+    expect(await screen.findByText('POST VIGENTE')).toBeInTheDocument();
+
+    await act(async () => {
+      resolveGet({ rows: [] });
+      await Promise.resolve();
+    });
+    await waitFor(() => expect(screen.getByText('POST VIGENTE')).toBeInTheDocument());
   });
 });

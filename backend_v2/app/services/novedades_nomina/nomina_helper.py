@@ -49,7 +49,15 @@ class NominaHelper:
         registros = []
         cedulas_procesadas = set()
         # 0. Crear mapa de excepciones para búsqueda rápida O(1)
-        mapa_ex = {str(e.cedula): e for e in excepciones_activas}
+        mapa_ex = {}
+        for excepcion in excepciones_activas:
+            cedula_excepcion = str(excepcion.cedula)
+            if cedula_excepcion in mapa_ex:
+                raise ValueError(
+                    "Existe más de una excepción activa para la misma cédula y subcategoría"
+                )
+            mapa_ex[cedula_excepcion] = excepcion
+        saldos_procesados: set[int] = set()
         
         # 1. Procesar registros que vienen del archivo
         for i, row in enumerate(rows):
@@ -149,7 +157,15 @@ class NominaHelper:
                         if subcategoria == "SEGUROS HDI":
                             # Para Seguros HDI, aplicamos el saldo a favor a la porción del colaborador, no al total
                             valor_orig = valor_colaborador_final
-                            valor_restante_colab = await ExcepcionService.aplicar_saldo_favor(session, ex, valor_orig, mes, anio)
+                            valor_restante_colab = await ExcepcionService.aplicar_saldo_favor(
+                                session,
+                                ex,
+                                valor_orig,
+                                mes,
+                                anio,
+                                acumular_periodo=ex.id in saldos_procesados,
+                            )
+                            saldos_procesados.add(ex.id)
                             
                             # Si el colaborador está ACTIVO, reducimos la deducción de nómina (valor_colaborador_final)
                             # Si no está ACTIVO (retirado), mantenemos el valor original de cobro en el registro contable
@@ -166,7 +182,15 @@ class NominaHelper:
                             observacion_ex = f"Saldo favor aplicado. Cobro: ${valor_orig:,.0f} -> ${valor_restante_colab:,.0f}"
                         else:
                             valor_orig = valor_final
-                            valor_final = await ExcepcionService.aplicar_saldo_favor(session, ex, valor_orig, mes, anio)
+                            valor_final = await ExcepcionService.aplicar_saldo_favor(
+                                session,
+                                ex,
+                                valor_orig,
+                                mes,
+                                anio,
+                                acumular_periodo=ex.id in saldos_procesados,
+                            )
+                            saldos_procesados.add(ex.id)
                             estado_val = "EXCEPCION_SALDO_FAVOR"
                             observacion_ex = f"Saldo favor aplicado. Cobro: ${valor_orig:,.0f} -> ${valor_final:,.0f}"
 
@@ -225,7 +249,15 @@ class NominaHelper:
                 if ex.tipo == 'SALDO_FAVOR' and ex.saldo_actual > 0:
                     inyectar = True
                     valor_orig = ex.valor_configurado # El valor a cobrar por defecto
-                    descuento = await ExcepcionService.aplicar_saldo_favor(session, ex, valor_orig, mes, anio)
+                    descuento = await ExcepcionService.aplicar_saldo_favor(
+                        session,
+                        ex,
+                        valor_orig,
+                        mes,
+                        anio,
+                        acumular_periodo=ex.id in saldos_procesados,
+                    )
+                    saldos_procesados.add(ex.id)
                     estado_val = "EXCEPCION_SALDO_FAVOR"
                 
                 elif ex.tipo == 'CONTRATISTAS':

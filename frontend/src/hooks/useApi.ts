@@ -10,6 +10,10 @@ interface ApiResponse<T> {
   error: string | null;
 }
 
+interface ApiRequestOptions extends RequestInit {
+  notifyOnError?: boolean;
+}
+
 const getErrorMessage = (status: number): string => {
   switch (status) {
     case HTTP_STATUS.UNAUTHORIZED:
@@ -36,25 +40,28 @@ export function useApi<T>() {
 
   const request = useCallback(async (
     url: string,
-    options: RequestInit = {},
+    options: ApiRequestOptions = {},
     _retriedWithRefresh = false
   ): Promise<T | null> => {
     setState(prev => ({ ...prev, loading: true, error: null }));
 
     const token = localStorage.getItem('token');
+    const { notifyOnError = true, ...fetchOptions } = options;
 
     // Si el body es FormData, el navegador debe elijir el Content-Type (con boundary) automaticamente.
-    const isFormData = options.body instanceof FormData;
+    const isFormData = fetchOptions.body instanceof FormData;
 
     const headers: Record<string, string> = {
       ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
       ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-      ...options.headers as any,
     };
+    new Headers(fetchOptions.headers).forEach((value, key) => {
+      headers[key] = value;
+    });
 
     try {
       const response = await fetch(`${API_CONFIG.BASE_URL}${url}`, { // [CONTROLADO]
-        ...options,
+        ...fetchOptions,
         headers,
       });
 
@@ -119,15 +126,15 @@ export function useApi<T>() {
       setState({ data: null, loading: false, error: errorMessage });
 
       // Notificar errores graves (red o servidor)
-      if (errorMessage === ERROR_MESSAGES.NETWORK_ERROR || errorMessage === ERROR_MESSAGES.SERVER_ERROR) {
+      if (notifyOnError && (errorMessage === ERROR_MESSAGES.NETWORK_ERROR || errorMessage === ERROR_MESSAGES.SERVER_ERROR)) {
         addNotification('error', errorMessage);
       }
 
       throw error;
     }
-  }, []);
+  }, [addNotification, dispatch]);
 
-  const get = useCallback((url: string) => request(url), [request]); // [CONTROLADO]
+  const get = useCallback((url: string, options: ApiRequestOptions = {}) => request(url, options), [request]); // [CONTROLADO]
 
   const getWithHeaders = useCallback(async (url: string): Promise<{ data: T; headers: Headers } | null> => {
     setState(prev => ({ ...prev, loading: true, error: null }));
@@ -160,10 +167,10 @@ export function useApi<T>() {
       setState({ data: null, loading: false, error: errorMessage });
       throw error;
     }
-  }, [dispatch, addNotification]);
+  }, [dispatch]);
 
   const post = useCallback(
-    (url: string, data: any, options: RequestInit = {}) =>
+    (url: string, data: unknown, options: ApiRequestOptions = {}) =>
       request(url, { // [CONTROLADO]
         method: 'POST',
         body: data instanceof FormData ? data : JSON.stringify(data),
@@ -173,7 +180,7 @@ export function useApi<T>() {
   );
 
   const put = useCallback(
-    (url: string, data: any, options: RequestInit = {}) =>
+    (url: string, data: unknown, options: ApiRequestOptions = {}) =>
       request(url, { // [CONTROLADO]
         method: 'PUT',
         body: data instanceof FormData ? data : JSON.stringify(data),
@@ -183,7 +190,7 @@ export function useApi<T>() {
   );
 
   const patch = useCallback(
-    (url: string, data: any, options: RequestInit = {}) =>
+    (url: string, data: unknown, options: ApiRequestOptions = {}) =>
       request(url, { // [CONTROLADO]
         method: 'PATCH',
         body: data instanceof FormData ? data : JSON.stringify(data),

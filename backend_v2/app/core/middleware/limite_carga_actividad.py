@@ -1,4 +1,4 @@
-"""Límite ASGI previo al parser multipart para evidencias WBS."""
+"""Límite ASGI previo al parser multipart para cargas sensibles."""
 
 import re
 
@@ -6,6 +6,9 @@ from starlette.responses import JSONResponse
 
 
 PATRON_CARGA_ACTIVIDAD = re.compile(r"^/api/v2/actividades/[^/]+/archivo$")
+PATRON_CARGA_NOMINA = re.compile(
+    r"^/api/v2/novedades-nomina/(?:archivos|(?:.+/)?preview)$"
+)
 
 
 class CargaActividadExcedida(Exception):
@@ -13,24 +16,26 @@ class CargaActividadExcedida(Exception):
 
 
 class LimiteCargaActividadMiddleware:
-    def __init__(self, app, max_body_size: int):
+    def __init__(self, app, max_body_size: int, max_nomina_body_size: int | None = None):
         self.app = app
         self.max_body_size = max_body_size
+        self.max_nomina_body_size = max_nomina_body_size or max_body_size
 
     async def __call__(self, scope, receive, send):
         if (
             scope["type"] != "http"
             or scope.get("method") != "POST"
-            or not PATRON_CARGA_ACTIVIDAD.fullmatch(scope.get("path", ""))
+            or not self._limite_para_ruta(scope.get("path", ""))
         ):
             await self.app(scope, receive, send)
             return
 
+        limite = self._limite_para_ruta(scope.get("path", ""))
         headers = {key.lower(): value for key, value in scope.get("headers", [])}
         content_length = headers.get(b"content-length")
         if content_length:
             try:
-                if int(content_length) > self.max_body_size:
+                if int(content_length) > limite:
                     await self._responder_413(scope, receive, send)
                     return
             except ValueError:
@@ -46,7 +51,7 @@ class LimiteCargaActividadMiddleware:
                 mensaje = await receive()
                 if mensaje["type"] == "http.request":
                     recibido += len(mensaje.get("body", b""))
-                    if recibido > self.max_body_size:
+                    if recibido > limite:
                         raise CargaActividadExcedida
                 return mensaje
             except CargaActividadExcedida:
@@ -76,3 +81,10 @@ class LimiteCargaActividadMiddleware:
             status_code=413,
         )
         await respuesta(scope, receive, send)
+
+    def _limite_para_ruta(self, path: str) -> int | None:
+        if PATRON_CARGA_ACTIVIDAD.fullmatch(path):
+            return self.max_body_size
+        if PATRON_CARGA_NOMINA.fullmatch(path):
+            return self.max_nomina_body_size
+        return None

@@ -10,10 +10,21 @@ from ...models.novedades_nomina.nomina import (
 from .excepcion_service import ExcepcionService
 from .errores import ErrorEstructuraNomina
 from .nomina_helper import NominaHelper
+from .validacion_archivos_nomina import (
+    ArchivoNominaInvalido,
+    leer_archivos_nomina,
+    status_archivo_invalido,
+)
+from .procesamiento_seguro import ejecutar_extractor_seguro, sanear_warnings_nomina
+from .almacenamiento import guardar_archivo_nomina
 
 logger = logging.getLogger(__name__)
 
 class NominaService:
+    @staticmethod
+    def _sanear_warnings(warnings: List[Any]) -> List[str]:
+        return sanear_warnings_nomina(warnings)
+
     @staticmethod
     async def _bloquear_periodo(
         session: AsyncSession,
@@ -98,20 +109,32 @@ class NominaService:
         anio: int
     ) -> Dict[str, Any]:
         """Flujo unificado para procesar archivos de nómina especializados."""
-        # 1. Leer archivos. No se escribe en disco hasta validar la extracción completa.
-        archivos_binarios = []
-        original_filenames = []
-        for f in files:
-            content = await f.read()
-            archivos_binarios.append(content)
-            original_filenames.append(getattr(f, "filename", "archivo"))
+        # 1. Validar y leer con límites antes de extraer o persistir.
+        try:
+            extension_solicitada = f".{extension.lower().lstrip('.')}"
+            extensiones_permitidas = (
+                {".xls", ".xlsx", ".xlsm"}
+                if extension_solicitada in {".xls", ".xlsx"}
+                else {extension_solicitada}
+            )
+            archivos_binarios, original_filenames, extensiones_reales = await leer_archivos_nomina(
+                files,
+                extensiones_permitidas=extensiones_permitidas,
+            )
+            extension = extensiones_reales[0]
+        except ArchivoNominaInvalido as exc:
+            from fastapi import HTTPException
+
+            raise HTTPException(
+                status_code=status_archivo_invalido(exc), detail=str(exc)
+            ) from exc
             
         # 2. Extraer datos usando la función específica en un hilo separado para no bloquear el event loop
         import asyncio
         from fastapi import HTTPException
 
         try:
-            rows, summary, warnings_txt = await asyncio.to_thread(
+            rows, summary, warnings_txt = await ejecutar_extractor_seguro(
                 extractor_fn, archivos_binarios
             )
         except ErrorEstructuraNomina as exc:
@@ -121,15 +144,15 @@ class NominaService:
                 status_code=422,
                 detail="El archivo no cumple la estructura requerida para esta nómina.",
             ) from exc
+        warnings_txt = NominaService._sanear_warnings(warnings_txt)
         summary.update({"mes": mes, "anio": anio})
 
         # 2b. Protección contra pérdida de datos: si la extracción falla o devuelve 0 filas válidas,
         # se aborta la operación ANTES de eliminar registros existentes en el periodo.
         if not rows:
-            detalle = f" Detalle: {'; '.join(warnings_txt)}" if warnings_txt else ""
             raise HTTPException(
                 status_code=400,
-                detail=f"No se pudieron extraer registros válidos del archivo proporcionado. La operación ha sido cancelada para preservar los datos existentes del periodo.{detalle}"
+                detail="No se pudieron extraer registros válidos del archivo proporcionado. La operación ha sido cancelada para preservar los datos existentes del periodo."
             )
 
         import os
@@ -152,23 +175,6 @@ class NominaService:
             NominaRegistroNormalizado.año_fact == anio,
         )
 
-        def _guardar_archivo() -> None:
-            directorio = os.path.dirname(ruta_almacenamiento)
-            os.makedirs(directorio, exist_ok=True)
-            ruta_temporal = f"{ruta_almacenamiento}.tmp"
-            try:
-                with open(ruta_temporal, "xb") as f_out:
-                    f_out.write(contenido)
-                    f_out.flush()
-                    os.fsync(f_out.fileno())
-                os.replace(ruta_temporal, ruta_almacenamiento)
-            except BaseException:
-                try:
-                    os.remove(ruta_temporal)
-                except FileNotFoundError:
-                    pass
-                raise
-
         try:
             await NominaService._bloquear_periodo(
                 session,
@@ -188,7 +194,9 @@ class NominaService:
                 rows,
                 excepciones,
             )
-            tarea_guardado = asyncio.create_task(asyncio.to_thread(_guardar_archivo))
+            tarea_guardado = asyncio.create_task(
+                guardar_archivo_nomina(ruta_almacenamiento, contenido)
+            )
             try:
                 await asyncio.shield(tarea_guardado)
                 ruta_creada = True

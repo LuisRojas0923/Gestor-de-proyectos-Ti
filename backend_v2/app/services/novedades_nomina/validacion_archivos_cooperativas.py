@@ -1,9 +1,12 @@
 from pathlib import PurePath
 from fastapi import UploadFile
+from .validacion_archivos_nomina import validar_contenido_nomina
 
 
 MAX_ARCHIVOS = 5
 MAX_BYTES_ARCHIVO = 20 * 1024 * 1024
+MAX_BYTES_TOTAL = 50 * 1024 * 1024
+MAX_BYTES_EXPANDIDOS_TOTAL = 100 * 1024 * 1024
 
 
 async def _leer_archivos(
@@ -16,6 +19,8 @@ async def _leer_archivos(
 
     contenidos: list[bytes] = []
     nombres: list[str] = []
+    total = 0
+    total_expandido = 0
     for archivo in files:
         nombre_original = (archivo.filename or "").strip()
         nombre = PurePath(nombre_original.replace("\\", "/")).name
@@ -28,11 +33,17 @@ async def _leer_archivos(
         contenido = await archivo.read(MAX_BYTES_ARCHIVO + 1)
         if not contenido or len(contenido) > MAX_BYTES_ARCHIVO:
             raise ValueError("El archivo está vacío o supera 20 MB")
+        total += len(contenido)
+        if total > MAX_BYTES_TOTAL:
+            raise ValueError("La carga supera el tamaño total permitido")
         if not any(
             contenido.startswith(firma)
             for firma in firmas_por_extension[extension]
         ):
             raise ValueError("La firma del archivo no corresponde a su extensión")
+        total_expandido += validar_contenido_nomina(contenido, extension)
+        if total_expandido > MAX_BYTES_EXPANDIDOS_TOTAL:
+            raise ValueError("La carga expandida supera el tamaño total permitido")
 
         contenidos.append(contenido)
         nombres.append(nombre)

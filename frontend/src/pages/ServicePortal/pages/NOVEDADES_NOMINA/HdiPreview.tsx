@@ -4,56 +4,16 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Upload, FileText, AlertTriangle, Search, History, ChevronRight, Database } from 'lucide-react';
 import { useNotifications } from '../../../../components/notifications/NotificationsContext';
 import { useApi } from '../../../../hooks/useApi';
+import { API_ENDPOINTS } from '../../../../config/api';
 import SubcategorySummaryCard from './components/SubcategorySummaryCard';
 import { FilterDropdown } from '../../../../components/molecules/FilterDropdown';
-
-interface HdiRow {
-    cedula: string;
-    nombre_asociado: string;
-    empresa: string;
-    valor: number;
-    valor_rdc?: number;
-    valor_colaborador?: number;
-    concepto: string;
-    estado_erp?: string;
-    estado_validacion?: string;
-    observaciones?: string;
-}
-
-interface WarningDetalle {
-    cedula: string;
-    nombre: string;
-    motivo: string;
-}
-
-interface HdiResponse {
-    rows: HdiRow[];
-    summary: {
-        total_asociados: number;
-        total_filas: number;
-        total_valor: number;
-        archivos_procesados?: number;
-        total_warnings?: number;
-        mes: number;
-        anio: number;
-    };
-    warnings: string[];
-    warnings_detalle: WarningDetalle[];
-}
-
-const MESES = [
-    "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
-    "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
-];
-
-const HDI_DATOS_ENDPOINT = '/novedades-nomina/hdi/datos';
-const HDI_PREVIEW_ENDPOINT = '/novedades-nomina/hdi/preview';
-
-const CURRENCY_FORMATTER = new Intl.NumberFormat('es-CO', {
-    style: 'currency',
-    currency: 'COP',
-    maximumFractionDigits: 0
-});
+import {
+    CURRENCY_FORMATTER,
+    MESES,
+    type HdiResponse,
+    type HdiRow,
+    type WarningDetalle,
+} from './hdiPreviewConfig';
 
 const HdiPreview: React.FC = () => {
     const navigate = useNavigate();
@@ -77,6 +37,7 @@ const HdiPreview: React.FC = () => {
     const [warningsDetalle, setWarningsDetalle] = useState<WarningDetalle[]>([]);
     const [showWarnings, setShowWarnings] = useState(false);
     const latestRequestId = useRef(0);
+    const activePeriod = useRef({ mes, anio });
 
     // ── Cargar datos guardados al montar o cambiar periodo ──
     useEffect(() => {
@@ -88,7 +49,8 @@ const HdiPreview: React.FC = () => {
             setShowWarnings(false);
             try {
                 const savedData = await get(
-                    `${HDI_DATOS_ENDPOINT}?mes=${mes}&anio=${anio}`
+                    `${API_ENDPOINTS.NOMINA_HDI_DATOS}?mes=${mes}&anio=${anio}`,
+                    { notifyOnError: false },
                 );
                 if (requestId !== latestRequestId.current) return;
                 if (savedData?.rows && savedData.rows.length > 0) {
@@ -127,7 +89,12 @@ const HdiPreview: React.FC = () => {
 
     const handleProcess = async () => {
         if (files.length === 0) return;
+        const operation = {
+            id: ++latestRequestId.current,
+            ...activePeriod.current,
+        };
         setIsProcessing(true);
+        setIsLoading(false);
         try {
             const formData = new FormData();
             files.forEach(f => formData.append('files', f));
@@ -135,22 +102,39 @@ const HdiPreview: React.FC = () => {
             formData.append('anio', anio.toString());
 
             const result = await post(
-                HDI_PREVIEW_ENDPOINT,
-                formData
+                API_ENDPOINTS.NOMINA_HDI_PREVIEW,
+                formData,
+                { notifyOnError: false },
             );
-            if (!result) return;
+            if (!result
+                || operation.id !== latestRequestId.current
+                || operation.mes !== activePeriod.current.mes
+                || operation.anio !== activePeriod.current.anio) return;
             setData(result);
             setWarningsDetalle(result.warnings_detalle || []);
             addNotification('success', `Procesados ${result.summary.total_asociados} asociados.`);
         } catch (err) {
+            if (operation.id !== latestRequestId.current) return;
             console.error(err);
             addNotification(
                 'error',
                 err instanceof Error ? err.message : 'Error al procesar el archivo.'
             );
         } finally {
-            setIsProcessing(false);
+            if (operation.id === latestRequestId.current) setIsProcessing(false);
         }
+    };
+
+    const changePeriod = (nextMes: number, nextAnio: number) => {
+        activePeriod.current = { mes: nextMes, anio: nextAnio };
+        latestRequestId.current += 1;
+        setData(null);
+        setWarningsDetalle([]);
+        setShowWarnings(false);
+        setIsLoading(true);
+        setIsProcessing(false);
+        setMes(nextMes);
+        setAnio(nextAnio);
     };
 
     const filteredRows = useMemo(() => {
@@ -248,7 +232,7 @@ const HdiPreview: React.FC = () => {
                         <Select
                             label="Mes"
                             value={mes.toString()}
-                            onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setMes(parseInt(e.target.value))}
+                            onChange={(e: React.ChangeEvent<HTMLSelectElement>) => changePeriod(parseInt(e.target.value), anio)}
                             options={MESES.map((m, i) => ({ value: (i + 1).toString(), label: m }))}
                             className="[&_select]:h-[42px]"
                         />
@@ -258,7 +242,7 @@ const HdiPreview: React.FC = () => {
                             label="Año"
                             type="number"
                             value={anio.toString()}
-                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAnio(parseInt(e.target.value))}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => changePeriod(mes, parseInt(e.target.value))}
                             className="[&_input]:h-[42px]"
                         />
                     </div>
@@ -355,7 +339,7 @@ const HdiPreview: React.FC = () => {
                             </div>
                             <ul className="space-y-0.5 ml-6 list-disc">
                                 {data.warnings.map((w: string, i: number) => (
-                                    <li key={`${w.id || w.cedula || 'w'}-${i}`}>
+                                    <li key={`${w}-${i}`}>
                                         <Text size="xs" className="text-amber-700 dark:text-amber-400 text-[10px]">{w}</Text>
                                     </li>
                                 ))}

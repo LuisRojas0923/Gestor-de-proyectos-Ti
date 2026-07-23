@@ -18,6 +18,7 @@ from ....services.novedades_nomina.grancoop_extractor import (
 )
 from ....services.novedades_nomina.excepcion_service import ExcepcionService
 from ....services.novedades_nomina.validacion_archivos_cooperativas import leer_archivos_grancoop
+from ....services.novedades_nomina.almacenamiento import guardar_archivo_nomina
 from ..dependencies import requiere_permiso_nomina_novedades
 from ....core.rate_limiter import limiter
 
@@ -227,7 +228,7 @@ async def preview_grancoop(
         file_hash = hashlib.sha256(contenido).hexdigest()
         filename = f"{file_hash}.pdf"
         path = os.path.join(STORAGE_DIR, filename)
-        with open(path, "wb") as f_out: f_out.write(contenido)
+        await guardar_archivo_nomina(path, contenido)
 
         await session.execute(delete(NominaRegistroNormalizado).where(NominaRegistroNormalizado.subcategoria_final == "GRANCOOP", NominaRegistroNormalizado.mes_fact == mes, NominaRegistroNormalizado.año_fact == anio))
         archivo = NominaArchivo(nombre_archivo=f"grancoop_{mes}_{anio}.pdf", hash_archivo=file_hash, tamaño_bytes=sum(len(b) for b in archivos_binarios), tipo_archivo="pdf", ruta_almacenamiento=path, mes_fact=mes, año_fact=anio, categoria="COOPERATIVAS", subcategoria="GRANCOOP", estado="Procesado")

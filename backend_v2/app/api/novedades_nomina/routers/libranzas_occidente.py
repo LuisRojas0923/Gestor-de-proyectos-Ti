@@ -1,7 +1,7 @@
 import hashlib
 from datetime import datetime
 from typing import List, Dict, Any, Optional
-from fastapi import APIRouter, Depends, UploadFile, File, Form, Query, HTTPException
+from fastapi import APIRouter, Depends, UploadFile, File, Form, Query, HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import Session, select, delete
 from ....database import obtener_db, obtener_erp_db_opcional
@@ -11,14 +11,24 @@ from ....models.novedades_nomina.nomina import (
 from ....services.erp.empleados_service import EmpleadosService
 from ....services.novedades_nomina.occidente_extractor import extraer_occidente_libranza
 from ....services.novedades_nomina.excepcion_service import ExcepcionService
+from ....services.novedades_nomina.errores_http import error_interno
+from ....services.novedades_nomina.validacion_archivos_nomina import leer_archivos_nomina_http
+from ....services.novedades_nomina.almacenamiento import guardar_archivo_nomina
+from ....services.novedades_nomina.procesamiento_seguro import ejecutar_extractor_proceso
+from ....core.rate_limiter import limiter
 
 router = APIRouter(tags=["Libranzas - Occidente"])
 
 @router.post("/occidente_libranza/preview")
-async def preview_occidente_libranza(mes: int = Form(...), anio: int = Form(...), files: List[UploadFile] = File(...), session: AsyncSession = Depends(obtener_db), db_erp = Depends(obtener_erp_db_opcional)):
+@limiter.limit("5/minute")
+async def preview_occidente_libranza(request: Request, mes: int = Form(...), anio: int = Form(...), files: List[UploadFile] = File(...), session: AsyncSession = Depends(obtener_db), db_erp = Depends(obtener_erp_db_opcional)):
     """Procesa Excel de LIBRANZA OCCIDENTE, enriquece con ERP, guarda en BD."""
-    archivos_binarios = [await f.read() for f in files]
-    rows, summary, warnings_txt = extraer_occidente_libranza(archivos_binarios)
+    archivos_binarios, _, _ = await leer_archivos_nomina_http(
+        files, extensiones_permitidas={".xls", ".xlsx", ".xlsm"}
+    )
+    rows, summary, warnings_txt = await ejecutar_extractor_proceso(
+        extraer_occidente_libranza, archivos_binarios
+    )
     summary.update({"mes": mes, "anio": anio})
 
     stmt_exc = select(NominaExcepcion).where(
@@ -29,7 +39,7 @@ async def preview_occidente_libranza(mes: int = Form(...), anio: int = Form(...)
         result_exc = await session.execute(stmt_exc)
         excepciones_db = result_exc.scalars().all()
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al consultar excepciones para Occidente: {str(e)}")
+        raise error_interno("Error consultando excepciones de Occidente Libranza") from e
     
     mapa_excepciones = {
         e.cedula: {
@@ -141,7 +151,7 @@ async def preview_occidente_libranza(mes: int = Form(...), anio: int = Form(...)
         file_hash = hashlib.sha256(contenido).hexdigest()
         filename = f"{file_hash}.xlsx"
         path = os.path.join(STORAGE_DIR, filename)
-        with open(path, "wb") as f_out: f_out.write(contenido)
+        await guardar_archivo_nomina(path, contenido)
 
         await session.execute(delete(NominaRegistroNormalizado).where(NominaRegistroNormalizado.subcategoria_final == "OCCIDENTE LIBRANZA", NominaRegistroNormalizado.mes_fact == mes, NominaRegistroNormalizado.año_fact == anio))
         archivo = NominaArchivo(nombre_archivo=f"occidente_libranza_{mes}_{anio}.xlsx", hash_archivo=file_hash, tamaño_bytes=sum(len(b) for b in archivos_binarios), tipo_archivo="xlsx", ruta_almacenamiento=path, mes_fact=mes, año_fact=anio, categoria="LIBRANZAS", subcategoria="OCCIDENTE LIBRANZA", estado="Procesado")
@@ -155,7 +165,7 @@ async def preview_occidente_libranza(mes: int = Form(...), anio: int = Form(...)
         await session.commit()
     except Exception as e:
         await session.rollback()
-        raise HTTPException(status_code=500, detail=f"Error al guardar registros de Occidente Libranza: {str(e)}")
+        raise error_interno("Error guardando registros de Occidente Libranza") from e
     formatted_rows = [{"cedula": r["cedula"], "nombre_asociado": r.get("nombre_asociado", ""), "empresa": r.get("empresa", ""), "valor": r["valor"], "concepto": r["concepto"]} for r in rows_facturables]
     return {"rows": formatted_rows, "summary": summary, "warnings": warnings_txt, "warnings_detalle": warnings_detalle}
 
@@ -166,7 +176,7 @@ async def obtener_datos_occidente_libranza(mes: int = Query(...), anio: int = Qu
     try:
         result = await session.execute(stmt); registros = result.scalars().all()
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al consultar datos de Occidente Libranza: {str(e)}")
+        raise error_interno("Error consultando datos de Occidente Libranza") from e
     
     rows_final = [{"cedula": r.cedula, "nombre_asociado": r.nombre_asociado, "empresa": r.empresa, "valor": r.valor, "concepto": r.concepto, "estado_validacion": r.estado_validacion} 
                   for r in registros 

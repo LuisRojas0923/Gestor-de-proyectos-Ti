@@ -1,7 +1,7 @@
 import hashlib
 from datetime import datetime
 from typing import List, Dict, Any, Optional
-from fastapi import APIRouter, Depends, UploadFile, File, Form, Query, HTTPException
+from fastapi import APIRouter, Depends, UploadFile, File, Form, Query, HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import Session, select, delete
 from ....database import obtener_db, obtener_erp_db_opcional
@@ -11,11 +11,18 @@ from ....models.novedades_nomina.nomina import (
 from ....services.erp.empleados_service import EmpleadosService
 from ....services.novedades_nomina.bogota_extractor import extraer_bogota_libranza
 from ....services.novedades_nomina.excepcion_service import ExcepcionService
+from ....services.novedades_nomina.errores_http import error_interno
+from ....services.novedades_nomina.validacion_archivos_nomina import leer_archivos_nomina_http
+from ....services.novedades_nomina.almacenamiento import guardar_archivo_nomina
+from ....services.novedades_nomina.procesamiento_seguro import ejecutar_extractor_proceso
+from ....core.rate_limiter import limiter
 
 router = APIRouter(tags=["Libranzas - Bogotá"])
 
 @router.post("/bogota_libranza/preview")
+@limiter.limit("5/minute")
 async def preview_bogota_libranza(
+    request: Request,
     mes: int = Form(...),
     anio: int = Form(...),
     files: List[UploadFile] = File(...),
@@ -23,12 +30,13 @@ async def preview_bogota_libranza(
     db_erp = Depends(obtener_erp_db_opcional),
 ):
     """Procesa Excel de BOGOTA LIBRANZA, enriquece con ERP, guarda en BD."""
-    archivos_binarios = []
-    for f in files:
-        contenido = await f.read()
-        archivos_binarios.append(contenido)
+    archivos_binarios, _, _ = await leer_archivos_nomina_http(
+        files, extensiones_permitidas={".xls", ".xlsx", ".xlsm"}
+    )
 
-    rows, summary, warnings_txt = extraer_bogota_libranza(archivos_binarios)
+    rows, summary, warnings_txt = await ejecutar_extractor_proceso(
+        extraer_bogota_libranza, archivos_binarios
+    )
     summary["mes"] = mes
     summary["anio"] = anio
 
@@ -40,7 +48,7 @@ async def preview_bogota_libranza(
         result_exc = await session.execute(stmt_exc)
         excepciones_db = result_exc.scalars().all()
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al consultar excepciones para Bogotá: {str(e)}")
+        raise error_interno("Error consultando excepciones de Bogotá Libranza") from e
     
     mapa_excepciones = {
         e.cedula: {
@@ -155,8 +163,7 @@ async def preview_bogota_libranza(
         filename = f"{file_hash}.xlsx"
         path = os.path.join(STORAGE_DIR, filename)
         
-        with open(path, "wb") as f_out:
-            f_out.write(contenido)
+        await guardar_archivo_nomina(path, contenido)
 
         await session.execute(delete(NominaRegistroNormalizado).where(NominaRegistroNormalizado.subcategoria_final == "BOGOTA LIBRANZA", NominaRegistroNormalizado.mes_fact == mes, NominaRegistroNormalizado.año_fact == anio))
         archivo = NominaArchivo(
@@ -181,7 +188,7 @@ async def preview_bogota_libranza(
         await session.commit()
     except Exception as e:
         await session.rollback()
-        raise HTTPException(status_code=500, detail=f"Error al guardar registros de Bogotá Libranza: {str(e)}")
+        raise error_interno("Error guardando registros de Bogotá Libranza") from e
 
     formatted_rows = [{"cedula": r["cedula"], "CEDULA": r["cedula"], "nombre_asociado": r.get("nombre_asociado", ""), "nombre": r.get("nombre_asociado", ""), "NOMBRE": r.get("nombre_asociado", ""), "valor": r["valor"], "VALOR": r["valor"], "empresa": r.get("empresa", ""), "EMPRESA": r.get("empresa", ""), "concepto": r.get("concepto", "BOGOTA LIBRANZA"), "CONCEPTO": r.get("concepto", "BOGOTA LIBRANZA")} for r in rows_facturables]
     return {"rows": formatted_rows, "summary": summary, "warnings": warnings_txt, "warnings_detalle": warnings_detalle}
@@ -193,7 +200,7 @@ async def obtener_datos_bogota_libranza(mes: int = Query(...), anio: int = Query
     try:
         result = await session.execute(stmt); registros = result.scalars().all()
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al consultar datos de Bogotá Libranza: {str(e)}")
+        raise error_interno("Error consultando datos de Bogotá Libranza") from e
     
     rows_final = [{"cedula": r.cedula, "CEDULA": r.cedula, "nombre_asociado": r.nombre_asociado or "", "nombre": r.nombre_asociado or "", "NOMBRE": r.nombre_asociado or "", "valor": r.valor, "VALOR": r.valor, "empresa": r.empresa, "EMPRESA": r.empresa, "concepto": r.concepto or "BOGOTA LIBRANZA", "CONCEPTO": r.concepto or "BOGOTA LIBRANZA", "estado_validacion": r.estado_validacion} 
                   for r in registros 
