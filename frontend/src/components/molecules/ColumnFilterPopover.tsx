@@ -105,6 +105,17 @@ export const ColumnFilterPopover: React.FC<ColumnFilterPopoverProps> = ({
     };
   }, [anchorEl]);
 
+  useLayoutEffect(() => {
+    const popover = popoverRef.current;
+    if (!popover) return;
+
+    // La geometria calculada se aplica antes del paint; la presentacion vive en clases y tokens.
+    popover.style.top = `${coords.top}px`;
+    popover.style.left = `${coords.left}px`;
+    popover.style.width = `${coords.width}px`;
+    popover.style.maxHeight = `${coords.maxHeight}px`;
+  }, [coords]);
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (popoverRef.current && !popoverRef.current.contains(event.target as Node) &&
@@ -143,14 +154,10 @@ export const ColumnFilterPopover: React.FC<ColumnFilterPopoverProps> = ({
         ref={popoverRef}
         role="dialog"
         aria-labelledby={`filter-title-${columnKey}`}
-        style={{
-          top: `${coords.top}px`,
-          left: `${coords.left}px`,
-          width: `${coords.width}px`,
-          maxHeight: `${coords.maxHeight}px`,
-        }}
         className={`
+          column-filter-popover
           fixed z-[9999]
+          max-w-[calc(100vw-20px)] max-h-[calc(100dvh-20px)]
           flex flex-col
           bg-white/90 dark:bg-neutral-800/95
         backdrop-blur-xl
