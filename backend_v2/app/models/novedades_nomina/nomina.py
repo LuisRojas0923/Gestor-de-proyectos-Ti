@@ -10,6 +10,15 @@ from sqlalchemy import UniqueConstraint
 class NominaArchivo(SQLModel, table=True):
     """Metadatos de archivos de nómina cargados"""
     __tablename__ = "nomina_archivos"
+    __table_args__ = (
+        UniqueConstraint(
+            "hash_archivo",
+            "subcategoria",
+            "mes_fact",
+            "año_fact",
+            name="uq_nomina_archivo_identidad_periodo",
+        ),
+    )
     
     id: Optional[int] = Field(default=None, primary_key=True)
     nombre_archivo: str = Field(max_length=255)

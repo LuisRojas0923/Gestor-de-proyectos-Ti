@@ -1,9 +1,12 @@
+import asyncio
 import logging
 import hashlib
 from datetime import datetime
 from typing import List, Dict, Any, Optional
+from fastapi import HTTPException
 from sqlmodel import select, func, delete
 from sqlalchemy.ext.asyncio import AsyncSession
+from ...database import SessionErp
 from ...models.novedades_nomina.nomina import (
     NominaArchivo, NominaRegistroNormalizado, NominaExcepcion
 )
@@ -12,7 +15,63 @@ from .excepcion_service import ExcepcionService
 
 logger = logging.getLogger(__name__)
 
+MAX_CONSULTAS_ERP_CONCURRENTES = 4
+TIMEOUT_CONSULTA_ERP_SEGUNDOS = 30
+_semaforo_erp = asyncio.Semaphore(MAX_CONSULTAS_ERP_CONCURRENTES)
+
 class NominaHelper:
+    @staticmethod
+    async def _ejecutar_consulta_erp(consulta, *args):
+        """Ejecuta una consulta ERP con una sesión propiedad del worker."""
+        try:
+            await asyncio.wait_for(
+                _semaforo_erp.acquire(),
+                timeout=TIMEOUT_CONSULTA_ERP_SEGUNDOS,
+            )
+        except asyncio.TimeoutError as exc:
+            raise HTTPException(
+                status_code=504,
+                detail="La consulta al ERP superó el tiempo permitido.",
+            ) from exc
+
+        def ejecutar():
+            with SessionErp() as session_erp:
+                return consulta(session_erp, *args)
+
+        tarea = asyncio.create_task(
+            asyncio.to_thread(ejecutar)
+        )
+        tarea.add_done_callback(lambda _: _semaforo_erp.release())
+        try:
+            return await asyncio.wait_for(
+                asyncio.shield(tarea),
+                timeout=TIMEOUT_CONSULTA_ERP_SEGUNDOS,
+            )
+        except asyncio.TimeoutError as exc:
+            raise HTTPException(
+                status_code=504,
+                detail="La consulta al ERP superó el tiempo permitido.",
+            ) from exc
+
+    @staticmethod
+    async def consultar_empleados_bulk(db_erp, cedulas: List[str]) -> Dict[str, Any]:
+        """Ejecuta una consulta ERP síncrona sin bloquear el event loop."""
+        if not db_erp:
+            return {}
+        return await NominaHelper._ejecutar_consulta_erp(
+            EmpleadosService.consultar_empleados_bulk,
+            cedulas,
+        )
+
+    @staticmethod
+    async def obtener_todos_los_empleados_activos(db_erp) -> List[Dict[str, Any]]:
+        """Consulta empleados activos sin compartir la sesión de dependencia."""
+        if not db_erp:
+            return []
+        return await NominaHelper._ejecutar_consulta_erp(
+            EmpleadosService.obtener_todos_los_empleados_activos,
+        )
+
     @staticmethod
     async def get_mapa_erp(db_erp, rows: List[Dict[str, Any]], excepciones: List[NominaExcepcion] = []) -> Dict[str, Any]:
         """Obtiene un mapa de empleados desde el ERP por cédula, incluyendo pagadores de excepciones."""
@@ -30,7 +89,9 @@ class NominaHelper:
             if ex.tipo == 'SALDO_FAVOR' and ex.cedula:
                 cedulas_unicas.add(str(ex.cedula))
                 
-        return EmpleadosService.consultar_empleados_bulk(db_erp, list(cedulas_unicas))
+        return await NominaHelper.consultar_empleados_bulk(
+            db_erp, list(cedulas_unicas)
+        )
 
     @staticmethod
     async def persistir_registros_normalizados(
@@ -335,9 +396,22 @@ class NominaHelper:
         ruta_almacenamiento: str = "memory"
     ) -> NominaArchivo:
         """Crea un objeto NominaArchivo marcado como procesado."""
+        hash_archivo = hashlib.sha256(contenido).hexdigest()
+        identidad = await session.execute(
+            select(NominaArchivo).where(
+                NominaArchivo.hash_archivo == hash_archivo,
+                NominaArchivo.subcategoria == subcategoria.strip(),
+                NominaArchivo.mes_fact == mes,
+                NominaArchivo.año_fact == anio,
+            )
+        )
+        existente = identidad.scalars().first()
+        if existente:
+            return existente
+
         archivo = NominaArchivo(
             nombre_archivo=nombre,
-            hash_archivo=hashlib.sha256(contenido).hexdigest(),
+            hash_archivo=hash_archivo,
             tamaño_bytes=size,
             tipo_archivo=ext,
             ruta_almacenamiento=ruta_almacenamiento,

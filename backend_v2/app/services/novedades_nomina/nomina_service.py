@@ -39,6 +39,75 @@ class NominaService:
         )
 
     @staticmethod
+    async def preparar_reemplazo_directo(
+        session: AsyncSession,
+        subcategoria: str,
+        mes: int,
+        anio: int,
+        rows: List[Dict[str, Any]],
+    ) -> List[NominaExcepcion]:
+        from fastapi import HTTPException
+
+        if not rows:
+            raise HTTPException(
+                status_code=422,
+                detail="El archivo no contiene filas válidas para procesar.",
+            )
+
+        await NominaService._bloquear_periodo(session, subcategoria, mes, anio)
+        return await ExcepcionService.obtener_excepciones_activas(
+            session,
+            subcategoria,
+            bloquear=True,
+            mes=mes,
+            anio=anio,
+        )
+
+    @staticmethod
+    async def obtener_o_crear_archivo(
+        session: AsyncSession,
+        *,
+        hash_archivo: str,
+        subcategoria: str,
+        mes: int,
+        anio: int,
+        nombre_archivo: str,
+        tamaño_bytes: int,
+        tipo_archivo: str,
+        ruta_almacenamiento: str,
+        categoria: str,
+    ) -> NominaArchivo:
+        """Reutiliza metadata por identidad única; requiere el lock del periodo."""
+        subcategoria = subcategoria.strip()
+        resultado = await session.execute(
+            select(NominaArchivo).where(
+                NominaArchivo.hash_archivo == hash_archivo,
+                NominaArchivo.subcategoria == subcategoria,
+                NominaArchivo.mes_fact == mes,
+                NominaArchivo.año_fact == anio,
+            )
+        )
+        archivo = resultado.scalars().first()
+        if archivo:
+            return archivo
+
+        archivo = NominaArchivo(
+            nombre_archivo=nombre_archivo,
+            hash_archivo=hash_archivo,
+            tamaño_bytes=tamaño_bytes,
+            tipo_archivo=tipo_archivo,
+            ruta_almacenamiento=ruta_almacenamiento,
+            mes_fact=mes,
+            año_fact=anio,
+            categoria=categoria,
+            subcategoria=subcategoria,
+            estado="Procesado",
+        )
+        session.add(archivo)
+        await session.flush()
+        return archivo
+
+    @staticmethod
     async def get_mapa_erp(db_erp, rows: List[Dict[str, Any]], excepciones: List[NominaExcepcion] = []) -> Dict[str, Any]:
         """Obtiene un mapa de empleados desde el ERP delegando en NominaHelper."""
         return await NominaHelper.get_mapa_erp(db_erp, rows, excepciones)
@@ -212,6 +281,12 @@ class NominaService:
                 session, nombre_archivo, contenido, len(contenido), extension,
                 mes, anio, categoria, subcategoria, ruta_almacenamiento
             )
+            if getattr(archivo, "ruta_almacenamiento", ruta_almacenamiento) != ruta_almacenamiento:
+                try:
+                    await asyncio.to_thread(os.remove, ruta_almacenamiento)
+                except FileNotFoundError:
+                    pass
+                ruta_creada = False
 
             # 7. Persistir registros (con excepciones)
             registros = await NominaService.persistir_registros_normalizados(
@@ -315,7 +390,7 @@ class NominaService:
                     )
                 except FileNotFoundError:
                     pass
-            logger.error(f"FALLO CRÍTICO en flujo {subcategoria}", exc_info=True)
+            logger.error("Fallo controlado en flujo de nómina %s", subcategoria)
             raise
     @staticmethod
     async def obtener_datos_periodo(
@@ -408,9 +483,9 @@ class NominaService:
                 "warnings": [],
                 "warnings_detalle": warnings_detalle
             }
-        except Exception as e:
-            logger.error(f"Error al obtener datos de {subcategoria}: {str(e)}")
-            raise e
+        except Exception:
+            logger.error("Error al obtener datos de nómina %s", subcategoria)
+            raise
 
     @staticmethod
     def _agrupar_por_cedula(filas: List[Dict[str, Any]]) -> List[Dict[str, Any]]:

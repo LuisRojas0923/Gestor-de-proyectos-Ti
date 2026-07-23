@@ -47,6 +47,7 @@ export function useApi<T>() {
 
     const token = localStorage.getItem('token');
     const { notifyOnError = true, ...fetchOptions } = options;
+    const requestPath = url.split(/[?#]/, 1)[0];
 
     // Si el body es FormData, el navegador debe elijir el Content-Type (con boundary) automaticamente.
     const isFormData = fetchOptions.body instanceof FormData;
@@ -73,13 +74,19 @@ export function useApi<T>() {
         // infinita) ni contra endpoints publicos (no tiene sentido).
         const isAuthEndpoint = url.includes('/auth/');
         if (!_retriedWithRefresh && !isAuthEndpoint) {
-          const newToken = await AuthService.refreshAccessToken();
+          let newToken: string | null = null;
+          try {
+            newToken = await AuthService.refreshAccessToken();
+          } catch {
+            // El rechazo del refresh se trata como un 401 terminal sin exponer detalles.
+          }
           if (newToken) {
             // Reintentar la request original con el token nuevo.
             return request(url, options, true);
           }
         }
-        console.error(`🔒 401 Unauthorized en ${url}. Token presente: ${!!token}, Token (primeros 20): ${token ? token.substring(0, 20) + '...' : 'NULL'}. Ejecutando logout...`);
+        console.error(`API Error [${response.status}] at ${requestPath}`);
+        setState({ data: null, loading: false, error: getErrorMessage(response.status) });
         dispatch({ type: 'LOGOUT' });
         return null;
       }
@@ -102,7 +109,7 @@ export function useApi<T>() {
         } else {
           errorMessage = body?.message || getErrorMessage(response.status);
         }
-        console.error(`API Error [${response.status}] at ${url}:`, body);
+        console.error(`API Error [${response.status}] at ${requestPath}`);
         throw new Error(errorMessage);
       }
 
@@ -114,7 +121,7 @@ export function useApi<T>() {
       setState({ data, loading: false, error: null });
       return data;
     } catch (error) {
-      console.error(`Fetch Error at ${url}:`, error);
+      console.error(`Fetch Error at ${requestPath}`);
       let errorMessage: string = ERROR_MESSAGES.UNKNOWN_ERROR;
 
       if (error instanceof TypeError && (error.message.includes('fetch') || error.message.includes('NetworkError'))) {
@@ -136,9 +143,13 @@ export function useApi<T>() {
 
   const get = useCallback((url: string, options: ApiRequestOptions = {}) => request(url, options), [request]); // [CONTROLADO]
 
-  const getWithHeaders = useCallback(async (url: string): Promise<{ data: T; headers: Headers } | null> => {
+  const getWithHeaders = useCallback(async (
+    url: string,
+    _retriedWithRefresh = false,
+  ): Promise<{ data: T; headers: Headers } | null> => {
     setState(prev => ({ ...prev, loading: true, error: null }));
     const token = localStorage.getItem('token');
+    const requestPath = url.split(/[?#]/, 1)[0];
     const headers: Record<string, string> = {
       ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
     };
@@ -146,10 +157,19 @@ export function useApi<T>() {
       const response = await fetch(`${API_CONFIG.BASE_URL}${url}`, { headers });
       if (response.status === HTTP_STATUS.UNAUTHORIZED) {
         const isAuthEndpoint = url.includes('/auth/');
-        const newToken = !isAuthEndpoint ? await AuthService.refreshAccessToken() : null;
-        if (newToken) {
-          return getWithHeaders(url);
+        let newToken: string | null = null;
+        if (!_retriedWithRefresh && !isAuthEndpoint) {
+          try {
+            newToken = await AuthService.refreshAccessToken();
+          } catch {
+            // El rechazo del refresh se trata como un 401 terminal sin exponer detalles.
+          }
         }
+        if (newToken) {
+          return getWithHeaders(url, true);
+        }
+        console.error(`API Error [${response.status}] at ${requestPath}`);
+        setState({ data: null, loading: false, error: getErrorMessage(response.status) });
         dispatch({ type: 'LOGOUT' });
         return null;
       }

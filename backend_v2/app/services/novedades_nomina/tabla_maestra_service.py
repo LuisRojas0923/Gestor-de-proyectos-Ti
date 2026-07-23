@@ -89,9 +89,9 @@ class TablaMaestraService:
                 "total_disponibles": len(disponibles),
                 "total_faltantes": len(faltantes),
             }
-        except Exception as e:
-            logger.error(f"Error validando disponibilidad: {str(e)}")
-            raise e
+        except Exception:
+            logger.error("Error validando disponibilidad de tabla maestra")
+            raise
 
     @staticmethod
     async def generar_tabla_maestra(
@@ -300,6 +300,6 @@ class TablaMaestraService:
                     "quincena": quincena,
                 },
             }
-        except Exception as e:
-            logger.error(f"Error generando tabla maestra: {str(e)}", exc_info=True)
-            raise e
+        except Exception:
+            logger.error("Error generando tabla maestra")
+            raise

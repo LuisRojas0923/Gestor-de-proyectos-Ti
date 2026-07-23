@@ -135,7 +135,7 @@ async def procesar_manual_embargos(
     except HTTPException:
         raise
     except Exception as exc:
-        logger.exception("Error procesando Embargos manual")
+        logger.error("Error procesando Embargos manual")
         raise HTTPException(
             status_code=500, detail="No fue posible procesar Embargos."
         ) from exc

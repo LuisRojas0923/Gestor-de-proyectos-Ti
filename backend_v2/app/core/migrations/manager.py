@@ -6,6 +6,7 @@ from app.core.migrations.saneamiento_secuencias import reparar_todas_las_secuenc
 from app.core.migrations.auditoria_evento_migration import crear_tabla_auditoria_evento
 from app.core.migrations.auditoria_acciones_migration import crear_tabla_auditoria_acciones
 from app.core.migrations.nomina_excepciones_migration import asegurar_historial_excepcion_unico
+from app.core.migrations.nomina_archivos_migration import asegurar_identidad_archivo_nomina
 
 logger = logging.getLogger(__name__)
 
@@ -52,6 +53,10 @@ async def init_db_process(async_engine, AsyncSessionLocal):
     # 3.7 Garantizar idempotencia del historial de excepciones de nómina
     async with async_engine.begin() as conn:
         await asegurar_historial_excepcion_unico(conn)
+
+    # 3.8 Garantizar identidad de archivos de nómina por período
+    async with async_engine.begin() as conn:
+        await asegurar_identidad_archivo_nomina(conn)
 
     # 4. Saneamiento de Datos (Inventario y otros)
     saneamientos = [

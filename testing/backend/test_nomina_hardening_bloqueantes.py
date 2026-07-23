@@ -369,3 +369,65 @@ async def test_cargas_generica_y_compartida_responden_413_por_tamano(
         api.dependency_overrides.clear()
 
     assert response.status_code == 413
+
+
+@pytest.mark.parametrize(
+    "archivo",
+    [
+        "libranzas_bogota.py",
+        "libranzas_davivienda.py",
+        "libranzas_occidente.py",
+        "funebres.py",
+        "cooperativas_beneficiar.py",
+        "cooperativas_grancoop.py",
+        "descuentos_control.py",
+    ],
+)
+def test_flujos_directos_usan_primitiva_transaccional_comun(archivo):
+    root = Path(app.__file__).parent / "api/novedades_nomina/routers"
+    contenido = (root / archivo).read_text(encoding="utf-8")
+
+    assert "preparar_reemplazo_directo(" in contenido
+
+
+def test_reproceso_generico_tiene_rate_limit_y_ejecutor_acotado():
+    from app.core.rate_limiter import limiter
+    from app.main import app as api
+
+    ruta = next(
+        route
+        for route in api.routes
+        if getattr(route, "path", "").endswith("/archivos/{archivo_id}/procesar")
+    )
+    clave = f"{ruta.endpoint.__module__}.{ruta.endpoint.__name__}"
+    contenido = (
+        Path(app.__file__).parent / "api/novedades_nomina/nomina_router.py"
+    ).read_text(encoding="utf-8")
+
+    assert clave in limiter._route_limits
+    assert "ejecutar_extractor_generico_seguro" in contenido
+    assert "asyncio.to_thread(" not in contenido
+
+
+def test_logs_nomina_no_incluyen_muestras_documentales_ni_trazas_sensibles():
+    servicios = Path(app.__file__).parent / "services/novedades_nomina"
+    camposanto = (servicios / "camposanto_extractor.py").read_text(encoding="utf-8")
+    recordar = (servicios / "recordar_extractor.py").read_text(encoding="utf-8")
+    nomina = (servicios / "nomina_service.py").read_text(encoding="utf-8")
+
+    assert "texto_completo[:" not in camposanto
+    assert "logger.exception" not in camposanto
+    assert "logger.exception" not in recordar
+    assert "exc_info=True" not in nomina
+    assert "str(e)" not in nomina
+
+
+def test_archivo_nomina_tiene_identidad_unica_por_periodo():
+    from app.models.novedades_nomina.nomina import NominaArchivo
+
+    restricciones = {
+        tuple(columna.name for columna in restriccion.columns)
+        for restriccion in NominaArchivo.__table__.constraints
+        if restriccion.__class__.__name__ == "UniqueConstraint"
+    }
+    assert ("hash_archivo", "subcategoria", "mes_fact", "año_fact") in restricciones

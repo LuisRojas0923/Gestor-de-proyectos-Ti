@@ -7,11 +7,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from pydantic import BaseModel
 from ....database import obtener_db, obtener_erp_db_opcional
 from ....models.novedades_nomina.nomina import (
-    NominaArchivo, NominaRegistroNormalizado, ControlDescuentoActivo, ControlDescuentoConcepto, NominaExcepcion
+    NominaArchivo, NominaRegistroNormalizado, ControlDescuentoActivo, ControlDescuentoConcepto
 )
 from ....services.erp.empleados_service import EmpleadosService
 from ....services.novedades_nomina.control_descuentos_extractor import extraer_control_descuentos
 from ....services.novedades_nomina.excepcion_service import ExcepcionService
+from ....services.novedades_nomina.nomina_service import NominaService
+from ....services.novedades_nomina.nomina_helper import NominaHelper
 from ....services.novedades_nomina.errores_http import error_interno
 from ....services.novedades_nomina.validacion_archivos_nomina import leer_archivos_nomina_http
 from ....services.novedades_nomina.almacenamiento import guardar_archivo_nomina
@@ -91,7 +93,7 @@ async def _sincronizar_descuento_nomina(session: AsyncSession, db_erp, registro:
         # 3. Determinar estado ERP
         estado_erp = "OK"
         if db_erp:
-            info = EmpleadosService.consultar_empleados_bulk(db_erp, [registro.cedula]).get(registro.cedula)
+            info = (await NominaHelper.consultar_empleados_bulk(db_erp, [registro.cedula])).get(registro.cedula)
             if info and str(info.get("estado", "")).strip().upper() != "ACTIVO":
                 estado_erp = "RETIRADO"
             elif not info:
@@ -174,13 +176,12 @@ async def preview_control_descuentos(request: Request, mes: int = Form(...), ani
         extraer_control_descuentos, archivos_binarios
     )
     
-    stmt_exc = select(NominaExcepcion).where(
-        NominaExcepcion.subcategoria == "CONTROL DE DESCUENTOS",
-        NominaExcepcion.estado == "ACTIVO"
-    )
     try:
-        result_exc = await session.execute(stmt_exc)
-        excepciones_db = result_exc.scalars().all()
+        excepciones_db = await NominaService.preparar_reemplazo_directo(
+            session, "CONTROL DE DESCUENTOS", mes, anio, rows
+        )
+    except HTTPException:
+        raise
     except Exception as e:
         raise error_interno("Error consultando excepciones de Control de Descuentos") from e
     
@@ -200,7 +201,7 @@ async def preview_control_descuentos(request: Request, mes: int = Form(...), ani
     if db_erp is not None:
         cedulas_sin_erp = set(mapa_excepciones.keys())
         cedulas_para_erp = list(set(r["cedula"] for r in rows if r["cedula"] not in cedulas_sin_erp))
-        mapa_erp = EmpleadosService.consultar_empleados_bulk(db_erp, cedulas_para_erp)
+        mapa_erp = await NominaHelper.consultar_empleados_bulk(db_erp, cedulas_para_erp)
         for row in rows:
             ced = row["cedula"]
             if ced in cedulas_sin_erp: continue
@@ -211,13 +212,19 @@ async def preview_control_descuentos(request: Request, mes: int = Form(...), ani
                 row["nombre_asociado"], row["empresa"], row["estado_erp"] = "", "", "NO ENCONTRADO"
                 warnings_detalle.append({"cedula": ced, "nombre": "Desconocido", "motivo": "No encontrada en ERP"})
     
+    saldos_procesados = set()
     for row in rows:
         ced = row["cedula"]
         if ced in mapa_excepciones:
             exc = mapa_excepciones[ced]
             if exc.get("tipo") == "SALDO_FAVOR":
                 valor_orig = row["valor"]
-                valor_final = await ExcepcionService.aplicar_saldo_favor(session, exc["obj"], valor_orig, mes, anio)
+                excepcion_id = exc["id"]
+                valor_final = await ExcepcionService.aplicar_saldo_favor(
+                    session, exc["obj"], valor_orig, mes, anio,
+                    acumular_periodo=excepcion_id in saldos_procesados,
+                )
+                saldos_procesados.add(excepcion_id)
                 row["valor"] = valor_final
                 row["nombre_asociado"], row["empresa"], row["estado_erp"] = exc["nombre"], exc["empresa"], "EXCEPCION_SALDO_FAVOR"
                 row["observaciones"] = f"Saldo favor aplicado. Cobro: ${valor_orig:,.0f} -> ${valor_final:,.0f}"
@@ -225,7 +232,7 @@ async def preview_control_descuentos(request: Request, mes: int = Form(...), ani
                 row["observaciones"] = f"Cobro original para {ced} ({exc['nombre']}). Redirigido a pagador {exc['pagador_cedula']}"
                 row["cedula"] = exc["pagador_cedula"]
                 if db_erp:
-                    info_pag = EmpleadosService.consultar_empleados_bulk(db_erp, [exc["pagador_cedula"]])
+                    info_pag = await NominaHelper.consultar_empleados_bulk(db_erp, [exc["pagador_cedula"]])
                     if info_pag.get(exc["pagador_cedula"]):
                         row["nombre_asociado"], row["empresa"] = info_pag[exc["pagador_cedula"]]["nombre"], info_pag[exc["pagador_cedula"]]["empresa"]
                 row["estado_erp"] = "REDIRECCIONADO"
@@ -245,8 +252,18 @@ async def preview_control_descuentos(request: Request, mes: int = Form(...), ani
         await guardar_archivo_nomina(path, contenido)
 
         await session.execute(delete(NominaRegistroNormalizado).where(NominaRegistroNormalizado.subcategoria_final == "CONTROL DE DESCUENTOS", NominaRegistroNormalizado.mes_fact == mes, NominaRegistroNormalizado.año_fact == anio))
-        archivo = NominaArchivo(nombre_archivo=f"control_descuentos_{mes}_{anio}.xlsx", hash_archivo=file_hash, tamaño_bytes=sum(len(b) for b in archivos_binarios), tipo_archivo="xlsx", ruta_almacenamiento=path, mes_fact=mes, año_fact=anio, categoria="DESCUENTOS", subcategoria="CONTROL DE DESCUENTOS", estado="Procesado")
-        session.add(archivo); await session.flush()
+        archivo = await NominaService.obtener_o_crear_archivo(
+            session,
+            hash_archivo=file_hash,
+            subcategoria="CONTROL DE DESCUENTOS",
+            mes=mes,
+            anio=anio,
+            nombre_archivo=f"control_descuentos_{mes}_{anio}.xlsx",
+            tamaño_bytes=sum(len(b) for b in archivos_binarios),
+            tipo_archivo="xlsx",
+            ruta_almacenamiento=path,
+            categoria="DESCUENTOS",
+        )
         for idx, row in enumerate(rows):
             reg = NominaRegistroNormalizado(archivo_id=archivo.id, fecha_creacion=datetime.now(), mes_fact=mes, año_fact=anio, cedula=row["cedula"], nombre_asociado=row.get("nombre_asociado", ""), valor=row["valor"], empresa=row.get("empresa", ""), concepto=row["concepto"], categoria_final="DESCUENTOS", subcategoria_final="CONTROL DE DESCUENTOS", estado_validacion="OK" if "EXCEPCIÓN APLICADA" in str(row.get("estado_erp")) or row.get("estado_erp") == "ACTIVO" else "NO_CLASIFICADO", observaciones=row.get("observaciones"), fila_origen=idx + 1)
             session.add(reg)

@@ -121,10 +121,10 @@ class NominaManualService:
                 "archivo_id": archivo.id
             }
 
-        except Exception as e:
+        except Exception:
             await session.rollback()
-            logger.error(f"Error procesando manual Otros Gerencia: {str(e)}")
-            raise e
+            logger.error("Error procesando manual Otros Gerencia")
+            raise
 
     @staticmethod
     async def procesar_manual_embargos(
@@ -229,10 +229,10 @@ class NominaManualService:
                 "archivo_id": archivo.id
             }
 
-        except Exception as e:
+        except Exception:
             await session.rollback()
-            logger.error(f"Error procesando manual Embargos: {str(e)}")
-            raise e
+            logger.error("Error procesando manual Embargos")
+            raise
 
     @staticmethod
     async def procesar_manual_comisiones(
@@ -382,7 +382,7 @@ class NominaManualService:
                 "archivo_id": archivo.id
             }
 
-        except Exception as e:
+        except Exception:
             await session.rollback()
-            logger.error(f"Error procesando manual Comisiones: {str(e)}")
-            raise e
+            logger.error("Error procesando manual Comisiones")
+            raise

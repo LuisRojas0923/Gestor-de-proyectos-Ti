@@ -9,11 +9,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import Session, select, delete
 from ....database import obtener_db, obtener_erp_db_opcional
 from ....models.novedades_nomina.nomina import (
-    NominaArchivo, NominaRegistroNormalizado, NominaExcepcion
+    NominaRegistroNormalizado
 )
 from ....services.erp.empleados_service import EmpleadosService
 from ....services.novedades_nomina.beneficiar_extractor import extraer_beneficiar
 from ....services.novedades_nomina.excepcion_service import ExcepcionService
+from ....services.novedades_nomina.nomina_service import NominaService
+from ....services.novedades_nomina.nomina_helper import NominaHelper
 from ....services.novedades_nomina.validacion_archivos_cooperativas import leer_archivos_beneficiar
 from ....services.novedades_nomina.almacenamiento import guardar_archivo_nomina
 from ..dependencies import requiere_permiso_nomina_novedades
@@ -55,18 +57,15 @@ async def preview_beneficiar(
     except Exception as exc:
         logger.error("No fue posible extraer el archivo Beneficiar")
         raise HTTPException(status_code=422, detail="No fue posible procesar el Excel") from exc
-    if not rows:
-        raise HTTPException(status_code=422, detail="Los archivos no contienen filas válidas de Beneficiar")
     summary["mes"] = mes
     summary["anio"] = anio
 
-    stmt_exc = select(NominaExcepcion).where(
-        NominaExcepcion.subcategoria == "BENEFICIAR",
-        NominaExcepcion.estado == "ACTIVO"
-    )
     try:
-        result_exc = await session.execute(stmt_exc)
-        excepciones_db = result_exc.scalars().all()
+        excepciones_db = await NominaService.preparar_reemplazo_directo(
+            session, "BENEFICIAR", mes, anio, rows
+        )
+    except HTTPException:
+        raise
     except Exception as exc:
         logger.error("Error al consultar excepciones de Beneficiar")
         raise HTTPException(status_code=500, detail="Error al consultar excepciones") from exc
@@ -87,7 +86,7 @@ async def preview_beneficiar(
     if db_erp is not None:
         cedulas_sin_erp = set(mapa_excepciones.keys())
         cedulas_para_erp = list(set(r["cedula"] for r in rows if r["cedula"] not in cedulas_sin_erp))
-        mapa_erp = EmpleadosService.consultar_empleados_bulk(db_erp, cedulas_para_erp)
+        mapa_erp = await NominaHelper.consultar_empleados_bulk(db_erp, cedulas_para_erp)
 
         for row in rows:
             ced = row["cedula"]
@@ -111,6 +110,7 @@ async def preview_beneficiar(
     else:
         warnings_txt.append("ERP no disponible: datos no enriquecidos.")
 
+    saldos_procesados = set()
     for row in rows:
         ced = row["cedula"]
         if ced in mapa_excepciones:
@@ -118,7 +118,12 @@ async def preview_beneficiar(
             valor_orig = row["valor"]
             
             if exc.get("tipo") == "SALDO_FAVOR":
-                valor_final = await ExcepcionService.aplicar_saldo_favor(session, exc["obj"], valor_orig, mes, anio)
+                excepcion_id = exc["id"]
+                valor_final = await ExcepcionService.aplicar_saldo_favor(
+                    session, exc["obj"], valor_orig, mes, anio,
+                    acumular_periodo=excepcion_id in saldos_procesados,
+                )
+                saldos_procesados.add(excepcion_id)
                 row["valor"] = valor_final
                 row["nombre_asociado"], row["empresa"], row["estado_erp"] = exc["nombre"], exc["empresa"], "EXCEPCION_SALDO_FAVOR"
                 row["observaciones"] = f"Saldo favor aplicado. Cobro: ${valor_orig:,.0f} -> ${valor_final:,.0f}"
@@ -126,7 +131,7 @@ async def preview_beneficiar(
                 row["observaciones"] = f"Cobro original para {ced} ({exc['nombre']}). Redirigido a pagador {exc['pagador_cedula']}"
                 row["cedula"] = exc["pagador_cedula"]
                 if db_erp:
-                    info_pag = EmpleadosService.consultar_empleados_bulk(db_erp, [exc["pagador_cedula"]])
+                    info_pag = await NominaHelper.consultar_empleados_bulk(db_erp, [exc["pagador_cedula"]])
                     if info_pag.get(exc["pagador_cedula"]):
                         row["nombre_asociado"], row["empresa"] = info_pag[exc["pagador_cedula"]]["nombre"], info_pag[exc["pagador_cedula"]]["empresa"]
                 row["estado_erp"] = "REDIRECCIONADO"
@@ -188,8 +193,18 @@ async def preview_beneficiar(
         await guardar_archivo_nomina(path, contenido)
 
         await session.execute(delete(NominaRegistroNormalizado).where(NominaRegistroNormalizado.subcategoria_final == "BENEFICIAR", NominaRegistroNormalizado.mes_fact == mes, NominaRegistroNormalizado.año_fact == anio))
-        archivo = NominaArchivo(nombre_archivo=f"beneficiar_{mes}_{anio}.xls", hash_archivo=file_hash, tamaño_bytes=sum(len(b) for b in archivos_binarios), tipo_archivo="xls", ruta_almacenamiento=path, mes_fact=mes, año_fact=anio, categoria="COOPERATIVAS", subcategoria="BENEFICIAR", estado="Procesado")
-        session.add(archivo); await session.flush()
+        archivo = await NominaService.obtener_o_crear_archivo(
+            session,
+            hash_archivo=file_hash,
+            subcategoria="BENEFICIAR",
+            mes=mes,
+            anio=anio,
+            nombre_archivo=f"beneficiar_{mes}_{anio}.xls",
+            tamaño_bytes=sum(len(b) for b in archivos_binarios),
+            tipo_archivo="xls",
+            ruta_almacenamiento=path,
+            categoria="COOPERATIVAS",
+        )
         for idx, row in enumerate(rows_facturables):
             reg = NominaRegistroNormalizado(archivo_id=archivo.id, fecha_creacion=datetime.now(), mes_fact=mes, año_fact=anio, cedula=row["cedula"], nombre_asociado=row.get("nombre_asociado", ""), valor=row["valor"], empresa=row.get("empresa", ""), concepto=row["concepto"], categoria_final="COOPERATIVAS", subcategoria_final="BENEFICIAR", estado_validacion="OK" if str(row.get("estado_erp")).upper() == "ACTIVO" else row.get("estado_erp", "OK"), observaciones=row.get("observaciones"), fila_origen=idx + 1)
             session.add(reg)

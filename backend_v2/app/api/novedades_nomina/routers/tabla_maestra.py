@@ -22,8 +22,8 @@ async def validar_disponibilidad(
             session, mes, anio, quincena
         )
         return resultado
-    except Exception as e:
-        logger.error(f"Error validando disponibilidad tabla maestra: {str(e)}")
+    except Exception:
+        logger.error("Error validando disponibilidad de tabla maestra")
         raise HTTPException(
             status_code=500,
             detail="Error al validar la disponibilidad de subcategorías",
@@ -55,8 +55,8 @@ async def generar_tabla_maestra(
         return resultado
     except HTTPException:
         raise
-    except Exception as e:
-        logger.error(f"Error generando tabla maestra: {str(e)}")
+    except Exception:
+        logger.error("Error generando tabla maestra")
         raise HTTPException(
             status_code=500,
             detail="Error al generar la tabla maestra",

@@ -6,12 +6,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import Session, select, delete
 from ....database import obtener_db, obtener_erp_db_opcional
 from ....models.novedades_nomina.nomina import (
-    NominaArchivo, NominaRegistroNormalizado, NominaExcepcion
+    NominaRegistroNormalizado
 )
 from ....services.erp.empleados_service import EmpleadosService
 from ....services.novedades_nomina.camposanto_extractor import extraer_camposanto
 from ....services.novedades_nomina.recordar_extractor import extraer_recordar
 from ....services.novedades_nomina.excepcion_service import ExcepcionService
+from ....services.novedades_nomina.nomina_service import NominaService
+from ....services.novedades_nomina.nomina_helper import NominaHelper
 from ....services.novedades_nomina.errores_http import error_interno
 from ....services.novedades_nomina.validacion_archivos_nomina import leer_archivos_nomina_http
 from ....services.novedades_nomina.almacenamiento import guardar_archivo_nomina
@@ -37,35 +39,32 @@ async def preview_camposanto(
         files, extensiones_permitidas={".pdf"}
     )
 
-    # ── Obtener excepciones dinámicas de la DB ──
-    stmt_exc = select(NominaExcepcion).where(
-        NominaExcepcion.subcategoria == "CAMPOSANTO",
-        NominaExcepcion.estado == "ACTIVO"
-    )
-    try:
-        result_exc = await session.execute(stmt_exc)
-        excepciones_db = result_exc.scalars().all()
-    except Exception as e:
-        raise error_interno("Error consultando excepciones de Camposanto") from e
-    
-    # Mapa de excepciones para búsqueda rápida
-    mapa_excepciones = {
-        e.cedula: {
-            "id": e.id,
-            "nombre": e.nombre_asociado, 
-            "empresa": "REFRIDCOL", 
-            "motivo": e.tipo,
-            "pagador_cedula": e.pagador_cedula,
-            "tipo": e.tipo,
-            "obj": e
-        } for e in excepciones_db
-    }
-
     rows, summary, warnings_txt = await ejecutar_extractor_proceso(
         extraer_camposanto, archivos_binarios
     )
     summary["mes"] = mes
     summary["anio"] = anio
+
+    try:
+        excepciones_db = await NominaService.preparar_reemplazo_directo(
+            session, "CAMPOSANTO", mes, anio, rows
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise error_interno("Error consultando excepciones de Camposanto") from e
+
+    mapa_excepciones = {
+        e.cedula: {
+            "id": e.id,
+            "nombre": e.nombre_asociado,
+            "empresa": "REFRIDCOL",
+            "motivo": e.tipo,
+            "pagador_cedula": e.pagador_cedula,
+            "tipo": e.tipo,
+            "obj": e,
+        } for e in excepciones_db
+    }
 
     warnings_detalle = []
     
@@ -74,7 +73,7 @@ async def preview_camposanto(
 
     if db_erp is not None:
         cedulas_para_erp = list(set(r["cedula"] for r in rows if r["cedula"] not in cedulas_sin_erp))
-        mapa_erp = EmpleadosService.consultar_empleados_bulk(db_erp, cedulas_para_erp)
+        mapa_erp = await NominaHelper.consultar_empleados_bulk(db_erp, cedulas_para_erp)
 
         for row in rows:
             ced = row["cedula"]
@@ -99,6 +98,7 @@ async def preview_camposanto(
                 warnings_detalle.append({"cedula": ced, "nombre": row.get("nombre_asociado", "Desconocido"), "motivo": f"Estado: {estado}"})
     
     # Aplicar excepciones dinámicas
+    saldos_procesados = set()
     for row in rows:
         ced = row["cedula"]
         if ced in mapa_excepciones:
@@ -107,7 +107,12 @@ async def preview_camposanto(
             
             # 1. SALDO_FAVOR (Agotar saldo)
             if exc.get("tipo") == "SALDO_FAVOR":
-                valor_final = await ExcepcionService.aplicar_saldo_favor(session, exc["obj"], valor_orig, mes, anio)
+                excepcion_id = exc["id"]
+                valor_final = await ExcepcionService.aplicar_saldo_favor(
+                    session, exc["obj"], valor_orig, mes, anio,
+                    acumular_periodo=excepcion_id in saldos_procesados,
+                )
+                saldos_procesados.add(excepcion_id)
                 row["valor"] = valor_final
                 row["nombre_asociado"], row["empresa"], row["estado_erp"] = exc["nombre"], exc["empresa"], "EXCEPCION_SALDO_FAVOR"
                 row["observaciones"] = f"Saldo favor aplicado. Cobro: ${valor_orig:,.0f} -> ${valor_final:,.0f}"
@@ -117,7 +122,7 @@ async def preview_camposanto(
                 row["observaciones"] = f"Cobro original para {ced} ({exc['nombre']}). Redirigido a pagador {exc['pagador_cedula']}"
                 row["cedula"] = exc["pagador_cedula"]
                 if db_erp:
-                    info_pag = EmpleadosService.consultar_empleados_bulk(db_erp, [exc["pagador_cedula"]])
+                    info_pag = await NominaHelper.consultar_empleados_bulk(db_erp, [exc["pagador_cedula"]])
                     if info_pag.get(exc["pagador_cedula"]):
                         row["nombre_asociado"] = info_pag[exc["pagador_cedula"]]["nombre"]
                         row["empresa"] = info_pag[exc["pagador_cedula"]]["empresa"]
@@ -185,9 +190,18 @@ async def preview_camposanto(
         stmt_del = delete(NominaRegistroNormalizado).where(NominaRegistroNormalizado.subcategoria_final == "CAMPOSANTO", NominaRegistroNormalizado.mes_fact == mes, NominaRegistroNormalizado.año_fact == anio)
         await session.execute(stmt_del)
 
-        archivo = NominaArchivo(nombre_archivo=f"camposanto_{mes}_{anio}.pdf", hash_archivo=file_hash, tamaño_bytes=sum(len(b) for b in archivos_binarios), tipo_archivo="pdf", ruta_almacenamiento=path, mes_fact=mes, año_fact=anio, categoria="FUNEBRES", subcategoria="CAMPOSANTO", estado="Procesado")
-        session.add(archivo)
-        await session.flush()
+        archivo = await NominaService.obtener_o_crear_archivo(
+            session,
+            hash_archivo=file_hash,
+            subcategoria="CAMPOSANTO",
+            mes=mes,
+            anio=anio,
+            nombre_archivo=f"camposanto_{mes}_{anio}.pdf",
+            tamaño_bytes=sum(len(b) for b in archivos_binarios),
+            tipo_archivo="pdf",
+            ruta_almacenamiento=path,
+            categoria="FUNEBRES",
+        )
 
         for idx, row in enumerate(rows_facturables):
             reg = NominaRegistroNormalizado(
@@ -257,42 +271,39 @@ async def preview_recordar(
         files, extensiones_permitidas={".xls", ".xlsx"}
     )
 
-    # ── Obtener excepciones dinámicas de la DB ──
-    stmt_exc = select(NominaExcepcion).where(
-        NominaExcepcion.subcategoria == "RECORDAR",
-        NominaExcepcion.estado == "ACTIVO"
-    )
-    try:
-        result_exc = await session.execute(stmt_exc)
-        excepciones_db = result_exc.scalars().all()
-    except Exception as e:
-        raise error_interno("Error consultando excepciones de Recordar") from e
-    
-    # Mapa de excepciones para búsqueda rápida
-    mapa_excepciones = {
-        e.cedula: {
-            "id": e.id,
-            "nombre": e.nombre_asociado, 
-            "empresa": "REFRIDCOL", 
-            "motivo": e.tipo,
-            "pagador_cedula": e.pagador_cedula,
-            "tipo": e.tipo,
-            "obj": e
-        } for e in excepciones_db
-    }
-
     rows, summary, warnings_txt = await ejecutar_extractor_proceso(
         extraer_recordar, archivos_binarios
     )
     summary["mes"] = mes
     summary["anio"] = anio
 
+    try:
+        excepciones_db = await NominaService.preparar_reemplazo_directo(
+            session, "RECORDAR", mes, anio, rows
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise error_interno("Error consultando excepciones de Recordar") from e
+
+    mapa_excepciones = {
+        e.cedula: {
+            "id": e.id,
+            "nombre": e.nombre_asociado,
+            "empresa": "REFRIDCOL",
+            "motivo": e.tipo,
+            "pagador_cedula": e.pagador_cedula,
+            "tipo": e.tipo,
+            "obj": e,
+        } for e in excepciones_db
+    }
+
     warnings_detalle = []
     cedulas_sin_erp = set(mapa_excepciones.keys())
 
     if db_erp is not None:
         cedulas_para_erp = list(set(r["cedula"] for r in rows if r["cedula"] not in cedulas_sin_erp))
-        mapa_erp = EmpleadosService.consultar_empleados_bulk(db_erp, cedulas_para_erp)
+        mapa_erp = await NominaHelper.consultar_empleados_bulk(db_erp, cedulas_para_erp)
         for row in rows:
             ced = row["cedula"]
             if ced in cedulas_sin_erp: continue
@@ -316,6 +327,7 @@ async def preview_recordar(
                 warnings_detalle.append({"cedula": ced, "nombre": row.get("nombre_asociado", "Desconocido"), "motivo": f"Estado: {estado}"})
 
     # Aplicar excepciones dinámicas
+    saldos_procesados = set()
     for row in rows:
         ced = row["cedula"]
         if ced in mapa_excepciones:
@@ -324,7 +336,12 @@ async def preview_recordar(
             
             # 1. SALDO_FAVOR (Agotar saldo)
             if exc.get("tipo") == "SALDO_FAVOR":
-                valor_final = await ExcepcionService.aplicar_saldo_favor(session, exc["obj"], valor_orig, mes, anio)
+                excepcion_id = exc["id"]
+                valor_final = await ExcepcionService.aplicar_saldo_favor(
+                    session, exc["obj"], valor_orig, mes, anio,
+                    acumular_periodo=excepcion_id in saldos_procesados,
+                )
+                saldos_procesados.add(excepcion_id)
                 row["valor"] = valor_final
                 row["nombre_asociado"], row["empresa"], row["estado_erp"] = exc["nombre"], exc["empresa"], "EXCEPCION_SALDO_FAVOR"
                 row["observaciones"] = f"Saldo favor aplicado. Cobro: ${valor_orig:,.0f} -> ${valor_final:,.0f}"
@@ -334,7 +351,7 @@ async def preview_recordar(
                 row["observaciones"] = f"Cobro original para {ced} ({exc['nombre']}). Redirigido a pagador {exc['pagador_cedula']}"
                 row["cedula"] = exc["pagador_cedula"]
                 if db_erp:
-                    info_pag = EmpleadosService.consultar_empleados_bulk(db_erp, [exc["pagador_cedula"]])
+                    info_pag = await NominaHelper.consultar_empleados_bulk(db_erp, [exc["pagador_cedula"]])
                     if info_pag.get(exc["pagador_cedula"]):
                         row["nombre_asociado"] = info_pag[exc["pagador_cedula"]]["nombre"]
                         row["empresa"] = info_pag[exc["pagador_cedula"]]["empresa"]
@@ -402,9 +419,18 @@ async def preview_recordar(
         stmt_del = delete(NominaRegistroNormalizado).where(NominaRegistroNormalizado.subcategoria_final == "RECORDAR", NominaRegistroNormalizado.mes_fact == mes, NominaRegistroNormalizado.año_fact == anio)
         await session.execute(stmt_del)
 
-        archivo = NominaArchivo(nombre_archivo=f"recordar_{mes}_{anio}.xlsx", hash_archivo=file_hash, tamaño_bytes=sum(len(b) for b in archivos_binarios), tipo_archivo="xlsx", ruta_almacenamiento=path, mes_fact=mes, año_fact=anio, categoria="FUNEBRES", subcategoria="RECORDAR", estado="Procesado")
-        session.add(archivo)
-        await session.flush()
+        archivo = await NominaService.obtener_o_crear_archivo(
+            session,
+            hash_archivo=file_hash,
+            subcategoria="RECORDAR",
+            mes=mes,
+            anio=anio,
+            nombre_archivo=f"recordar_{mes}_{anio}.xlsx",
+            tamaño_bytes=sum(len(b) for b in archivos_binarios),
+            tipo_archivo="xlsx",
+            ruta_almacenamiento=path,
+            categoria="FUNEBRES",
+        )
 
         for idx, row in enumerate(rows_facturables):
             reg = NominaRegistroNormalizado(

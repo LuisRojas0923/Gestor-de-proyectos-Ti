@@ -450,8 +450,8 @@ async def test_reproceso_generico_no_borra_si_extraccion_esta_vacia(
         error_log=None,
     )
     monkeypatch.setattr(
-        "app.api.novedades_nomina.nomina_router.NominaExtractor.extract_from_binary",
-        lambda *_args: [],
+        "app.api.novedades_nomina.nomina_router.ejecutar_extractor_generico_seguro",
+        AsyncMock(return_value=[]),
     )
 
     with pytest.raises(HTTPException) as exc_info:

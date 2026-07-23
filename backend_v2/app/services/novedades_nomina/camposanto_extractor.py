@@ -86,8 +86,7 @@ def extraer_camposanto(
                     texto_completo += txt + "\n"
             
             logger.info(
-                f"Archivo {file_idx+1}: {len(texto_completo)} chars extraídos. "
-                f"Muestra: {texto_completo[:200]!r}"
+                f"Archivo {file_idx+1}: {len(texto_completo)} chars extraídos."
             )
 
             # ── ESTRATEGIA 1: Regex V1 en texto completo ─────────────────────
@@ -215,17 +214,15 @@ def extraer_camposanto(
                             total_valor += valor
                     else:
                         warnings.append(
-                            f"Archivo {file_idx+1}: No se encontraron registros. "
-                            "Muestra del texto: " + texto_completo[:300]
+                            f"Archivo {file_idx+1}: No se encontraron registros."
                         )
                         logger.error(
-                            f"Todas las estrategias fallaron. "
-                            f"Texto completo (primeros 500 chars): {texto_completo[:500]!r}"
+                            f"Todas las estrategias fallaron en el archivo {file_idx+1}."
                         )
 
-        except Exception as e:
-            warnings.append(f"Error procesando el archivo PDF {file_idx + 1}: {e}")
-            logger.exception(f"Error en camposanto_extractor archivo {file_idx + 1}")
+        except Exception:
+            warnings.append(f"Error procesando el archivo PDF {file_idx + 1}.")
+            logger.error(f"Error procesando el archivo PDF {file_idx + 1}.")
 
     summary = {
         "total_asociados": len(set(r["cedula"] for r in rows)),
