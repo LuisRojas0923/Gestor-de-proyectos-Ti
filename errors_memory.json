@@ -41,10 +41,19 @@
       "archivo": "testing/backend/test_auth_escalation.py:197",
       "causa_raiz": "admin_router no resetea el hash de contraseña al escalar el rol de un usuario via API, causando que el assertion del test falle porque el hash permanece igual tras el escalado.",
       "impacto": "No afecta funcionalidad real — el escalado de roles funciona. Solo el test específico falla porque verifica que el hash cambie, pero la implementación actual no modifica el hash al escalar.",
-      "estado": "NO_RESUELTO",
+      "estado": "RESUELTO",
       "plan_referencia": "docs/reviews/plans/2026-06-02-eliminar-portal-login_v3.md (pre-existing, no causado por este plan)",
       "fecha_deteccion": "2026-06-02",
-      "prioridad": "BAJA"
+      "fecha_resolucion": "2026-07-23",
+      "prioridad": "BAJA",
+      "evidencia": [
+        "Backend auth/admin: 118 passed y 18 skipped",
+        "Health: 4 passed y 4 skipped",
+        "Frontend: 12 passed",
+        "Build, lint focal, compileall y diff-check: PASS"
+      ],
+      "commit_referencia": "fdfa5d6d",
+      "nota_publicacion": "Resuelto en el commit fdfa5d6d."
     },
     {
       "id": "ERR-002",
@@ -576,6 +585,390 @@
       ],
       "commit_referencia": "a483a075",
       "nota_publicacion": "Resuelto en el commit funcional a483a075; push y nueva revisión pendientes; no hay checks de GitHub configurados."
+    },
+    {
+      "id": "ERR-016",
+      "titulo": "Nómina: rutas directas procesaban sin lock transaccional ni semántica fail-closed",
+      "archivos_afectados": [
+        "backend_v2/app/api/novedades_nomina/routers/cooperativas_beneficiar.py",
+        "backend_v2/app/api/novedades_nomina/routers/cooperativas_grancoop.py",
+        "backend_v2/app/api/novedades_nomina/routers/descuentos_control.py",
+        "backend_v2/app/api/novedades_nomina/routers/funebres.py",
+        "backend_v2/app/api/novedades_nomina/routers/libranzas_bogota.py",
+        "backend_v2/app/api/novedades_nomina/routers/libranzas_davivienda.py",
+        "backend_v2/app/api/novedades_nomina/routers/libranzas_occidente.py",
+        "backend_v2/app/services/novedades_nomina/nomina_service.py",
+        "testing/backend/test_nomina_directos_restantes_concurrencia.py"
+      ],
+      "causa_raiz": "Los ocho flujos directos aplicaban excepciones y reemplazaban resultados sin compartir una primitiva que adquiriera primero el lock PostgreSQL del período; además podían continuar con entradas o resultados parciales en vez de cerrar el flujo ante una precondición inválida.",
+      "solucion_propuesta": [
+        "Centralizar el orden de serialización y validación fail-closed para adquirir el advisory lock antes de cargar excepciones con FOR UPDATE.",
+        "Reutilizar metadata mediante NominaService.obtener_o_crear_archivo bajo el mismo lock transaccional.",
+        "Cubrir las ocho subcategorías con concurrencia PostgreSQL, reproceso idempotente y metadata única."
+      ],
+      "impacto": "Solicitudes directas concurrentes podían calcular contra estado obsoleto, duplicar metadata o persistir resultados parciales e inconsistentes.",
+      "estado": "RESUELTO",
+      "prioridad": "CRITICA",
+      "componente": "backend",
+      "fecha_deteccion": "2026-07-23",
+      "fecha_resolucion": "2026-07-23",
+      "tags": [
+        "nomina",
+        "rutas-directas",
+        "PostgreSQL",
+        "lock",
+        "fail-closed",
+        "concurrencia"
+      ],
+      "evidencia": [
+        "202 pruebas backend focalizadas aprobadas",
+        "18 pruebas frontend focalizadas aprobadas",
+        "Health: 4 passed y 4 skipped",
+        "Build, lint, compileall y diff-check aprobados",
+        "Revisores backend, security y frontend: approved; docs y scope: approved_with_risks"
+      ],
+      "commit_referencia": "22add531",
+      "nota_publicacion": "Resuelto en el commit 22add531."
+    },
+    {
+      "id": "ERR-017",
+      "titulo": "Nómina: SALDO_FAVOR directo tenía semántica inconsistente",
+      "archivos_afectados": [
+        "backend_v2/app/services/novedades_nomina/excepcion_service.py",
+        "backend_v2/app/services/novedades_nomina/nomina_helper.py",
+        "backend_v2/app/api/novedades_nomina/routers/ (ocho subcategorías directas)",
+        "testing/backend/test_nomina_directos_restantes_concurrencia.py"
+      ],
+      "causa_raiz": "Los flujos directos no aplicaban de manera uniforme la acumulación de filas repetidas, la inclusión de excepciones agotadas del mismo período ni la serialización del consumo de SALDO_FAVOR, por lo que reproceso y concurrencia podían divergir del flujo genérico.",
+      "solucion_propuesta": [
+        "Unificar SALDO_FAVOR en la primitiva compartida y acumular filas repetidas de forma determinista.",
+        "Incluir estados AGOTADO del mismo período y mantener un único historial durante reproceso.",
+        "Serializar el consumo y validar saldo agotado, concurrencia e idempotencia para las ocho subcategorías."
+      ],
+      "impacto": "El saldo aplicado, el historial y el resultado de nómina podían variar según el endpoint o duplicarse bajo concurrencia y reproceso.",
+      "estado": "RESUELTO",
+      "prioridad": "CRITICA",
+      "componente": "backend",
+      "fecha_deteccion": "2026-07-23",
+      "fecha_resolucion": "2026-07-23",
+      "tags": [
+        "nomina",
+        "SALDO_FAVOR",
+        "saldo-agotado",
+        "reproceso",
+        "concurrencia",
+        "idempotencia"
+      ],
+      "evidencia": [
+        "202 pruebas backend focalizadas aprobadas",
+        "18 pruebas frontend focalizadas aprobadas",
+        "Health: 4 passed y 4 skipped",
+        "Build, lint, compileall y diff-check aprobados",
+        "Revisores backend, security y frontend: approved; docs y scope: approved_with_risks"
+      ],
+      "commit_referencia": "22add531",
+      "nota_publicacion": "Resuelto en el commit 22add531."
+    },
+    {
+      "id": "ERR-018",
+      "titulo": "Nómina: PII, JWT y detalles internos podían filtrarse en logs",
+      "archivos_afectados": [
+        "frontend/src/hooks/useApi.ts",
+        "frontend/src/hooks/useApi.test.tsx",
+        "backend_v2/app/api/novedades_nomina/routers/excepciones.py",
+        "backend_v2/app/api/novedades_nomina/routers/tabla_maestra.py",
+        "backend_v2/app/services/novedades_nomina/tabla_maestra_service.py",
+        "backend_v2/app/services/novedades_nomina/nomina_manual_service.py",
+        "backend_v2/app/services/novedades_nomina/errores_http.py"
+      ],
+      "causa_raiz": "El frontend registraba objetos Axios y datos de refresh capaces de incluir Authorization, query, fragmento o cuerpo; el backend usaba str(e), logger.exception, exc_info y muestras variables que podían exponer PII, SQL, rutas o trazas internas.",
+      "solucion_propuesta": [
+        "Sanear en useApi la ruta y los fallos de refresh sin imprimir JWT, cuerpos ni objetos Axios completos.",
+        "Eliminar trazas, str(e), IDs y muestras variables de los loggers backend modificados.",
+        "Mantener respuestas y errores persistibles genéricos mediante helpers de redacción segura."
+      ],
+      "impacto": "Tokens, datos personales de nómina y detalles internos podían aparecer en DevTools, capturas, recolectores de consola o logs operativos.",
+      "estado": "RESUELTO",
+      "prioridad": "CRITICA",
+      "componente": "multi",
+      "fecha_deteccion": "2026-07-23",
+      "fecha_resolucion": "2026-07-23",
+      "tags": [
+        "nomina",
+        "PII",
+        "JWT",
+        "logging",
+        "redaccion",
+        "seguridad"
+      ],
+      "evidencia": [
+        "202 pruebas backend focalizadas aprobadas",
+        "18 pruebas frontend focalizadas aprobadas, incluidos refresh terminal, loading, logout y saneamiento JWT/query/fragment",
+        "Health: 4 passed y 4 skipped",
+        "Build, lint, compileall y diff-check aprobados",
+        "Revisores backend, security y frontend: approved; docs y scope: approved_with_risks"
+      ],
+      "commit_referencia": "22add531",
+      "nota_publicacion": "Resuelto en el commit 22add531."
+    },
+    {
+      "id": "ERR-019",
+      "titulo": "Nómina: reproceso genérico carecía de límites integrales",
+      "archivos_afectados": [
+        "backend_v2/app/api/novedades_nomina/nomina_router.py",
+        "backend_v2/app/services/novedades_nomina/procesamiento_seguro.py",
+        "backend_v2/app/services/novedades_nomina/nomina_service.py",
+        "testing/backend/ (regresiones de reproceso genérico, rollback y concurrencia PostgreSQL)"
+      ],
+      "causa_raiz": "El reproceso genérico podía aceptar trabajo costoso sin una combinación integral de rate limit, lectura acotada, concurrencia limitada, timeout y cancelación efectiva; además faltaba demostrar la preservación transaccional ante fallos posteriores al reemplazo.",
+      "solucion_propuesta": [
+        "Aplicar rate limit, límite de lectura, semáforo y timeout al reproceso.",
+        "Ejecutar la extracción en un proceso cancelable para contener CPU y memoria.",
+        "Mantener el reemplazo transaccional con rollback saneado y cubrir éxito, fallo posterior al DELETE y dos sesiones PostgreSQL concurrentes."
+      ],
+      "impacto": "Entradas abusivas o extractores colgados podían agotar recursos, mientras un fallo o reproceso concurrente podía comprometer la disponibilidad o el estado previo.",
+      "estado": "RESUELTO",
+      "prioridad": "ALTA",
+      "componente": "backend",
+      "fecha_deteccion": "2026-07-23",
+      "fecha_resolucion": "2026-07-23",
+      "tags": [
+        "nomina",
+        "reproceso",
+        "rate-limit",
+        "timeout",
+        "cancelacion",
+        "rollback"
+      ],
+      "evidencia": [
+        "202 pruebas backend focalizadas aprobadas",
+        "18 pruebas frontend focalizadas aprobadas",
+        "Health: 4 passed y 4 skipped",
+        "Build, lint, compileall y diff-check aprobados",
+        "Revisores backend, security y frontend: approved; docs y scope: approved_with_risks"
+      ],
+      "commit_referencia": "22add531",
+      "nota_publicacion": "Resuelto en el commit 22add531."
+    },
+    {
+      "id": "ERR-020",
+      "titulo": "Nómina: carga genérica no era atómica y permitía metadata duplicada",
+      "archivos_afectados": [
+        "backend_v2/app/services/novedades_nomina/nomina_service.py",
+        "backend_v2/app/models/novedades_nomina/nomina.py",
+        "backend_v2/app/core/migrations/nomina_archivos_migration.py",
+        "backend_v2/app/core/migrations/manager.py",
+        "testing/backend/ (regresiones de carga, identidad, migración y referencias)"
+      ],
+      "causa_raiz": "La carga genérica podía compartir una ruta física antes de cerrar la transacción y no tenía una identidad PostgreSQL única por hash, subcategoría y período; carreras o fallos dejaban archivos ajenos eliminados, huérfanos o metadata duplicada, y la migración no garantizaba consolidación segura bajo startups concurrentes.",
+      "solucion_propuesta": [
+        "Asignar una ruta física UUID exclusiva por intento y compensar únicamente la ruta propia ante duplicado o rollback.",
+        "Imponer unicidad PostgreSQL por hash, subcategoría y período y reutilizar metadata existente.",
+        "Hacer la migración idempotente y concurrente con advisory lock, lock_timeout, consolidación de duplicados y reasignación sin pérdida de referencias crudas y normalizadas."
+      ],
+      "impacto": "Cargas concurrentes podían duplicar identidad lógica, borrar o dejar archivos incorrectos y romper referencias o disponibilidad durante la migración.",
+      "estado": "RESUELTO",
+      "prioridad": "CRITICA",
+      "componente": "backend",
+      "fecha_deteccion": "2026-07-23",
+      "fecha_resolucion": "2026-07-23",
+      "tags": [
+        "nomina",
+        "upload",
+        "atomicidad",
+        "duplicados",
+        "migracion",
+        "PostgreSQL"
+      ],
+      "evidencia": [
+        "202 pruebas backend focalizadas aprobadas",
+        "18 pruebas frontend focalizadas aprobadas",
+        "Health: 4 passed y 4 skipped",
+        "Build, lint, compileall y diff-check aprobados",
+        "Revisores backend, security y frontend: approved; docs y scope: approved_with_risks"
+      ],
+      "commit_referencia": "22add531",
+      "nota_publicacion": "Resuelto en el commit 22add531."
+    },
+    {
+      "id": "ERR-021",
+      "titulo": "Nómina: consultas ERP síncronas bloqueaban el event loop",
+      "archivos_afectados": [
+        "backend_v2/app/services/novedades_nomina/nomina_helper.py",
+        "backend_v2/app/services/novedades_nomina/nomina_service.py",
+        "backend_v2/app/api/novedades_nomina/routers/cooperativas_grancoop.py",
+        "testing/backend/test_nomina_directos_restantes_concurrencia.py"
+      ],
+      "causa_raiz": "Consultas síncronas al ERP se ejecutaban desde flujos async y podían compartir una sesión creada fuera del worker; el bloqueo del driver ocupaba el event loop y la espera del semáforo no estaba acotada, permitiendo agotar permanentemente la capacidad ERP.",
+      "solucion_propuesta": [
+        "Mover cada consulta ERP síncrona a un thread limitado.",
+        "Crear y cerrar SessionErp dentro del worker para mantener ownership correcto incluso después de un timeout.",
+        "Acotar tanto la espera del semáforo como la ejecución y delegar también la consulta Grancoop al wrapper asíncrono."
+      ],
+      "impacto": "Un ERP lento o colgado podía bloquear solicitudes async, agotar los permisos globales y dejar indisponible el módulo de nómina.",
+      "estado": "RESUELTO",
+      "prioridad": "ALTA",
+      "componente": "backend",
+      "fecha_deteccion": "2026-07-23",
+      "fecha_resolucion": "2026-07-23",
+      "tags": [
+        "nomina",
+        "ERP",
+        "async",
+        "event-loop",
+        "timeout",
+        "semaforo"
+      ],
+      "evidencia": [
+        "202 pruebas backend focalizadas aprobadas",
+        "18 pruebas frontend focalizadas aprobadas",
+        "Health: 4 passed y 4 skipped",
+        "Build, lint, compileall y diff-check aprobados",
+        "Revisores backend, security y frontend: approved; docs y scope: approved_with_risks"
+      ],
+      "commit_referencia": "22add531",
+      "nota_publicacion": "Resuelto en el commit 22add531."
+    },
+    {
+      "id": "ERR-022",
+      "titulo": "Auth web ejecutaba doble refresh concurrente",
+      "archivos_afectados": [
+        "frontend/src/hooks/useApi.ts",
+        "frontend/src/hooks/useApi.test.tsx",
+        "backend_v2/app/api/auth/",
+        "backend_v2/app/services/auth/"
+      ],
+      "causa_raiz": "Solicitudes concurrentes con el mismo token inicial podían iniciar renovaciones independientes, competir con la rotación del refresh y producir estados de autenticación divergentes.",
+      "solucion_propuesta": [
+        "Aplicar single-flight frontend aislado por el token inicial que originó la renovación.",
+        "Rotar el refresh token en backend bajo bloqueo FOR UPDATE y exigir que la sesión web siga activa."
+      ],
+      "impacto": "Varias respuestas 401 simultáneas podían duplicar la renovación, invalidar credenciales recién emitidas o cerrar una sesión válida de forma no determinista.",
+      "estado": "RESUELTO",
+      "prioridad": "ALTA",
+      "componente": "multi",
+      "fecha_deteccion": "2026-07-23",
+      "fecha_resolucion": "2026-07-23",
+      "tags": [
+        "auth",
+        "refresh",
+        "single-flight",
+        "FOR-UPDATE",
+        "concurrencia"
+      ],
+      "evidencia": [
+        "Backend auth/admin: 118 passed y 18 skipped",
+        "Health: 4 passed y 4 skipped",
+        "Frontend: 12 passed",
+        "Build, lint focal, compileall y diff-check: PASS"
+      ],
+      "commit_referencia": "fdfa5d6d",
+      "nota_publicacion": "Resuelto en el commit fdfa5d6d."
+    },
+    {
+      "id": "ERR-023",
+      "titulo": "Recuperación permitía múltiples tokens concurrentes por usuario",
+      "archivos_afectados": [
+        "backend_v2/app/api/auth/",
+        "backend_v2/app/services/auth/",
+        "backend_v2/app/models/"
+      ],
+      "causa_raiz": "La emisión de recuperación no serializaba por usuario ni imponía consumo único persistido, por lo que solicitudes concurrentes podían dejar varios tokens utilizables.",
+      "solucion_propuesta": [
+        "Persistir únicamente el hash SHA-256 de tokens opacos de recuperación con expiración de una hora.",
+        "Serializar la emisión mediante advisory lock PostgreSQL por usuario y garantizar consumo único."
+      ],
+      "impacto": "Más de un enlace de recuperación podía permanecer válido al mismo tiempo, ampliando la ventana de abuso y generando carreras durante el restablecimiento.",
+      "estado": "RESUELTO",
+      "prioridad": "CRITICA",
+      "componente": "backend",
+      "fecha_deteccion": "2026-07-23",
+      "fecha_resolucion": "2026-07-23",
+      "tags": [
+        "auth",
+        "recuperacion",
+        "token-opaco",
+        "SHA-256",
+        "advisory-lock",
+        "consumo-unico"
+      ],
+      "evidencia": [
+        "Backend auth/admin: 118 passed y 18 skipped",
+        "Health: 4 passed y 4 skipped",
+        "Frontend: 12 passed",
+        "Build, lint focal, compileall y diff-check: PASS"
+      ],
+      "commit_referencia": "fdfa5d6d",
+      "nota_publicacion": "Resuelto en el commit fdfa5d6d."
+    },
+    {
+      "id": "ERR-024",
+      "titulo": "JWT web conservaba acceso tras desactivar usuario o sesión",
+      "archivos_afectados": [
+        "backend_v2/app/api/auth/",
+        "backend_v2/app/services/auth/",
+        "backend_v2/app/models/"
+      ],
+      "causa_raiz": "La validez criptográfica del JWT podía aceptarse sin comprobar en cada flujo protegido que el usuario y la sesión web persistida continuaran activos.",
+      "solucion_propuesta": [
+        "Exigir una sesión web activa para aceptar JWT web.",
+        "Rechazar acceso y renovación después de desactivar al usuario o invalidar su sesión persistida."
+      ],
+      "impacto": "Un usuario desactivado o una sesión revocada podía conservar acceso hasta la expiración del JWT.",
+      "estado": "RESUELTO",
+      "prioridad": "CRITICA",
+      "componente": "backend",
+      "fecha_deteccion": "2026-07-23",
+      "fecha_resolucion": "2026-07-23",
+      "tags": [
+        "auth",
+        "JWT",
+        "sesion-activa",
+        "desactivacion",
+        "revocacion"
+      ],
+      "evidencia": [
+        "Backend auth/admin: 118 passed y 18 skipped",
+        "Health: 4 passed y 4 skipped",
+        "Frontend: 12 passed",
+        "Build, lint focal, compileall y diff-check: PASS"
+      ],
+      "commit_referencia": "fdfa5d6d",
+      "nota_publicacion": "Resuelto en el commit fdfa5d6d."
+    },
+    {
+      "id": "ERR-025",
+      "titulo": "Refresh pendiente restauraba el token después de logout",
+      "archivos_afectados": [
+        "frontend/src/hooks/useApi.ts",
+        "frontend/src/hooks/useApi.test.tsx"
+      ],
+      "causa_raiz": "Una renovación iniciada antes del logout podía completarse después y volver a guardar credenciales sin verificar que el token inicial y la sesión local siguieran vigentes.",
+      "solucion_propuesta": [
+        "Aislar el single-flight por token inicial y descartar resultados cuando ese token ya no sea el vigente.",
+        "Impedir que una promesa de refresh anterior repueble credenciales después del logout."
+      ],
+      "impacto": "El usuario podía cerrar sesión y quedar autenticado de nuevo al resolverse tardíamente una renovación en vuelo.",
+      "estado": "RESUELTO",
+      "prioridad": "CRITICA",
+      "componente": "frontend",
+      "fecha_deteccion": "2026-07-23",
+      "fecha_resolucion": "2026-07-23",
+      "tags": [
+        "auth",
+        "refresh",
+        "logout",
+        "race-condition",
+        "single-flight"
+      ],
+      "evidencia": [
+        "Backend auth/admin: 118 passed y 18 skipped",
+        "Health: 4 passed y 4 skipped",
+        "Frontend: 12 passed",
+        "Build, lint focal, compileall y diff-check: PASS"
+      ],
+      "commit_referencia": "fdfa5d6d",
+      "nota_publicacion": "Resuelto en el commit fdfa5d6d."
     }
   ],
   "decisions": [
@@ -657,6 +1050,30 @@
       ],
       "consecuencias": "Las revisiones serán 5-10x más rápidas (sin pedir confirmación para git/cat/ls). error-memory puede persistir sin intervención. Riesgo: un subagente deshonesto podría ejecutar comandos fuera de whitelist — mitigado por la tabla explícita en frontmatter y en _shared-discovery.md.",
       "fecha": "2026-06-03",
+      "estado": "VIGENTE"
+    },
+    {
+      "id": "DEC-001",
+      "titulo": "Contratos durables de recuperación, sesión web y promociones de identidad",
+      "descripcion": "La recuperación usa tokens opacos cuyo SHA-256 se persiste, expiran en una hora, se emiten bajo advisory lock por usuario y son de consumo único. Los JWT web sólo son válidos con una sesión persistida activa y cada refresh rota bajo FOR UPDATE. El frontend coordina la renovación mediante single-flight aislado por el token inicial. Las promociones de identidad y los resets nunca usan la cédula como credencial o factor de recuperación: exigen correo_verificado y que esa verificación esté ligada al hash del correo vigente.",
+      "modulos_afectados": [
+        "backend_v2/app/api/auth/",
+        "backend_v2/app/services/auth/",
+        "backend_v2/app/models/",
+        "frontend/src/hooks/useApi.ts",
+        "frontend/src/hooks/useApi.test.tsx",
+        "testing/backend/"
+      ],
+      "alternativas_consideradas": [
+        "Tokens de recuperación JWT autocontenidos sin estado persistido",
+        "Permitir varios tokens de recuperación válidos por usuario",
+        "Aceptar JWT web sólo por firma y expiración, sin sesión activa",
+        "Coordinar refresh globalmente sin aislarlo por token inicial",
+        "Usar cédula para promociones o reset, o aceptar correo no verificado"
+      ],
+      "consecuencias": "Se reduce la reutilización y la carrera de credenciales: recuperar, refrescar, desactivar y cerrar sesión quedan sujetos a estado servidor y exclusión transaccional. Requiere persistencia y limpieza de tokens/sesiones, locks PostgreSQL, validación del hash del correo verificado y descarte frontend de renovaciones obsoletas.",
+      "commit_referencia": "fdfa5d6d",
+      "fecha": "2026-07-23",
       "estado": "VIGENTE"
     }
   ]

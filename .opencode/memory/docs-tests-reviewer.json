@@ -131,10 +131,46 @@
         "low": 8
       },
       "test_coverage_observations": "Se reportan 98 backend focalizados, 4 passed/4 skipped health y 12 frontend, con ESLint focalizado, build, py_compile y diff-check PASS. Los tests y los reportes finales backend/security/frontend cubren árbol RBAC completo, reproceso genérico no destructivo, concurrencia PostgreSQL con saldo agotado, migración de unicidad, flujo manual, JWT en JSON/FormData/Blob, refresh 401, origen externo, catálogo y carrera HDI. ERR-003 a ERR-009 quedaron reconciliados con esta evidencia final posterior a SHA base 0c222f67."
+    },
+    {
+      "date": "2026-07-23",
+      "scope": "working tree de nómina: PostgreSQL por flujo directo, SALDO_FAVOR, logs, reproceso, carga/migración y ERP no bloqueante",
+      "outcome": "blocked",
+      "finding_count_by_severity": {
+        "blocking": 3,
+        "high": 4,
+        "medium": 3,
+        "low": 0
+      },
+      "test_coverage_observations": "La evidencia declarada es 184 backend, 17 frontend y 4 passed/4 skipped health, sin comando ni salida del working tree; collect-only local falló por ausencia de pytest. PostgreSQL/SALDO_FAVOR cubre la primitiva común para ocho etiquetas, no los endpoints directos. Faltan reproceso integral, migración con duplicados/referencias, carreras y compensación de carga, Grancoop/timeout ERP y logs runtime. El esquema manual es coherente; falta registrar el fallo de sync_docs.py por psycopg2."
+    },
+    {
+      "date": "2026-07-23",
+      "scope": "re-review nómina tras metadata PostgreSQL x8, ERP ownership/timeout/Grancoop, migración concurrente y catálogo 198/18",
+      "outcome": "blocked",
+      "finding_count_by_severity": {
+        "blocking": 2,
+        "high": 0,
+        "medium": 4,
+        "low": 0
+      },
+      "test_coverage_observations": "La derivación 190+8=198 backend y 18 frontend es coherente; el archivo nuevo suma 37 casos efectivos. ERP ownership/timeout/semaforo/Grancoop, metadata concurrente x8, SALDO_FAVOR x8 y useApi terminal quedaron cubiertos. Bloquean la ausencia de reproceso genérico PostgreSQL con éxito/rollback/concurrencia y de migración con duplicados más referencias crudas/normalizadas. collect-only host sigue sin pytest; sync_docs está documentado como bloqueado por psycopg2."
+    },
+    {
+      "date": "2026-07-23",
+      "scope": "revisión final del delta de nómina tras cierre de reproceso genérico y migración con duplicados/referencias",
+      "outcome": "approved_with_risks",
+      "finding_count_by_severity": {
+        "blocking": 0,
+        "high": 0,
+        "medium": 3,
+        "low": 2
+      },
+      "test_coverage_observations": "Se aceptan 202 backend focalizados, 18 frontend, 4 passed/4 skipped health y gates build/lint/compile/diff PASS. Reproceso genérico cubre éxito, rollback post-DELETE y concurrencia; migración cubre duplicados y referencias crudas/normalizadas. No quedan bloqueantes del delta. Riesgos: rollback con mock sin consulta de preservación PostgreSQL, primitivas en vez de ocho endpoints completos y evidencia sin comando exacto."
     }
   ],
   "stats": {
-    "total_reviews": 10,
-    "last_review": "2026-07-22"
+    "total_reviews": 13,
+    "last_review": "2026-07-23"
   }
 }

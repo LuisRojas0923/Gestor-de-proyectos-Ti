@@ -319,6 +319,10 @@ CREATE INDEX idx_milestones_dev_status ON milestones(development_id, status);
   `nomina_excepciones_historial` por `(excepcion_id, mes, anio)`.
 - El arranque aplica esta restricción mediante la migración idempotente
   `nomina_excepciones_migration.py`.
+- `uq_nomina_archivo_identidad_periodo`: evita metadata duplicada en
+  `nomina_archivos` por `(hash_archivo, subcategoria, mes_fact, año_fact)`.
+- `nomina_archivos_migration.py` consolida referencias duplicadas bajo advisory
+  lock antes de crear la restricción.
 
 ## 🔄 Detalles Técnicos (Auto-generado)
 > [!NOTE]
