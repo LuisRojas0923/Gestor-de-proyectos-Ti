@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ....database import obtener_db, obtener_erp_db_opcional
 from ....models.novedades_nomina.nomina import NominaExcepcion, NominaExcepcionHistorial
 from ....services.novedades_nomina.excepcion_service import ExcepcionService
+from ....services.novedades_nomina.errores_http import error_interno
 from ....services.erp.empleados_service import EmpleadosService
 from sqlalchemy.orm import Session
 from datetime import datetime
@@ -29,8 +30,8 @@ async def listar_excepciones(
     try:
         result = await session.execute(stmt)
         return result.scalars().all()
-    except Exception as e:
-        logger.error(f"Error al listar excepciones: {str(e)}")
+    except Exception:
+        logger.error("Error al listar excepciones")
         raise HTTPException(status_code=500, detail="Error al consultar las excepciones")
 
 @router.post("/")
@@ -51,8 +52,8 @@ async def crear_excepcion(
                 excepcion.fecha_fin = NominaExcepcion.parse_dates(excepcion.fecha_fin)
             elif isinstance(excepcion.fecha_fin, datetime) and excepcion.fecha_fin.tzinfo:
                 excepcion.fecha_fin = excepcion.fecha_fin.replace(tzinfo=None)
-    except Exception as e:
-        logger.warning(f"Error normalizando fechas de excepción: {e}")
+    except Exception:
+        logger.error("Error normalizando fechas de excepción")
 
     # Validar que no exista otra excepción activa incompatible
     try:
@@ -63,8 +64,8 @@ async def crear_excepcion(
                 NominaExcepcion.estado == "ACTIVO"
             )
         )
-    except Exception as e:
-        logger.error(f"Error al verificar excepciones activas previas: {str(e)}")
+    except Exception:
+        logger.error("Error al verificar excepciones activas previas")
         raise HTTPException(status_code=500, detail="Error al consultar la base de datos")
     if existing.scalars().first():
         raise HTTPException(status_code=400, detail="Ya existe una excepción activa para este colaborador y subcategoría.")
@@ -103,8 +104,8 @@ async def ver_historial(
     try:
         result = await session.execute(stmt)
         return result.scalars().all()
-    except Exception as e:
-        logger.error(f"Error al listar el historial de la excepción {excepcion_id}: {str(e)}")
+    except Exception:
+        logger.error("Error al listar historial de excepción")
         raise HTTPException(status_code=500, detail="Error al consultar el historial")
 
 @router.delete("/{excepcion_id}")
@@ -124,10 +125,12 @@ async def eliminar_excepcion(
         await session.delete(ex)
         await session.commit()
         return {"message": "Excepción eliminada"}
+    except HTTPException:
+        raise
     except Exception as e:
         await session.rollback()
-        logger.error(f"Error al eliminar excepción {excepcion_id}: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"No se pudo eliminar: {str(e)}")
+        logger.error("Error al eliminar excepción")
+        raise error_interno("Error eliminando excepción de nómina") from e
 @router.get("/validar-colaborador/{cedula}")
 async def validar_colaborador(
     cedula: str,

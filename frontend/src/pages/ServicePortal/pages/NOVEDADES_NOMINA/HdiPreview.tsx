@@ -1,62 +1,24 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Title, Text, Button, Select, Input, Badge } from '../../../../components/atoms';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Upload, FileText, AlertTriangle, Search, Filter, History, ChevronRight, Database } from 'lucide-react';
-import axios from 'axios';
-import { API_CONFIG } from '../../../../config/api';
+import { ArrowLeft, Upload, FileText, AlertTriangle, Search, History, ChevronRight, Database } from 'lucide-react';
 import { useNotifications } from '../../../../components/notifications/NotificationsContext';
+import { useApi } from '../../../../hooks/useApi';
+import { API_ENDPOINTS } from '../../../../config/api';
 import SubcategorySummaryCard from './components/SubcategorySummaryCard';
 import { FilterDropdown } from '../../../../components/molecules/FilterDropdown';
-
-interface HdiRow {
-    cedula: string;
-    nombre_asociado: string;
-    empresa: string;
-    valor: number;
-    valor_rdc?: number;
-    valor_colaborador?: number;
-    concepto: string;
-    estado_erp?: string;
-    estado_validacion?: string;
-    observaciones?: string;
-}
-
-interface WarningDetalle {
-    cedula: string;
-    nombre: string;
-    motivo: string;
-}
-
-interface HdiResponse {
-    rows: HdiRow[];
-    summary: {
-        total_asociados: number;
-        total_filas: number;
-        total_valor: number;
-        archivos_procesados: number;
-        total_warnings: number;
-        mes: number;
-        anio: number;
-    };
-    warnings: string[];
-    warnings_detalle: WarningDetalle[];
-}
-
-const MESES = [
-    "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
-    "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
-];
-
-
-const CURRENCY_FORMATTER = new Intl.NumberFormat('es-CO', {
-    style: 'currency',
-    currency: 'COP',
-    maximumFractionDigits: 0
-});
+import {
+    CURRENCY_FORMATTER,
+    MESES,
+    type HdiResponse,
+    type HdiRow,
+    type WarningDetalle,
+} from './hdiPreviewConfig';
 
 const HdiPreview: React.FC = () => {
     const navigate = useNavigate();
     const { addNotification } = useNotifications();
+    const { get, post } = useApi<HdiResponse>();
 
     const [mes, setMes] = useState(new Date().getMonth() + 1);
     const [anio, setAnio] = useState(new Date().getFullYear());
@@ -74,60 +36,105 @@ const HdiPreview: React.FC = () => {
     // Warnings ERP
     const [warningsDetalle, setWarningsDetalle] = useState<WarningDetalle[]>([]);
     const [showWarnings, setShowWarnings] = useState(false);
+    const latestRequestId = useRef(0);
+    const activePeriod = useRef({ mes, anio });
 
     // ── Cargar datos guardados al montar o cambiar periodo ──
     useEffect(() => {
+        const requestId = ++latestRequestId.current;
         const fetchSaved = async () => {
             setIsLoading(true);
+            setData(null);
+            setWarningsDetalle([]);
+            setShowWarnings(false);
             try {
-                const res = await axios.get(
-                    `${API_CONFIG.BASE_URL}/novedades-nomina/hdi/datos`,
-                    { params: { mes, anio } }
+                const savedData = await get(
+                    `${API_ENDPOINTS.NOMINA_HDI_DATOS}?mes=${mes}&anio=${anio}`,
+                    { notifyOnError: false },
                 );
-                if (res.data.rows && res.data.rows.length > 0) {
-                    setData({ rows: res.data.rows, summary: res.data.summary, warnings: [], warnings_detalle: res.data.warnings_detalle || [] });
-                    setWarningsDetalle(res.data.warnings_detalle || []);
+                if (requestId !== latestRequestId.current) return;
+                if (savedData?.rows && savedData.rows.length > 0) {
+                    setData({ rows: savedData.rows, summary: savedData.summary, warnings: [], warnings_detalle: savedData.warnings_detalle || [] });
+                    setWarningsDetalle(savedData.warnings_detalle || []);
                 } else {
                     setData(null);
                     setWarningsDetalle([]);
                 }
             } catch (err) {
+                if (requestId !== latestRequestId.current) return;
                 console.error('Error cargando datos SEGUROS HDI:', err);
+                addNotification(
+                    'error',
+                    err instanceof Error ? err.message : 'Error al consultar los datos guardados.'
+                );
             } finally {
-                setIsLoading(false);
+                if (requestId === latestRequestId.current) setIsLoading(false);
             }
         };
         fetchSaved();
-    }, [mes, anio]);
+    }, [mes, anio, get, addNotification]);
 
     const handleFilesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files) {
-            setFiles(Array.from(e.target.files));
+        const selectedFiles = Array.from(e.currentTarget.files ?? []);
+        const isValid = selectedFiles.length <= 1
+            && selectedFiles.every(file => /\.(xlsx|xls)$/i.test(file.name));
+        if (!isValid) {
+            setFiles([]);
+            e.currentTarget.value = '';
+            addNotification('error', 'Solo se permite un archivo Excel (.xls o .xlsx).');
+            return;
         }
+        setFiles(selectedFiles);
     };
 
     const handleProcess = async () => {
         if (files.length === 0) return;
+        const operation = {
+            id: ++latestRequestId.current,
+            ...activePeriod.current,
+        };
         setIsProcessing(true);
+        setIsLoading(false);
         try {
             const formData = new FormData();
             files.forEach(f => formData.append('files', f));
             formData.append('mes', mes.toString());
             formData.append('anio', anio.toString());
 
-            const res = await axios.post(
-                `${API_CONFIG.BASE_URL}/novedades-nomina/hdi/preview`,
+            const result = await post(
+                API_ENDPOINTS.NOMINA_HDI_PREVIEW,
                 formData,
+                { notifyOnError: false },
             );
-            setData(res.data);
-            setWarningsDetalle(res.data.warnings_detalle || []);
-            addNotification('success', `Procesados ${res.data.summary.total_asociados} asociados.`);
+            if (!result
+                || operation.id !== latestRequestId.current
+                || operation.mes !== activePeriod.current.mes
+                || operation.anio !== activePeriod.current.anio) return;
+            setData(result);
+            setWarningsDetalle(result.warnings_detalle || []);
+            addNotification('success', `Procesados ${result.summary.total_asociados} asociados.`);
         } catch (err) {
+            if (operation.id !== latestRequestId.current) return;
             console.error(err);
-            addNotification('error', 'Error al procesar los archivos.');
+            addNotification(
+                'error',
+                err instanceof Error ? err.message : 'Error al procesar el archivo.'
+            );
         } finally {
-            setIsProcessing(false);
+            if (operation.id === latestRequestId.current) setIsProcessing(false);
         }
+    };
+
+    const changePeriod = (nextMes: number, nextAnio: number) => {
+        activePeriod.current = { mes: nextMes, anio: nextAnio };
+        latestRequestId.current += 1;
+        setData(null);
+        setWarningsDetalle([]);
+        setShowWarnings(false);
+        setIsLoading(true);
+        setIsProcessing(false);
+        setMes(nextMes);
+        setAnio(nextAnio);
     };
 
     const filteredRows = useMemo(() => {
@@ -144,7 +151,7 @@ const HdiPreview: React.FC = () => {
                 // Filtros por columna
                 for (const [key, values] of Object.entries(activeFilters)) {
                     if (values.length === 0) continue;
-                    const rowValue = String((r as any)[key] || '').toUpperCase();
+                    const rowValue = String((r as Record<string, unknown>)[key] || '').toUpperCase();
                     if (!values.includes(rowValue)) return false;
                 }
 
@@ -225,7 +232,7 @@ const HdiPreview: React.FC = () => {
                         <Select
                             label="Mes"
                             value={mes.toString()}
-                            onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setMes(parseInt(e.target.value))}
+                            onChange={(e: React.ChangeEvent<HTMLSelectElement>) => changePeriod(parseInt(e.target.value), anio)}
                             options={MESES.map((m, i) => ({ value: (i + 1).toString(), label: m }))}
                             className="[&_select]:h-[42px]"
                         />
@@ -235,28 +242,28 @@ const HdiPreview: React.FC = () => {
                             label="Año"
                             type="number"
                             value={anio.toString()}
-                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAnio(parseInt(e.target.value))}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => changePeriod(mes, parseInt(e.target.value))}
                             className="[&_input]:h-[42px]"
                         />
                     </div>
                     <div className="flex-1 min-w-0 space-y-1">
-                        <Text as="label" variant="body2" weight="medium" color="text-primary" className="block">
-                            Archivos PDF ({files.length} seleccionados)
+                        <Text as="label" htmlFor="file-upload" variant="body2" weight="medium" color="text-primary" className="block">
+                            Archivo Excel ({files.length} seleccionados)
                         </Text>
                         <div className="relative group">
                             <input id="file-upload" // @audit-ok
                                 type="file"
-                                multiple
-                                accept=".pdf"
-                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                                aria-label="Archivo Excel"
+                                accept=".xlsx,.xls"
+                                className="peer absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                                 onChange={handleFilesChange}
                             />
-                            <div className="flex items-center gap-2 px-4 h-[42px] rounded-xl border border-dashed border-slate-300 dark:border-slate-600 group-hover:border-[var(--color-primary)] transition-colors cursor-pointer bg-slate-50 dark:bg-slate-900/50">
+                            <div className="flex items-center gap-2 px-4 h-[42px] rounded-xl border border-dashed border-slate-300 dark:border-slate-600 group-hover:border-[var(--color-primary)] peer-focus-visible:ring-2 peer-focus-visible:ring-[var(--color-primary)] peer-focus-visible:ring-offset-2 transition-colors cursor-pointer bg-slate-50 dark:bg-slate-900/50">
                                 <Upload className="w-4 h-4 text-slate-400 group-hover:text-[var(--color-primary)]" />
                                 <Text size="sm" color="text-secondary" className="truncate">
                                     {files.length > 0
                                         ? files.map(f => f.name).join(', ')
-                                        : 'Seleccionar PDFs...'}
+                                        : 'Seleccionar archivos Excel (.xlsx, .xls)...'}
                                 </Text>
                             </div>
                         </div>
@@ -275,7 +282,7 @@ const HdiPreview: React.FC = () => {
                                 </Text>
                             ) : (
                                 <Text as="span" color="inherit" className="flex items-center gap-2">
-                                    <FileText className="w-4 h-4" /> Procesar PDFs
+                                    <FileText className="w-4 h-4" /> Procesar Excel
                                 </Text>
                             )}
                         </Button>
@@ -332,7 +339,7 @@ const HdiPreview: React.FC = () => {
                             </div>
                             <ul className="space-y-0.5 ml-6 list-disc">
                                 {data.warnings.map((w: string, i: number) => (
-                                    <li key={`${w.id || w.cedula || 'w'}-${i}`}>
+                                    <li key={`${w}-${i}`}>
                                         <Text size="xs" className="text-amber-700 dark:text-amber-400 text-[10px]">{w}</Text>
                                     </li>
                                 ))}
@@ -514,7 +521,7 @@ const HdiPreview: React.FC = () => {
                     </div>
                     <Title variant="h5" weight="bold" className="text-slate-400 dark:text-slate-700 mb-1 uppercase tracking-widest text-xs">Sin datos procesados</Title>
                     <Text size="xs" className="text-slate-400 dark:text-slate-600 max-w-xs">
-                        Selecciona y procesa archivos PDF para ver registros de {MESES[mes-1]} {anio}.
+                        Selecciona y procesa archivos Excel (.xlsx, .xls) para ver registros de {MESES[mes-1]} {anio}.
                     </Text>
                 </div>
             )}

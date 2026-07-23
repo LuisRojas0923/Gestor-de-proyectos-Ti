@@ -37,13 +37,118 @@
       "titulo": "Permisos ampliados para subagentes con whitelists explícitas",
       "timestamp": "2026-06-03T09:35:00Z",
       "estado": "VIGENTE"
+    },
+    {
+      "operation": "record error",
+      "id": "ERR-003",
+      "titulo": "PR #22 HDI: extracción y almacenamiento inseguros de archivos XLS/XLSX",
+      "timestamp": "2026-07-22T00:00:00Z",
+      "prioridad": "CRITICA",
+      "estado": "RESUELTO",
+      "publicacion": "commit y push pendientes de instrucción explícita"
+    },
+    {
+      "operation": "record error",
+      "id": "ERR-004",
+      "titulo": "PR #22 HDI: HdiPreview omitía Authorization tras proteger GET/POST con RBAC",
+      "timestamp": "2026-07-22T00:00:00Z",
+      "prioridad": "ALTA",
+      "estado": "RESUELTO",
+      "publicacion": "resuelto localmente; commit y push pendientes"
+    },
+    {
+      "operation": "update final evidence",
+      "ids": [
+        "ERR-003",
+        "ERR-004"
+      ],
+      "timestamp": "2026-07-22T00:00:00Z",
+      "evidencia": "PR #22 HDI: 98 pruebas backend focalizadas, 12 frontend, health 4 passed/4 skipped y gates ESLint focal, build, py_compile y diff-check aprobados; ERR-003 a ERR-009 reconciliados con el cierre local posterior a 0c222f67."
+    },
+    {
+      "operation": "record error",
+      "id": "ERR-005",
+      "titulo": "Novedades de nómina: catálogo devolvía 401 por consultas frontend sin Authorization",
+      "timestamp": "2026-07-22T00:00:00Z",
+      "prioridad": "ALTA",
+      "estado": "RESUELTO",
+      "evidencia": "6 pruebas frontend focalizadas y build aprobados"
+    },
+    {
+      "operation": "cierre local posterior a SHA base",
+      "ids_actualizados": [
+        "ERR-003",
+        "ERR-004",
+        "ERR-005"
+      ],
+      "ids_registrados": [
+        "ERR-006",
+        "ERR-007",
+        "ERR-008",
+        "ERR-009"
+      ],
+      "timestamp": "2026-07-22T00:00:00Z",
+      "sha_base_local": "0c222f67",
+      "estado": "RESUELTO",
+      "evidencia": "98 backend focalizadas PASS; health 4 passed/4 skipped; 12 frontend PASS; ESLint focal, build, py_compile y diff-check PASS"
+    },
+    {
+      "operation": "record and reconcile PR #22 blockers",
+      "ids_registrados": [
+        "ERR-010",
+        "ERR-011",
+        "ERR-012",
+        "ERR-013",
+        "ERR-014",
+        "ERR-015"
+      ],
+      "ids_existentes_actualizados": [],
+      "timestamp": "2026-07-23T00:00:00Z",
+      "commit_referencia": "a483a075",
+      "estado": "RESUELTO",
+      "evidencia": "143 backend focalizadas PASS; 16 frontend PASS; health 4 passed/4 skipped; build, ESLint, compileall y diff-check PASS; backend/frontend/docs aprobados; security/scope aprobados con riesgos",
+      "publicacion": "Cierre funcional fijado en a483a075; push y nueva revisión pendientes; no hay checks de GitHub configurados."
+    },
+    {
+      "operation": "record six resolved payroll hardening findings",
+      "ids_registrados": [
+        "ERR-016",
+        "ERR-017",
+        "ERR-018",
+        "ERR-019",
+        "ERR-020",
+        "ERR-021"
+      ],
+      "timestamp": "2026-07-23T00:00:00Z",
+      "estado": "RESUELTO",
+      "evidencia": "202 backend focalizadas PASS; 18 frontend PASS; health 4 passed/4 skipped; build, lint, compileall y diff-check PASS; backend/security/frontend approved; docs/scope approved_with_risks",
+      "commit_referencia": "22add531",
+      "publicacion": "Resuelto en el commit 22add531."
+    },
+    {
+      "operation": "close auth and recovery hardening",
+      "ids_actualizados": [
+        "PRE-2026-06-02-1"
+      ],
+      "ids_registrados": [
+        "ERR-022",
+        "ERR-023",
+        "ERR-024",
+        "ERR-025",
+        "DEC-001"
+      ],
+      "timestamp": "2026-07-23T00:00:00Z",
+      "estado": "RESUELTO",
+      "evidencia": "Backend auth/admin 118 passed y 18 skipped; health 4 passed y 4 skipped; frontend 12 passed; build, lint focal, compileall y diff-check PASS",
+      "commit_referencia": "fdfa5d6d",
+      "publicacion": "Cierre vinculado al commit fdfa5d6d."
     }
   ],
   "stats": {
-    "total_operations": 2,
-    "last_operation": "record decision (DEC-2026-06-03-1) — 2026-06-03T09:35:00Z",
-    "errors_recorded": 1,
-    "decisions_recorded": 1,
+    "total_operations": 10,
+    "last_operation": "cierre de hardening de auth y recuperación vinculado a fdfa5d6d — 2026-07-23T00:00:00Z",
+    "errors_recorded": 24,
+    "decisions_recorded": 2,
     "memory_persistence_enabled": true,
     "permission_grant_date": "2026-06-03"
   }

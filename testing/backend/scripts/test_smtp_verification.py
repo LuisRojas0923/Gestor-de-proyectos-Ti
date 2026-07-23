@@ -22,13 +22,13 @@ def test_full_verification_flow(target_email, user_id=1, user_name="Usuario de P
     
     try:
         # 1. Crear Token Real
-        token = ServicioAuth.crear_token_verificacion(user_id)
+        token = ServicioAuth.crear_token_verificacion(user_id, target_email)
         print(f"[OK] Token generado exitosamente")
         
         # 2. Construir URL
         base_url = (config.hostveremail or config.frontend_url).rstrip("/")
         verify_url = f"{base_url}/verify-email?token={token}"
-        print(f"[OK] URL de verificación: {verify_url}")
+        print("[OK] URL de verificación construida")
         
         # 3. Enviar Correo
         print(f"Enviando correo...")

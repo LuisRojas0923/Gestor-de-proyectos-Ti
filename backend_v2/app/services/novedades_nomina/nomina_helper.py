@@ -1,9 +1,12 @@
+import asyncio
 import logging
 import hashlib
 from datetime import datetime
 from typing import List, Dict, Any, Optional
+from fastapi import HTTPException
 from sqlmodel import select, func, delete
 from sqlalchemy.ext.asyncio import AsyncSession
+from ...database import SessionErp
 from ...models.novedades_nomina.nomina import (
     NominaArchivo, NominaRegistroNormalizado, NominaExcepcion
 )
@@ -12,7 +15,63 @@ from .excepcion_service import ExcepcionService
 
 logger = logging.getLogger(__name__)
 
+MAX_CONSULTAS_ERP_CONCURRENTES = 4
+TIMEOUT_CONSULTA_ERP_SEGUNDOS = 30
+_semaforo_erp = asyncio.Semaphore(MAX_CONSULTAS_ERP_CONCURRENTES)
+
 class NominaHelper:
+    @staticmethod
+    async def _ejecutar_consulta_erp(consulta, *args):
+        """Ejecuta una consulta ERP con una sesión propiedad del worker."""
+        try:
+            await asyncio.wait_for(
+                _semaforo_erp.acquire(),
+                timeout=TIMEOUT_CONSULTA_ERP_SEGUNDOS,
+            )
+        except asyncio.TimeoutError as exc:
+            raise HTTPException(
+                status_code=504,
+                detail="La consulta al ERP superó el tiempo permitido.",
+            ) from exc
+
+        def ejecutar():
+            with SessionErp() as session_erp:
+                return consulta(session_erp, *args)
+
+        tarea = asyncio.create_task(
+            asyncio.to_thread(ejecutar)
+        )
+        tarea.add_done_callback(lambda _: _semaforo_erp.release())
+        try:
+            return await asyncio.wait_for(
+                asyncio.shield(tarea),
+                timeout=TIMEOUT_CONSULTA_ERP_SEGUNDOS,
+            )
+        except asyncio.TimeoutError as exc:
+            raise HTTPException(
+                status_code=504,
+                detail="La consulta al ERP superó el tiempo permitido.",
+            ) from exc
+
+    @staticmethod
+    async def consultar_empleados_bulk(db_erp, cedulas: List[str]) -> Dict[str, Any]:
+        """Ejecuta una consulta ERP síncrona sin bloquear el event loop."""
+        if not db_erp:
+            return {}
+        return await NominaHelper._ejecutar_consulta_erp(
+            EmpleadosService.consultar_empleados_bulk,
+            cedulas,
+        )
+
+    @staticmethod
+    async def obtener_todos_los_empleados_activos(db_erp) -> List[Dict[str, Any]]:
+        """Consulta empleados activos sin compartir la sesión de dependencia."""
+        if not db_erp:
+            return []
+        return await NominaHelper._ejecutar_consulta_erp(
+            EmpleadosService.obtener_todos_los_empleados_activos,
+        )
+
     @staticmethod
     async def get_mapa_erp(db_erp, rows: List[Dict[str, Any]], excepciones: List[NominaExcepcion] = []) -> Dict[str, Any]:
         """Obtiene un mapa de empleados desde el ERP por cédula, incluyendo pagadores de excepciones."""
@@ -30,7 +89,9 @@ class NominaHelper:
             if ex.tipo == 'SALDO_FAVOR' and ex.cedula:
                 cedulas_unicas.add(str(ex.cedula))
                 
-        return EmpleadosService.consultar_empleados_bulk(db_erp, list(cedulas_unicas))
+        return await NominaHelper.consultar_empleados_bulk(
+            db_erp, list(cedulas_unicas)
+        )
 
     @staticmethod
     async def persistir_registros_normalizados(
@@ -49,7 +110,15 @@ class NominaHelper:
         registros = []
         cedulas_procesadas = set()
         # 0. Crear mapa de excepciones para búsqueda rápida O(1)
-        mapa_ex = {str(e.cedula): e for e in excepciones_activas}
+        mapa_ex = {}
+        for excepcion in excepciones_activas:
+            cedula_excepcion = str(excepcion.cedula)
+            if cedula_excepcion in mapa_ex:
+                raise ValueError(
+                    "Existe más de una excepción activa para la misma cédula y subcategoría"
+                )
+            mapa_ex[cedula_excepcion] = excepcion
+        saldos_procesados: set[int] = set()
         
         # 1. Procesar registros que vienen del archivo
         for i, row in enumerate(rows):
@@ -149,7 +218,15 @@ class NominaHelper:
                         if subcategoria == "SEGUROS HDI":
                             # Para Seguros HDI, aplicamos el saldo a favor a la porción del colaborador, no al total
                             valor_orig = valor_colaborador_final
-                            valor_restante_colab = await ExcepcionService.aplicar_saldo_favor(session, ex, valor_orig, mes, anio)
+                            valor_restante_colab = await ExcepcionService.aplicar_saldo_favor(
+                                session,
+                                ex,
+                                valor_orig,
+                                mes,
+                                anio,
+                                acumular_periodo=ex.id in saldos_procesados,
+                            )
+                            saldos_procesados.add(ex.id)
                             
                             # Si el colaborador está ACTIVO, reducimos la deducción de nómina (valor_colaborador_final)
                             # Si no está ACTIVO (retirado), mantenemos el valor original de cobro en el registro contable
@@ -166,7 +243,15 @@ class NominaHelper:
                             observacion_ex = f"Saldo favor aplicado. Cobro: ${valor_orig:,.0f} -> ${valor_restante_colab:,.0f}"
                         else:
                             valor_orig = valor_final
-                            valor_final = await ExcepcionService.aplicar_saldo_favor(session, ex, valor_orig, mes, anio)
+                            valor_final = await ExcepcionService.aplicar_saldo_favor(
+                                session,
+                                ex,
+                                valor_orig,
+                                mes,
+                                anio,
+                                acumular_periodo=ex.id in saldos_procesados,
+                            )
+                            saldos_procesados.add(ex.id)
                             estado_val = "EXCEPCION_SALDO_FAVOR"
                             observacion_ex = f"Saldo favor aplicado. Cobro: ${valor_orig:,.0f} -> ${valor_final:,.0f}"
 
@@ -225,7 +310,15 @@ class NominaHelper:
                 if ex.tipo == 'SALDO_FAVOR' and ex.saldo_actual > 0:
                     inyectar = True
                     valor_orig = ex.valor_configurado # El valor a cobrar por defecto
-                    descuento = await ExcepcionService.aplicar_saldo_favor(session, ex, valor_orig, mes, anio)
+                    descuento = await ExcepcionService.aplicar_saldo_favor(
+                        session,
+                        ex,
+                        valor_orig,
+                        mes,
+                        anio,
+                        acumular_periodo=ex.id in saldos_procesados,
+                    )
+                    saldos_procesados.add(ex.id)
                     estado_val = "EXCEPCION_SALDO_FAVOR"
                 
                 elif ex.tipo == 'CONTRATISTAS':
@@ -293,7 +386,7 @@ class NominaHelper:
     async def crear_archivo_procesado(
         session: AsyncSession,
         nombre: str,
-        content_prefix: bytes,
+        contenido: bytes,
         size: int,
         ext: str,
         mes: int,
@@ -303,9 +396,22 @@ class NominaHelper:
         ruta_almacenamiento: str = "memory"
     ) -> NominaArchivo:
         """Crea un objeto NominaArchivo marcado como procesado."""
+        hash_archivo = hashlib.sha256(contenido).hexdigest()
+        identidad = await session.execute(
+            select(NominaArchivo).where(
+                NominaArchivo.hash_archivo == hash_archivo,
+                NominaArchivo.subcategoria == subcategoria.strip(),
+                NominaArchivo.mes_fact == mes,
+                NominaArchivo.año_fact == anio,
+            )
+        )
+        existente = identidad.scalars().first()
+        if existente:
+            return existente
+
         archivo = NominaArchivo(
             nombre_archivo=nombre,
-            hash_archivo=hashlib.md5(content_prefix).hexdigest(),
+            hash_archivo=hash_archivo,
             tamaño_bytes=size,
             tipo_archivo=ext,
             ruta_almacenamiento=ruta_almacenamiento,

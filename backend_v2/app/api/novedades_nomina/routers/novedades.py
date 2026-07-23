@@ -1,11 +1,13 @@
 from typing import List, Optional
-from fastapi import APIRouter, Depends, UploadFile, File, Form, HTTPException
+from fastapi import APIRouter, Depends, UploadFile, File, Form, HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import Session, select, delete
 from ....database import obtener_db, obtener_erp_db_opcional
 from ....services.novedades_nomina.planillas_regionales_1q_extractor import extraer_planillas_regionales_1q
 from ....services.novedades_nomina.planillas_regionales_2q_extractor import extraer_planillas_regionales_2q
 from ....services.novedades_nomina.nomina_service import NominaService
+from ....services.novedades_nomina.errores_http import error_interno
+from ....core.rate_limiter import limiter
 
 router = APIRouter(tags=["Novedades"])
 
@@ -15,7 +17,9 @@ async def datos_planillas_1q(mes: int, anio: int, session: AsyncSession = Depend
     return await NominaService.obtener_datos_periodo(session, "PLANILLAS REGIONALES 1Q", mes, anio)
 
 @router.post("/planillas_regionales_1q/preview")
+@limiter.limit("5/minute")
 async def preview_planillas_1q(
+    request: Request,
     mes: int = Form(...),
     anio: int = Form(...),
     files: List[UploadFile] = File(...),
@@ -27,8 +31,10 @@ async def preview_planillas_1q(
             session, db_erp, files, "NOVEDADES", "PLANILLAS REGIONALES 1Q", 
             extraer_planillas_regionales_1q, "xlsm", mes, anio
         )
+    except HTTPException:
+        raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error en Planillas Regionales 1Q: {str(e)}")
+        raise error_interno("Error procesando Planillas Regionales 1Q") from e
 
 # PLANILLAS REGIONALES 2Q
 @router.get("/planillas_regionales_2q/datos")
@@ -36,7 +42,9 @@ async def datos_planillas_2q(mes: int, anio: int, session: AsyncSession = Depend
     return await NominaService.obtener_datos_periodo(session, "PLANILLAS REGIONALES 2Q", mes, anio)
 
 @router.post("/planillas_regionales_2q/preview")
+@limiter.limit("5/minute")
 async def preview_planillas_2q(
+    request: Request,
     mes: int = Form(...),
     anio: int = Form(...),
     files: List[UploadFile] = File(...),
@@ -48,7 +56,9 @@ async def preview_planillas_2q(
             session, db_erp, files, "NOVEDADES", "PLANILLAS REGIONALES 2Q", 
             extraer_planillas_regionales_2q, "xlsm", mes, anio
         )
+    except HTTPException:
+        raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error en Planillas Regionales 2Q: {str(e)}")
+        raise error_interno("Error procesando Planillas Regionales 2Q") from e
 
 # Aquí se pueden agregar COMISIONES en el futuro

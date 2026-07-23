@@ -97,9 +97,9 @@ def extraer_recordar(
                 total_filas += 1
                 total_valor += valor
                 
-        except Exception as e:
-            warnings.append(f"Error procesando el archivo Excel {file_idx + 1}: {e}")
-            logger.exception(f"Error en recordar_extractor archivo {file_idx + 1}")
+        except Exception:
+            warnings.append(f"Error procesando el archivo Excel {file_idx + 1}.")
+            logger.error(f"Error procesando el archivo Excel {file_idx + 1}.")
 
     summary = {
         "total_asociados": len(set(r["cedula"] for r in rows)),

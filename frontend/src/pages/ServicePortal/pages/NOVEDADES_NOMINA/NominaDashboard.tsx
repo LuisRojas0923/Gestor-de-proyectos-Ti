@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Title, Text, Button, Badge, MaterialCard } from '../../../../components/atoms';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
-import { API_CONFIG } from '../../../../config/api';
+import { useApi } from '../../../../hooks/useApi';
 import { ArrowLeft, FileText, ChevronRight, Table } from 'lucide-react';
 // Importación de iconos de subcategorías
 import GrancoopIcon from '../../../../assets/images/categories/Grancoop.png';
@@ -129,6 +128,7 @@ const CategoriaSection: React.FC<{
 
 const NominaDashboard: React.FC = () => {
     const navigate = useNavigate();
+    const { get } = useApi<Record<string, string[]>>();
     const [catalogo, setCatalogo] = useState<Record<string, string[]>>({});
     const [isLoading, setIsLoading] = useState(true);
 
@@ -136,9 +136,9 @@ const NominaDashboard: React.FC = () => {
         let isMounted = true;
         const fetchCatalogo = async () => {
             try {
-                const res = await axios.get(`${API_CONFIG.BASE_URL}/novedades-nomina/catalogo`);
-                if (isMounted) {
-                    setCatalogo(res.data);
+                const data = await get('/novedades-nomina/catalogo');
+                if (isMounted && data) {
+                    setCatalogo(data);
                 }
             } catch (err) {
                 console.error("Error fetching catologo nomina:", err);
@@ -150,7 +150,7 @@ const NominaDashboard: React.FC = () => {
         };
         fetchCatalogo();
         return () => { isMounted = false; };
-    }, []);
+    }, [get]);
 
     const categories = Object.keys(catalogo);
 

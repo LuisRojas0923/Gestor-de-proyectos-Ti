@@ -2,6 +2,7 @@
 Servicio de aprovisionamiento de usuarios desde ERP - Backend V2 (Async + SQLModel)
 """
 
+import secrets
 from typing import Optional
 
 from sqlalchemy.exc import IntegrityError
@@ -35,7 +36,7 @@ async def crear_analista_desde_erp(
 
     # 3. Crear usuario
     id_usuario = f"USR-{cedula}"
-    hash_pwd = ServicioAuth.obtener_hash_contrasena(cedula)
+    hash_pwd = ServicioAuth.obtener_hash_contrasena(secrets.token_urlsafe(48))
     correo_erp = (
         datos_erp.get("correocorporativo").strip()
         if datos_erp.get("correocorporativo")
@@ -64,16 +65,20 @@ async def crear_analista_desde_erp(
     await db.commit()
     await db.refresh(nuevo_usuario)
 
-    # 4. Notificar bienvenida/seguridad
+    # 4. Solicitar verificacion del correo antes de habilitar recuperacion.
     if correo_erp:
         from app.services.notifications.email_service import EmailService
         import asyncio
 
+        token = ServicioAuth.crear_token_verificacion(
+            nuevo_usuario.id, nuevo_usuario.correo
+        )
+        verify_url = f"{EmailService.get_frontend_url()}/verify-email?token={token}"
         asyncio.create_task(
-            asyncio.to_thread(
-                EmailService.enviar_notificacion_reseteo_clave,
+            EmailService.enviar_confirmacion_registro(
                 correo_erp,
                 nuevo_usuario.nombre,
+                verify_url,
             )
         )
 

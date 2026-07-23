@@ -9,16 +9,36 @@ logger = logging.getLogger(__name__)
 
 class ExcepcionService:
     @staticmethod
-    async def obtener_excepciones_activas(session: AsyncSession, subcategoria: Optional[str] = None) -> List[NominaExcepcion]:
+    async def obtener_excepciones_activas(
+        session: AsyncSession,
+        subcategoria: Optional[str] = None,
+        bloquear: bool = False,
+        mes: Optional[int] = None,
+        anio: Optional[int] = None,
+    ) -> List[NominaExcepcion]:
         """Obtiene las excepciones vigentes para una subcategoría."""
         now = datetime.now()
+        estado_vigente = NominaExcepcion.estado == "ACTIVO"
+        if mes is not None and anio is not None:
+            aplicado_periodo = select(NominaExcepcionHistorial.id).where(
+                NominaExcepcionHistorial.excepcion_id == NominaExcepcion.id,
+                NominaExcepcionHistorial.mes == mes,
+                NominaExcepcionHistorial.anio == anio,
+            ).exists()
+            estado_vigente = or_(
+                estado_vigente,
+                and_(NominaExcepcion.estado == "AGOTADO", aplicado_periodo),
+            )
+
         stmt = select(NominaExcepcion).where(
-            NominaExcepcion.estado == "ACTIVO",
+            estado_vigente,
             NominaExcepcion.fecha_inicio <= now,
             or_(NominaExcepcion.fecha_fin == None, NominaExcepcion.fecha_fin >= now)
         )
         if subcategoria:
             stmt = stmt.where(NominaExcepcion.subcategoria == subcategoria)
+        if bloquear:
+            stmt = stmt.with_for_update()
         
         result = await session.execute(stmt)
         return result.scalars().all()
@@ -63,7 +83,14 @@ class ExcepcionService:
             session.add(excepcion)
 
     @staticmethod
-    async def aplicar_saldo_favor(session: AsyncSession, excepcion: NominaExcepcion, valor_cobro: float, mes: int, anio: int) -> float:
+    async def aplicar_saldo_favor(
+        session: AsyncSession,
+        excepcion: NominaExcepcion,
+        valor_cobro: float,
+        mes: int,
+        anio: int,
+        acumular_periodo: bool = False,
+    ) -> float:
         """
         Aplica un saldo a favor a un cobro, disminuyendo el saldo actual.
         Implementa idempotencia: si ya se aplicó en el mismo periodo, revierte antes de aplicar.
@@ -78,11 +105,12 @@ class ExcepcionService:
         result = await session.execute(stmt)
         historial_previo = result.scalars().first()
         
-        if historial_previo:
+        if historial_previo and not acumular_periodo:
             # Revertir saldo anterior al saldo_actual de la excepción
             excepcion.saldo_actual += historial_previo.valor_aplicado
             # Borrar historial previo para reemplazarlo
             await session.delete(historial_previo)
+            await session.flush()
         
         # 2. Calcular descuento (Opción A: Restar lo que se pueda hasta llegar a 0)
         descuento = min(valor_cobro, excepcion.saldo_actual)
@@ -99,7 +127,13 @@ class ExcepcionService:
         excepcion.actualizado_en = datetime.now()
         
         # 4. Registrar nuevo historial si hubo descuento
-        if descuento > 0:
+        if descuento > 0 and historial_previo and acumular_periodo:
+            historial_previo.valor_aplicado += descuento
+            historial_previo.mensaje = (
+                f"Aplicado saldo favor acumulado: ${historial_previo.valor_aplicado:,.0f}."
+            )
+            session.add(historial_previo)
+        elif descuento > 0:
             nuevo_hist = NominaExcepcionHistorial(
                 excepcion_id=excepcion.id,
                 mes=mes,

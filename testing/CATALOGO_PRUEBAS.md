@@ -22,7 +22,7 @@ Ubicación: `testing/backend/`
 | **Regresiones** | `test_regresiones.py` | **Master Health Check**: Ciclo de vida, Adjuntos y RBAC. | ✅ 3 PASSED / 3 SKIPPED |
 | **Autenticación** | `test_auth_verification.py` | Verificación de correo y flujo de seguridad. | ✅ PASSED |
 | **Autogestión ERP Auth** | `test_autogestion_usuarios_erp.py` | JIT, registro público y validación fail-closed contra empleados activos del ERP. | ✅ PASSED |
-| **Setup Password** | `test_setup_password.py` | Configuración de contraseña primera vez (setup-password), estado (password-status) y login con password no configurado. | ⚠️ BLOQUEADO LOCAL: credenciales PostgreSQL |
+| **Setup Password** | `test_setup_password.py` | Configuración de contraseña primera vez (setup-password), estado (password-status) y login con password no configurado. | ✅ 7 PASSED |
 | **Escalado de Roles** | `test_auth_escalation.py` | **Seguridad**: Escalado de roles, invalidación de sesiones, cambio forzado de contraseña. | ✅ PASSED |
 | **Líneas Corp.** | `test_lineas_corporativas.py` | CRUD autenticado de equipos, personas y líneas; reportes del módulo. | ✅ PASSED |
 | **Seguridad Líneas Corp.** | `test_lineas_corporativas_seguridad.py` | RBAC administrativo, archivos, transacciones, auditoría sin PII, errores seguros y degradación del ERP. | ✅ PASSED |
@@ -48,6 +48,8 @@ Ubicación: `testing/backend/`
 | **ETL Beneficiar** | `test_beneficiar_prima.py` | Prima opcional, meses ordinarios y rechazo de columnas obligatorias ausentes. | ✅ PASSED |
 | **ETL Grancoop** | `test_grancoop_nombre_matching.py` | CREDIPRIMA, NOMPRI estricto, sumatoria sin duplicar y límites PDF. | ✅ PASSED |
 | **Seguridad Cooperativas** | `test_cooperativas_archivos_seguridad.py` | Firmas, límites, nombres, permiso `nomina_novedades` y parser en proceso cancelable. | ✅ PASSED |
+| **Seguros HDI Excel** | `test_hdi_extractor_grupos.py`, `test_hdi_excel_security.py` | Encabezados y tipos exactos, formato monetario COP/US estricto, rechazo atómico, estructura XLS/XLSX, límites, archivos disfrazados, rollback y cancelación segura durante commit. | ✅ PASSED |
+| **Seguridad y concurrencia Nómina** | `test_nomina_hardening_bloqueantes.py`, `test_nomina_{rbac,flujos_directos,directos_restantes}_concurrencia.py`, `test_nomina_excepciones_migration.py`, `test_nomina_{manual,generico_seguro}.py` | RBAC; límites, firmas, ZIP, cuota y rate limit; procesos cancelables; carga y reproceso genéricos atómicos; identidad única de metadata; PostgreSQL real para serialización, migración y SALDO_FAVOR multifila/reproceso en CELULARES, RETENCIONES, EMBARGOS, libranzas, fúnebres, cooperativas y Control de Descuentos. | ✅ 202 PASSED (suite focal ampliada) |
 
 ### 2. Frontend (Vitest)
 Ubicación: `frontend/src/`
@@ -63,6 +65,8 @@ Ubicación: `frontend/src/`
 | **Indicadores de Auditoría** | `pages/ServicePortal/pages/AuditoriaIndicadores/index.test.tsx` | Estados de éxito, error y actualización manual del dashboard. | ✅ PASSED |
 | **Organigrama interactivo** | `pages/OrganizationalHierarchy/*.test.tsx` y `utils.test.ts` | Expansión inicial, paneo móvil, layout aislado y controles accesibles. | ✅ PASSED |
 | **Líneas Corporativas** | `components/atoms/SearchableSelect.test.tsx`, `components/molecules/__tests__/{DataTable,Modal}.test.tsx`, `pages/CorporateLines/**/*.test.tsx` | Teclado, tabla/filtros accesibles, modales, confirmaciones, reintentos y estados de gestores. | ✅ PASSED |
+| **Novedades de Nómina** | `hooks/useApi.test.tsx`, `services/nominaApi.test.ts`, `pages/ServicePortal/pages/NOVEDADES_NOMINA/__tests__/{HdiPreview,NominaDashboard}.test.tsx` | JWT sin exposición en logs, refresh/401 terminal, aislamiento de origen, errores silenciosos controlados y propiedad unificada de respuestas HDI GET/POST al cambiar período. | ✅ 18 PASSED |
+| **Refresh de sesión** | `services/AuthService.test.ts` | Single-flight, liberación tras fallo y protección contra restaurar credenciales después de logout. | ✅ 3 PASSED |
 
 ### 3. Arnés de agentes (Pytest)
 Ubicación: `testing/agent_harness/`
@@ -154,6 +158,19 @@ locust -f testing/backend/load_test.py --host=http://localhost:8000
 - **Casos (8 totales — 3 unitarios + 5 E2E)**:
     - Unitarios (3): audit log resiliente a caída de DB, `tiene_acceso_panel_admin` es async, registro de verificación exitoso.
     - E2E (5): audit éxito, audit fallo, password nunca en DB, 5 fallos → 429, rate limit por usuario+IP.
+
+### [Backend] Recuperación y Escalado Seguro (Julio 2026)
+- **Archivo**: `testing/backend/test_auth_recuperacion_segura.py`
+- **Estado**: 16 casos aprobados; matriz auth/admin relacionada: 118 aprobados y 18 omitidos condicionalmente.
+- **Casos**:
+    - El token opaco de recuperación sólo puede utilizarse una vez.
+    - `setup-password` no permite reclamar una cuenta bloqueada con secreto aleatorio.
+    - El refresh rota la sesión persistida y revoca inmediatamente el JWT anterior.
+    - Refresh, generación y consumo concurrentes producen un único sucesor válido.
+    - Creación de analistas exige autenticación administrativa.
+    - Desactivación y login concurrente no dejan sesiones utilizables.
+    - Promoción sin correo verificado preserva rol y contraseña.
+- **Cobertura relacionada**: `test_auth_escalation.py` verifica que promover a `admin` o ejecutar un reset administrativo no use la cédula como contraseña temporal, invalide sesiones y emita un token de activación.
 
 ---
 

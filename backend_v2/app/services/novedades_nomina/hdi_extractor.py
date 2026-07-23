@@ -1,17 +1,26 @@
 """
-Extractor especializado para PDFs de SEGUROS HDI.
+Extractor especializado para archivos Excel (.xlsx, .xls) de SEGUROS HDI.
 Implementa los 7 pasos de normalización solicitados por el usuario.
 """
 
 import io
+import math
 import re
-import logging
 import collections
-from typing import List, Dict, Any, Tuple
-import pdfplumber
+from typing import List, Dict, Any, Optional, Tuple
 import pandas as pd
 
-logger = logging.getLogger(__name__)
+from .errores import ErrorEstructuraNomina
+from .validacion_excel_hdi import MAX_EXCEL_COLS, MAX_EXCEL_ROWS, MAX_EXCEL_SHEETS
+
+
+COLUMNAS_HDI_REQUERIDAS = (
+    "CERT",
+    "TIPO",
+    "IDENTIFICACION",
+    "NOMBRES Y APELLIDOS",
+    "PRIMA ANUAL",
+)
 
 def _formatear_nombre(nombre: str) -> str:
     """Invierte el nombre de 'Nombres Apellidos' a 'Apellidos Nombres'."""
@@ -28,62 +37,65 @@ def _formatear_nombre(nombre: str) -> str:
     return nombre.upper()
 
 def _limpiar_numero(valor: Any) -> float:
-    """Limpia strings con $, comas y otros caracteres para convertir a float."""
-    if valor is None or valor == "":
-        return 0.0
-    s = str(valor).replace("$", "").replace(",", "").replace("\u00A0", " ").strip()
-    s = re.sub(r"[^0-9\.\-]", "", s)
-    try:
-        if not s: return 0.0
-        return float(s)
-    except ValueError:
+    """
+    Soporta notación numérico-monetaria colombiana (391.085,00 / 1.234.567,89 / 354.310),
+    notación estadounidense ($354,310.00) y numéricos nativos int/float de pandas.
+    """
+    if valor is None or pd.isna(valor) or valor == "":
         return 0.0
 
+    if isinstance(valor, bool):
+        raise ValueError("Un booleano no es un valor monetario")
+    if isinstance(valor, (int, float)):
+        numero = float(valor)
+        if not math.isfinite(numero):
+            raise ValueError("El valor monetario debe ser finito")
+        return numero
 
-def _find_column(columns: List[str], keywords: List[str]) -> str:
-    """Busca una columna que contenga alguna de las palabras clave."""
-    for col in columns:
-        col_up = str(col).upper().strip()
-        for k in keywords:
-            if k in col_up:
-                return col
-    return ""
+    s = str(valor).replace("\u00A0", " ").strip()
+    if not s:
+        return 0.0
 
-
-def _extraer_por_regex(text: str) -> List[Dict[str, Any]]:
-    """Fallback por texto puro buscando el patrón de HDI."""
-    rows = []
-    # Patrón: [CERT] [NOV] [TIPO P/D] [ID] [NAME...] [EDAD] [PLAN] [$ VALOR_ASEGURADO] [$ PRIMA_ANUAL] [$ EXTRAPRIMA] [$ PRIMA_COBRO]
-    pattern = re.compile(
-        r"(\d+)\s+[A-Z]+\s+([PD])\s+(\d{5,12})\s+(.*?)\s+\d+\s+\d+\s+.*?\$?\s*[\d,.]+\s+.*?\$?\s*([\d,.]+)\s+.*?\$?\s*[\d,.]+\s+.*?\$?\s*([\d,.]+)\s*$",
-        re.MULTILINE
+    if s.startswith("$"):
+        s = s[1:].strip()
+    s = s.replace(" ", "")
+    patrones_validos = (
+        r"-?\d+",
+        r"-?\d+[\.,]\d{1,2}",
+        r"-?\d{1,3}(?:\.\d{3})+(?:,\d{1,2})?",
+        r"-?\d{1,3}(?:,\d{3})+(?:\.\d{1,2})?",
     )
-    
-    if not text:
-        return []
+    if not any(re.fullmatch(patron, s) for patron in patrones_validos):
+        raise ValueError("Formato monetario inválido")
 
-    for line in text.split("\n"):
-        m = pattern.search(line.strip())
-        if m:
-            cert_val = m.group(1)
-            tipo = m.group(2)
-            cedula_raw = m.group(3)
-            nombre_raw = m.group(4).strip()
-            prima_anual = _limpiar_numero(m.group(5))
-            
-            # Aplicar reemplazos específicos
-            cedula, nombre = _aplicar_reemplazos(cedula_raw, nombre_raw)
-            
-            rows.append({
-                "cert": cert_val,
-                "tipo": tipo,
-                "cedula": cedula,
-                "nombre_asociado": _formatear_nombre(nombre),
-                "empresa": "REFRIDCOL",
-                "prima_anual": prima_anual,
-                "concepto": "SEGURO DE VIDA",
-            })
-    return rows
+    # Notación mixta (punto y coma presentes)
+    if "." in s and "," in s:
+        # En Colombia, la coma es el separador decimal (ej: 391.085,00 / 1.234.567,89)
+        if s.rfind(",") > s.rfind("."):
+            s = s.replace(".", "").replace(",", ".")
+        else:
+            # En EE.UU., el punto es decimal (ej: 1,234,567.89)
+            s = s.replace(",", "")
+    elif "," in s:
+        # Notación con solo coma (ej: 391085,00 o 391085,5)
+        parts = s.split(",")
+        if len(parts) == 2 and len(parts[1]) in (1, 2):
+            s = s.replace(",", ".")
+        else:
+            s = s.replace(",", "")
+    elif "." in s:
+        # Notación con solo punto (ej: 391.085 o 1.234.567 o float string "391085.0")
+        parts = s.split(".")
+        if len(parts) > 2:
+            # Múltiples puntos como 1.234.567 -> separadores de miles colombianos
+            s = s.replace(".", "")
+        elif len(parts) == 2:
+            # Un solo punto. Si tiene 3 dígitos tras el punto y la parte entera es corta (<=3 dígitos),
+            # ej: "391.085" o "354.310" o "920.200", es separador de miles colombiano.
+            if len(parts[1]) == 3 and len(parts[0]) <= 3:
+                s = s.replace(".", "")
+
+    return float(s)
 
 
 def _aplicar_reemplazos(cedula: str, nombre: str) -> Tuple[str, str]:
@@ -100,64 +112,97 @@ def _aplicar_reemplazos(cedula: str, nombre: str) -> Tuple[str, str]:
     return cedula, nombre
 
 
-def normalizar_df(df: pd.DataFrame) -> pd.DataFrame:
-    """Normaliza el DataFrame siguiendo los 7 pasos."""
+def normalizar_df(
+    df: pd.DataFrame,
+    warnings_out: Optional[List[str]] = None,
+    sheet_name: str = "Hoja",
+    first_data_row: int = 2,
+) -> pd.DataFrame:
+    """Valida y normaliza el contrato tabular estricto de Seguros HDI."""
     df = df.copy()
-    df = df.dropna(axis=1, how='all')
-    if len(df.columns) < 5: return pd.DataFrame()
+    if len(df.columns) > MAX_EXCEL_COLS:
+        raise ErrorEstructuraNomina(
+            f"Hoja '{sheet_name}': supera el límite de {MAX_EXCEL_COLS} columnas."
+        )
+    if len(df) > MAX_EXCEL_ROWS:
+        raise ErrorEstructuraNomina(
+            f"Hoja '{sheet_name}': supera el límite de {MAX_EXCEL_ROWS} filas."
+        )
 
-    # Paso 1: Encontrar encabezados
-    # Buscamos la columna de IDENTIFICACION por contenido
-    id_col_idx = -1
-    for i in range(min(6, len(df.columns))):
-        col_vals = df.iloc[:, i].astype(str).str.strip().tolist()
-        if any(re.match(r"^\d{7,12}(\.0)?$", v) for v in col_vals):
-            id_col_idx = i
-            break
-    
-    if id_col_idx == -1: return pd.DataFrame()
+    columnas = [str(columna).upper().strip() for columna in df.columns]
+    duplicadas = sorted({
+        columna
+        for columna in COLUMNAS_HDI_REQUERIDAS
+        if columnas.count(columna) > 1
+    })
+    if duplicadas:
+        raise ErrorEstructuraNomina(
+            f"Hoja '{sheet_name}': columna obligatoria duplicada: {', '.join(duplicadas)}."
+        )
 
-    tipo_col_idx = id_col_idx - 1 if id_col_idx > 0 else -1
-    nombre_col_idx = id_col_idx + 1 if id_col_idx < len(df.columns) -1 else -1
-    
-    cert_col_idx = 0
-    prima_anual_col_idx = -1
-    for i, col in enumerate(df.columns):
-        col_up = str(col).upper()
-        if "ANUAL" in col_up:
-            prima_anual_col_idx = i
-            break
-    if prima_anual_col_idx == -1:
-        prima_anual_col_idx = id_col_idx + 5
+    faltantes = [
+        columna for columna in COLUMNAS_HDI_REQUERIDAS
+        if columna not in columnas
+    ]
+    if faltantes:
+        raise ErrorEstructuraNomina(
+            f"Hoja '{sheet_name}': faltan columnas obligatorias: {', '.join(faltantes)}."
+        )
+
+    indices = {
+        columna: columnas.index(columna)
+        for columna in COLUMNAS_HDI_REQUERIDAS
+    }
+    df = df.dropna(axis=0, how="all")
+    if df.empty:
+        raise ErrorEstructuraNomina(f"Hoja '{sheet_name}': no contiene filas de datos.")
 
     valid_rows = []
-    for _, row in df.iterrows():
-        # Extraer Tipo
-        tipo = ""
-        if tipo_col_idx != -1:
-            tipo = str(row.iloc[tipo_col_idx]).strip().upper()
-        # Permitir tanto P como D
-        if tipo not in ["P", "D"]: continue
+    for posicion, (_, row) in enumerate(df.iterrows()):
+        fila_excel = first_data_row + posicion
 
-        # Identificación
-        raw_id = str(row.iloc[id_col_idx]).strip().split(".")[0]
-        id_val = re.sub(r"[^0-9]", "", raw_id)
-        if not id_val or len(id_val) < 5: continue
+        def error(campo: str, motivo: str) -> ErrorEstructuraNomina:
+            return ErrorEstructuraNomina(
+                f"Hoja '{sheet_name}', fila {fila_excel}: {campo} {motivo}."
+            )
 
-        # Nombre
-        nombre = ""
-        if nombre_col_idx != -1:
-            nombre = str(row.iloc[nombre_col_idx]).strip().split("  ")[0]
+        cert_raw = row.iloc[indices["CERT"]]
+        if pd.isna(cert_raw) or str(cert_raw).strip() == "":
+            raise error("CERT", "es obligatorio")
+        cert_texto = str(cert_raw).strip()
+        if not re.fullmatch(r"\d+(?:\.0)?", cert_texto):
+            raise error("CERT", "debe ser numérico")
+        cert_val = cert_texto.split(".")[0]
 
-        # Prima Anual
-        prima_anual = _limpiar_numero(row.iloc[prima_anual_col_idx])
-        if prima_anual <= 0: continue
+        tipo = str(row.iloc[indices["TIPO"]]).strip().upper()
+        if tipo not in ("P", "D"):
+            raise error("TIPO", "debe ser P o D")
 
-        # Certificado
-        cert_raw = str(row.iloc[cert_col_idx]).strip().split(".")[0]
-        cert_val = re.sub(r"[^0-9]", "", cert_raw)
+        id_raw = row.iloc[indices["IDENTIFICACION"]]
+        if pd.isna(id_raw) or str(id_raw).strip() == "":
+            raise error("IDENTIFICACION", "es obligatoria")
+        id_texto = str(id_raw).strip()
+        if not re.fullmatch(r"\d{5,12}(?:\.0)?", id_texto):
+            raise error("IDENTIFICACION", "debe contener entre 5 y 12 dígitos")
+        id_val = id_texto.split(".")[0]
 
-        # Aplicar reemplazos
+        nombre_raw = row.iloc[indices["NOMBRES Y APELLIDOS"]]
+        if not isinstance(nombre_raw, str):
+            raise error("NOMBRES Y APELLIDOS", "debe ser texto")
+        if not nombre_raw.strip():
+            raise error("NOMBRES Y APELLIDOS", "es obligatorio")
+        nombre = nombre_raw.strip().split("  ")[0]
+
+        prima_raw = row.iloc[indices["PRIMA ANUAL"]]
+        if pd.isna(prima_raw) or str(prima_raw).strip() == "":
+            raise error("PRIMA ANUAL", "es obligatoria")
+        try:
+            prima_anual = _limpiar_numero(prima_raw)
+        except (TypeError, ValueError) as exc:
+            raise error("PRIMA ANUAL", "debe tener un formato monetario válido") from exc
+        if prima_anual <= 0:
+            raise error("PRIMA ANUAL", "debe ser un valor monetario mayor que cero")
+
         id_val, nombre = _aplicar_reemplazos(id_val, nombre)
         nombre = _formatear_nombre(nombre)
 
@@ -177,90 +222,89 @@ def normalizar_df(df: pd.DataFrame) -> pd.DataFrame:
 def extraer_hdi(
     archivos_binarios: List[bytes]
 ) -> Tuple[List[Dict[str, Any]], Dict[str, Any], List[str]]:
-    """Procesa PDFs de HDI con la lógica de 7 pasos y redundancia."""
+    """Procesa de manera exclusiva archivos Excel (.xlsx, .xls) de HDI con la lógica de 7 pasos y consolidación."""
+    if len(archivos_binarios) != 1:
+        raise ValueError("Seguros HDI requiere exactamente un archivo Excel.")
+
     all_raw_rows: List[Dict[str, Any]] = []
     warnings: List[str] = []
+    excel_file = pd.ExcelFile(io.BytesIO(archivos_binarios[0]))
+    if len(excel_file.sheet_names) > MAX_EXCEL_SHEETS:
+        raise ValueError(f"El libro supera el límite de {MAX_EXCEL_SHEETS} hojas.")
 
-    for contenido in archivos_binarios:
-        try:
-            with pdfplumber.open(io.BytesIO(contenido)) as pdf:
-                for page in pdf.pages:
-                    page_table_rows = []
-                    
-                    # 1. TABLAS
-                    tables = page.extract_tables()
-                    if not tables:
-                        tables = page.extract_tables(table_settings={
-                            "vertical_strategy": "text", "horizontal_strategy": "text"
-                        })
-                    
-                    for table in tables:
-                        df_norm = normalizar_df(pd.DataFrame(table))
-                        for _, row in df_norm.iterrows():
-                            page_table_rows.append(dict(row))
-                    
-                    all_raw_rows.extend(page_table_rows)
+    for sheet_name in excel_file.sheet_names:
+        df_full = pd.read_excel(excel_file, sheet_name=sheet_name, header=None)
+        if len(df_full) > MAX_EXCEL_ROWS or len(df_full.columns) > MAX_EXCEL_COLS:
+            raise ValueError("El libro excede los límites de filas o columnas permitidos.")
 
-                    # 2. REGEX (Sellar lo que las tablas pierden)
-                    text = page.extract_text()
-                    if text:
-                        # Contamos qué extrajeron las tablas para no duplicar en el regex
-                        table_counts = collections.Counter((r["cedula"], r["prima_anual"]) for r in page_table_rows)
-                        regex_counts = collections.Counter()
-                        
-                        for row in _extraer_por_regex(text):
-                            key = (row["cedula"], row["prima_anual"])
-                            if regex_counts[key] >= table_counts[key]:
-                                all_raw_rows.append(row)
-                            regex_counts[key] += 1
+        header_index = None
+        mejor_coincidencia = -1
+        for index in range(min(6, len(df_full))):
+            values = [str(value).upper().strip() for value in df_full.iloc[index]]
+            coincidencias = sum(
+                columna in values for columna in COLUMNAS_HDI_REQUERIDAS
+            )
+            if coincidencias > mejor_coincidencia:
+                mejor_coincidencia = coincidencias
+                header_index = index
 
-        except Exception as e:
-            logger.error(f"Error procesando HDI: {e}")
-            warnings.append(str(e))
+        if header_index is None or mejor_coincidencia == 0:
+            raise ErrorEstructuraNomina(
+                f"La hoja '{sheet_name}' no contiene encabezados válidos de Seguros HDI."
+            )
 
-    # Agrupar por CERT
+        df_sheet = df_full.iloc[header_index + 1:].copy()
+        df_sheet.columns = df_full.iloc[header_index].tolist()
+        df_norm = normalizar_df(
+            df_sheet,
+            warnings_out=warnings,
+            sheet_name=sheet_name,
+            first_data_row=header_index + 2,
+        )
+
+        for _, row in df_norm.iterrows():
+            row_dict = dict(row)
+            row_dict["_origin_sheet"] = sheet_name
+            all_raw_rows.append(row_dict)
+
+    if not all_raw_rows:
+        raise ValueError("El archivo no contiene filas válidas del formato Seguros HDI.")
+
+    # Agrupar por CERT dentro del mismo origen (archivo y hoja)
     grupos_cert = collections.defaultdict(list)
-    for idx, r in enumerate(all_raw_rows):
+    for idx_r, r in enumerate(all_raw_rows):
+        sheet_name = r.get("_origin_sheet", "")
         cert_val = r.get("cert")
         if not cert_val:
-            cert_val = f"dummy_{idx}"
-        grupos_cert[cert_val].append(r)
+            group_key = (sheet_name, f"dummy_{idx_r}")
+        else:
+            group_key = (sheet_name, cert_val)
+        grupos_cert[group_key].append(r)
 
     consolidated_rows: List[Dict[str, Any]] = []
-    for cert_val, members in grupos_cert.items():
-        # Encontrar el titular (tipo == "P")
-        titular = None
-        for m in members:
-            if m["tipo"] == "P":
-                titular = m
-                break
-        
-        # Si no hay titular, usamos el primer miembro del grupo y generamos una advertencia
-        if not titular:
-            titular = members[0]
-            warnings.append(
-                f"No se detectó un Titular (TIPO = 'P') para el grupo CERT '{cert_val}'. "
-                f"Se asumirá como titular a '{titular['nombre_asociado']}' y no se aplicará subsidio de empresa."
+    for group_key, members in grupos_cert.items():
+        cert_display = group_key[-1]
+        titulares = [member for member in members if member["tipo"] == "P"]
+        if len(titulares) != 1:
+            raise ValueError(
+                f"El grupo CERT '{cert_display}' debe contener exactamente un Titular; "
+                f"se encontraron {len(titulares)}."
             )
-            total_empleado = sum(m["prima_anual"] / 12 for m in members)
-            valor_colaborador = round(total_empleado, 2)
-            valor_rdc = 0.0
-            valor_total = valor_colaborador
-        else:
-            # Hay titular:
-            # 1. Prima titular: 76% colaborador, 24% empresa
-            prima_titular = titular["prima_anual"] / 12
-            valor_rdc = round(prima_titular * 0.24, 2)
-            valor_col_titular = round(prima_titular * 0.76, 2)
-            
-            # 2. Prima dependientes: 100% colaborador, 0% empresa
-            valor_col_dependents = sum(m["prima_anual"] / 12 for m in members if m is not titular)
-            
-            valor_colaborador = round(valor_col_titular + valor_col_dependents, 2)
-            valor_total = round(valor_rdc + valor_colaborador, 2)
+        titular = titulares[0]
+
+        prima_titular = titular["prima_anual"] / 12
+        valor_rdc = round(prima_titular * 0.24, 2)
+        valor_col_titular = round(prima_titular * 0.76, 2)
+        valor_col_dependents = sum(
+            member["prima_anual"] / 12
+            for member in members
+            if member is not titular
+        )
+        valor_colaborador = round(valor_col_titular + valor_col_dependents, 2)
+        valor_total = round(valor_rdc + valor_colaborador, 2)
             
         # Crear la fila consolidada asociada al Titular
-        obs = f"Grupo CERT {cert_val}"
+        obs = f"Grupo CERT {cert_display}"
         if len(members) > 1:
             nombres_dep = ", ".join(m["nombre_asociado"] for m in members if m is not titular)
             obs += f" | Incluye dependientes: {nombres_dep}"
@@ -306,7 +350,8 @@ def extraer_hdi(
         "total_asociados": len(final_rows),
         "total_filas_consolidadas": len(final_rows),
         "total_valor": round(total_valor, 2),
-        "archivos_procesados": len(archivos_binarios),
+        "archivos_procesados": 1,
+        "archivos_recibidos": 1,
     }
     
     return final_rows, summary, warnings

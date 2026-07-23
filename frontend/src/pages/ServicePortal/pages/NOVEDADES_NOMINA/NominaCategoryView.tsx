@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Title, Text, Button, MaterialCard } from '../../../../components/atoms';
 import { useNavigate, useParams } from 'react-router-dom';
-import axios from 'axios';
-import { API_CONFIG } from '../../../../config/api';
+import { useApi } from '../../../../hooks/useApi';
 import { ArrowLeft, FileText, ChevronRight } from 'lucide-react';
 
 // Importación de iconos de subcategorías
@@ -27,14 +26,15 @@ import ExcepcionesIcon from '../../../../assets/images/categories/EXCEPCIONES.pn
 const NominaCategoryView: React.FC = () => {
     const { category } = useParams<{ category: string }>();
     const navigate = useNavigate();
+    const { get } = useApi<Record<string, string[]>>();
     const [subcategories, setSubcategories] = useState<string[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
         const fetchCatalogo = async () => {
             try {
-                const res = await axios.get(`${API_CONFIG.BASE_URL}/novedades-nomina/catalogo`);
-                setSubcategories(res.data[category || ''] || []);
+                const data = await get('/novedades-nomina/catalogo');
+                setSubcategories(data?.[category || ''] || []);
             } catch (err) {
                 console.error("Error fetching subcategories:", err);
             } finally {
@@ -42,7 +42,7 @@ const NominaCategoryView: React.FC = () => {
             }
         };
         fetchCatalogo();
-    }, [category]);
+    }, [category, get]);
 
     // Mapeo de subcategorías a sus respectivos iconos
     const iconMap: Record<string, any> = {

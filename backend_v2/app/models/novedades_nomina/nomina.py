@@ -4,11 +4,21 @@ Modelos de Nómina - Backend V2 (SQLModel)
 from typing import Optional, List, Any
 from datetime import datetime, date
 from sqlmodel import SQLModel, Field, Relationship, JSON, Column
+from sqlalchemy import UniqueConstraint
 
 
 class NominaArchivo(SQLModel, table=True):
     """Metadatos de archivos de nómina cargados"""
     __tablename__ = "nomina_archivos"
+    __table_args__ = (
+        UniqueConstraint(
+            "hash_archivo",
+            "subcategoria",
+            "mes_fact",
+            "año_fact",
+            name="uq_nomina_archivo_identidad_periodo",
+        ),
+    )
     
     id: Optional[int] = Field(default=None, primary_key=True)
     nombre_archivo: str = Field(max_length=255)
@@ -181,6 +191,14 @@ class NominaExcepcion(SQLModel, table=True):
 class NominaExcepcionHistorial(SQLModel, table=True):
     """Histórico de aplicaciones de una excepción"""
     __tablename__ = "nomina_excepciones_historial"
+    __table_args__ = (
+        UniqueConstraint(
+            "excepcion_id",
+            "mes",
+            "anio",
+            name="uq_excepcion_historial_periodo",
+        ),
+    )
 
     id: Optional[int] = Field(default=None, primary_key=True)
     excepcion_id: int = Field(foreign_key="nomina_excepciones.id")

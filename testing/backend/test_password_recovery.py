@@ -2,6 +2,7 @@ import pytest
 import httpx
 from unittest.mock import patch
 from app.services.auth.servicio import ServicioAuth
+from app.services.auth.recovery_token_service import generar_token_recuperacion
 from app.models.auth.usuario import Usuario
 from sqlalchemy import text
 from app.main import app
@@ -27,24 +28,25 @@ async def test_forgot_password_success(fast_client, db_session):
     usuario_id = f"USR-{cedula}"
     email = "test@refridcol.com"
 
+    await db_session.execute(text("DELETE FROM tokens WHERE usuario_id = :id"), {"id": usuario_id})
     await db_session.execute(text("DELETE FROM usuarios WHERE id = :id"), {"id": usuario_id})
     await db_session.commit()
 
     usuario = Usuario(
         id=usuario_id, cedula=cedula, nombre="Usuario Test Recovery",
-        correo=email, correo_actualizado=True, rol="admin",
+        correo=email, correo_actualizado=True, correo_verificado=True, rol="admin",
         esta_activo=True,
         hash_contrasena=ServicioAuth.obtener_hash_contrasena("password123")
     )
     db_session.add(usuario)
     await db_session.commit()
 
-    with patch("app.api.auth.login_router.EmailService.enviar_recuperacion_contrasena") as mock_send:
+    with patch("app.api.auth.public_auth_router.EmailService.enviar_recuperacion_contrasena") as mock_send:
         mock_send.return_value = True
         response = await fast_client.post("/auth/forgot-password", json={"cedula": cedula})
 
         assert response.status_code == 200
-        assert "instrucciones para restablecer su contraseña" in response.json()["message"]
+        assert response.json()["message"] == "Si el usuario está registrado, se ha enviado un correo de recuperación."
         mock_send.assert_called_once()
 
 
@@ -54,6 +56,7 @@ async def test_reset_password_success(fast_client, db_session):
     cedula = "444555666"
     usuario_id = f"USR-{cedula}"
 
+    await db_session.execute(text("DELETE FROM tokens WHERE usuario_id = :id"), {"id": usuario_id})
     await db_session.execute(text("DELETE FROM usuarios WHERE id = :id"), {"id": usuario_id})
     await db_session.commit()
 
@@ -65,7 +68,10 @@ async def test_reset_password_success(fast_client, db_session):
     db_session.add(usuario)
     await db_session.commit()
 
-    token = ServicioAuth.crear_token_recuperacion(usuario_id)
+    token = await generar_token_recuperacion(
+        db_session, usuario_id, origen="test_password_recovery"
+    )
+    await db_session.commit()
     nueva_clave = "NuevaClaveSuperSegura123!"
 
     response = await fast_client.post("/auth/reset-password", json={

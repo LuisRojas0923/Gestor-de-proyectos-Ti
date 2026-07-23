@@ -1,21 +1,30 @@
 import hashlib
 from datetime import datetime
 from typing import List, Dict, Any, Optional
-from fastapi import APIRouter, Depends, UploadFile, File, Form, Query, HTTPException
+from fastapi import APIRouter, Depends, UploadFile, File, Form, Query, HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import Session, select, delete
 from ....database import obtener_db, obtener_erp_db_opcional
 from ....models.novedades_nomina.nomina import (
-    NominaArchivo, NominaRegistroNormalizado, NominaExcepcion
+    NominaRegistroNormalizado
 )
 from ....services.erp.empleados_service import EmpleadosService
 from ....services.novedades_nomina.bogota_extractor import extraer_bogota_libranza
 from ....services.novedades_nomina.excepcion_service import ExcepcionService
+from ....services.novedades_nomina.nomina_service import NominaService
+from ....services.novedades_nomina.nomina_helper import NominaHelper
+from ....services.novedades_nomina.errores_http import error_interno
+from ....services.novedades_nomina.validacion_archivos_nomina import leer_archivos_nomina_http
+from ....services.novedades_nomina.almacenamiento import guardar_archivo_nomina
+from ....services.novedades_nomina.procesamiento_seguro import ejecutar_extractor_proceso
+from ....core.rate_limiter import limiter
 
 router = APIRouter(tags=["Libranzas - Bogotá"])
 
 @router.post("/bogota_libranza/preview")
+@limiter.limit("5/minute")
 async def preview_bogota_libranza(
+    request: Request,
     mes: int = Form(...),
     anio: int = Form(...),
     files: List[UploadFile] = File(...),
@@ -23,24 +32,24 @@ async def preview_bogota_libranza(
     db_erp = Depends(obtener_erp_db_opcional),
 ):
     """Procesa Excel de BOGOTA LIBRANZA, enriquece con ERP, guarda en BD."""
-    archivos_binarios = []
-    for f in files:
-        contenido = await f.read()
-        archivos_binarios.append(contenido)
+    archivos_binarios, _, _ = await leer_archivos_nomina_http(
+        files, extensiones_permitidas={".xls", ".xlsx", ".xlsm"}
+    )
 
-    rows, summary, warnings_txt = extraer_bogota_libranza(archivos_binarios)
+    rows, summary, warnings_txt = await ejecutar_extractor_proceso(
+        extraer_bogota_libranza, archivos_binarios
+    )
     summary["mes"] = mes
     summary["anio"] = anio
 
-    stmt_exc = select(NominaExcepcion).where(
-        NominaExcepcion.subcategoria == "BOGOTA LIBRANZA",
-        NominaExcepcion.estado == "ACTIVO"
-    )
     try:
-        result_exc = await session.execute(stmt_exc)
-        excepciones_db = result_exc.scalars().all()
+        excepciones_db = await NominaService.preparar_reemplazo_directo(
+            session, "BOGOTA LIBRANZA", mes, anio, rows
+        )
+    except HTTPException:
+        raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al consultar excepciones para Bogotá: {str(e)}")
+        raise error_interno("Error consultando excepciones de Bogotá Libranza") from e
     
     mapa_excepciones = {
         e.cedula: {
@@ -58,7 +67,7 @@ async def preview_bogota_libranza(
     if db_erp is not None:
         cedulas_sin_erp = set(mapa_excepciones.keys())
         cedulas_para_erp = list(set(r["cedula"] for r in rows if r["cedula"] not in cedulas_sin_erp))
-        mapa_erp = EmpleadosService.consultar_empleados_bulk(db_erp, cedulas_para_erp)
+        mapa_erp = await NominaHelper.consultar_empleados_bulk(db_erp, cedulas_para_erp)
         for row in rows:
             ced = row["cedula"]
             if ced in cedulas_sin_erp: continue
@@ -79,6 +88,7 @@ async def preview_bogota_libranza(
             elif estado and estado.upper() != "ACTIVO":
                 warnings_detalle.append({"cedula": ced, "nombre": row.get("nombre_asociado", "Desconocido"), "motivo": f"Estado: {estado}"})
 
+    saldos_procesados = set()
     for row in rows:
         ced = row["cedula"]
         if ced in mapa_excepciones:
@@ -86,7 +96,12 @@ async def preview_bogota_libranza(
             valor_orig = row["valor"]
             
             if exc.get("tipo") == "SALDO_FAVOR":
-                valor_final = await ExcepcionService.aplicar_saldo_favor(session, exc["obj"], valor_orig, mes, anio)
+                excepcion_id = exc["id"]
+                valor_final = await ExcepcionService.aplicar_saldo_favor(
+                    session, exc["obj"], valor_orig, mes, anio,
+                    acumular_periodo=excepcion_id in saldos_procesados,
+                )
+                saldos_procesados.add(excepcion_id)
                 row["valor"] = valor_final
                 row["nombre_asociado"], row["empresa"], row["estado_erp"] = exc["nombre"], exc["empresa"], "EXCEPCION_SALDO_FAVOR"
                 row["observaciones"] = f"Saldo favor aplicado. Cobro: ${valor_orig:,.0f} -> ${valor_final:,.0f}"
@@ -94,7 +109,7 @@ async def preview_bogota_libranza(
                 row["observaciones"] = f"Cobro original para {ced} ({exc['nombre']}). Redirigido a pagador {exc['pagador_cedula']}"
                 row["cedula"] = exc["pagador_cedula"]
                 if db_erp:
-                    info_pag = EmpleadosService.consultar_empleados_bulk(db_erp, [exc["pagador_cedula"]])
+                    info_pag = await NominaHelper.consultar_empleados_bulk(db_erp, [exc["pagador_cedula"]])
                     if info_pag.get(exc["pagador_cedula"]):
                         row["nombre_asociado"], row["empresa"] = info_pag[exc["pagador_cedula"]]["nombre"], info_pag[exc["pagador_cedula"]]["empresa"]
                 row["estado_erp"] = "REDIRECCIONADO"
@@ -155,23 +170,21 @@ async def preview_bogota_libranza(
         filename = f"{file_hash}.xlsx"
         path = os.path.join(STORAGE_DIR, filename)
         
-        with open(path, "wb") as f_out:
-            f_out.write(contenido)
+        await guardar_archivo_nomina(path, contenido)
 
         await session.execute(delete(NominaRegistroNormalizado).where(NominaRegistroNormalizado.subcategoria_final == "BOGOTA LIBRANZA", NominaRegistroNormalizado.mes_fact == mes, NominaRegistroNormalizado.año_fact == anio))
-        archivo = NominaArchivo(
-            nombre_archivo=f"bogota_libranza_{mes}_{anio}.xlsx", 
-            hash_archivo=file_hash, 
-            tamaño_bytes=sum(len(b) for b in archivos_binarios), 
-            tipo_archivo="xlsx", 
-            ruta_almacenamiento=path, 
-            mes_fact=mes, 
-            año_fact=anio, 
-            categoria="LIBRANZAS", 
-            subcategoria="BOGOTA LIBRANZA", 
-            estado="Procesado"
+        archivo = await NominaService.obtener_o_crear_archivo(
+            session,
+            hash_archivo=file_hash,
+            subcategoria="BOGOTA LIBRANZA",
+            mes=mes,
+            anio=anio,
+            nombre_archivo=f"bogota_libranza_{mes}_{anio}.xlsx",
+            tamaño_bytes=sum(len(b) for b in archivos_binarios),
+            tipo_archivo="xlsx",
+            ruta_almacenamiento=path,
+            categoria="LIBRANZAS",
         )
-        session.add(archivo); await session.flush()
         for idx, row in enumerate(rows_facturables):
             reg = NominaRegistroNormalizado(archivo_id=archivo.id, fecha_creacion=datetime.now(), mes_fact=mes, año_fact=anio, cedula=row["cedula"], nombre_asociado=row.get("nombre_asociado", ""), valor=row["valor"], empresa=row.get("empresa", ""), concepto=row["concepto"], categoria_final="LIBRANZAS", subcategoria_final="BOGOTA LIBRANZA", estado_validacion="OK" if str(row.get("estado_erp")).upper() == "ACTIVO" else row.get("estado_erp", "OK"), observaciones=row.get("observaciones"), fila_origen=idx + 1)
             session.add(reg)
@@ -181,7 +194,7 @@ async def preview_bogota_libranza(
         await session.commit()
     except Exception as e:
         await session.rollback()
-        raise HTTPException(status_code=500, detail=f"Error al guardar registros de Bogotá Libranza: {str(e)}")
+        raise error_interno("Error guardando registros de Bogotá Libranza") from e
 
     formatted_rows = [{"cedula": r["cedula"], "CEDULA": r["cedula"], "nombre_asociado": r.get("nombre_asociado", ""), "nombre": r.get("nombre_asociado", ""), "NOMBRE": r.get("nombre_asociado", ""), "valor": r["valor"], "VALOR": r["valor"], "empresa": r.get("empresa", ""), "EMPRESA": r.get("empresa", ""), "concepto": r.get("concepto", "BOGOTA LIBRANZA"), "CONCEPTO": r.get("concepto", "BOGOTA LIBRANZA")} for r in rows_facturables]
     return {"rows": formatted_rows, "summary": summary, "warnings": warnings_txt, "warnings_detalle": warnings_detalle}
@@ -193,7 +206,7 @@ async def obtener_datos_bogota_libranza(mes: int = Query(...), anio: int = Query
     try:
         result = await session.execute(stmt); registros = result.scalars().all()
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al consultar datos de Bogotá Libranza: {str(e)}")
+        raise error_interno("Error consultando datos de Bogotá Libranza") from e
     
     rows_final = [{"cedula": r.cedula, "CEDULA": r.cedula, "nombre_asociado": r.nombre_asociado or "", "nombre": r.nombre_asociado or "", "NOMBRE": r.nombre_asociado or "", "valor": r.valor, "VALOR": r.valor, "empresa": r.empresa, "EMPRESA": r.empresa, "concepto": r.concepto or "BOGOTA LIBRANZA", "CONCEPTO": r.concepto or "BOGOTA LIBRANZA", "estado_validacion": r.estado_validacion} 
                   for r in registros 

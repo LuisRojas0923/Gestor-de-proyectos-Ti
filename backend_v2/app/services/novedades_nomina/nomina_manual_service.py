@@ -49,8 +49,11 @@ class NominaManualService:
                             "empresa": ""
                         })
 
+            await NominaService._bloquear_periodo(session, subcategoria, mes, anio)
             # 2. Obtener info ERP
-            excepciones = await ExcepcionService.obtener_excepciones_activas(session, subcategoria)
+            excepciones = await ExcepcionService.obtener_excepciones_activas(
+                session, subcategoria, bloquear=True, mes=mes, anio=anio
+            )
             mapa_erp = await NominaService.get_mapa_erp(db_erp, rows, excepciones)
 
             # 3. Borrar previos
@@ -118,10 +121,10 @@ class NominaManualService:
                 "archivo_id": archivo.id
             }
 
-        except Exception as e:
+        except Exception:
             await session.rollback()
-            logger.error(f"Error procesando manual Otros Gerencia: {str(e)}")
-            raise e
+            logger.error("Error procesando manual Otros Gerencia")
+            raise
 
     @staticmethod
     async def procesar_manual_embargos(
@@ -159,8 +162,11 @@ class NominaManualService:
                         "empresa": ""
                     })
 
+            await NominaService._bloquear_periodo(session, subcategoria, mes, anio)
             # 2. Obtener info ERP
-            excepciones = await ExcepcionService.obtener_excepciones_activas(session, subcategoria)
+            excepciones = await ExcepcionService.obtener_excepciones_activas(
+                session, subcategoria, bloquear=True, mes=mes, anio=anio
+            )
             mapa_erp = await NominaService.get_mapa_erp(db_erp, rows, excepciones)
 
             # 3. Borrar previos
@@ -223,10 +229,10 @@ class NominaManualService:
                 "archivo_id": archivo.id
             }
 
-        except Exception as e:
+        except Exception:
             await session.rollback()
-            logger.error(f"Error procesando manual Embargos: {str(e)}")
-            raise e
+            logger.error("Error procesando manual Embargos")
+            raise
 
     @staticmethod
     async def procesar_manual_comisiones(
@@ -264,6 +270,7 @@ class NominaManualService:
                         "empresa": item.get("empresa", "")
                     })
 
+            await NominaService._bloquear_periodo(session, subcategoria, mes, anio)
             # 2. Obtener info ERP (Aun se usa para traer nombres/empresas actuales si no vienen)
             # Para comisiones, desactivamos la lógica de excepciones de descuento si no aplica
             mapa_erp = await NominaService.get_mapa_erp(db_erp, rows, [])
@@ -375,7 +382,7 @@ class NominaManualService:
                 "archivo_id": archivo.id
             }
 
-        except Exception as e:
+        except Exception:
             await session.rollback()
-            logger.error(f"Error procesando manual Comisiones: {str(e)}")
-            raise e
+            logger.error("Error procesando manual Comisiones")
+            raise

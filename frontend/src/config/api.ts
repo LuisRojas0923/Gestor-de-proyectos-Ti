@@ -18,6 +18,9 @@ export const API_CONFIG = {
 };
 
 export const API_ENDPOINTS = {
+  NOMINA_HDI_DATOS: '/novedades-nomina/hdi/datos',
+  NOMINA_HDI_PREVIEW: '/novedades-nomina/hdi/preview',
+
   // Desarrollos
   DEVELOPMENTS: '/desarrollos/',
   DEVELOPMENT_BY_ID: (id: string) => `/desarrollos/${id}`,
@@ -110,6 +113,7 @@ export const API_ENDPOINTS = {
 
   // Autenticación
   AUTH_LOGIN: '/auth/login',
+  AUTH_REFRESH: '/auth/refresh',
   AUTH_REGISTRO: '/auth/registro',
   AUTH_ME: '/auth/yo',
   AUTH_UPDATE_EMAIL: '/auth/update-email',

@@ -2,22 +2,26 @@
 Servicio de Autenticacion - Backend V2 (Async + SQLModel)
 """
 
+import hashlib
 import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 from jose import jwt
 import bcrypt
+from sqlalchemy import update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 from app.config import config
 from app.core.config import obtener_configuracion
-from app.models.auth.usuario import Usuario, PermisoRol
+from app.models.auth.usuario import Token, Usuario, PermisoRol
 from app.services.erp import EmpleadosService
 from app.services.erp.empleados_service import normalizar_bool_erp
 from .sesion_service import (
     registrar_sesion,
     marcar_fin_sesion,
     invalidar_sesiones_usuario,
+    obtener_sesion_web_activa,
+    rotar_sesion_web,
 )
 from .provisioning_service import (
     crear_analista_desde_erp,
@@ -201,10 +205,16 @@ class ServicioAuth:
             return None
 
     @staticmethod
-    def crear_token_verificacion(usuario_id: str) -> str:
+    def crear_token_verificacion(usuario_id: str, correo: str) -> str:
         """Genera un token JWT para verificacion de correo (Scope: verify_email)"""
         expira = datetime.now(timezone.utc) + timedelta(hours=24)
-        a_codificar = {"sub": usuario_id, "exp": expira, "scope": "verify_email"}
+        correo_hash = hashlib.sha256(correo.strip().lower().encode("utf-8")).hexdigest()
+        a_codificar = {
+            "sub": usuario_id,
+            "exp": expira,
+            "scope": "verify_email",
+            "correo_hash": correo_hash,
+        }
         return jwt.encode(
             a_codificar, config.jwt_secret_key, algorithm=config.algorithm
         )
@@ -232,7 +242,9 @@ class ServicioAuth:
             return None
 
     @staticmethod
-    def validar_token_verificacion(token: str) -> Optional[str]:
+    def validar_token_verificacion(
+        token: str, correo: Optional[str] = None
+    ) -> Optional[str]:
         """Valida un token de verificación de correo y retorna el usuario_id si es válido"""
         try:
             payload = jwt.decode(
@@ -240,6 +252,12 @@ class ServicioAuth:
             )
             if payload.get("scope") != "verify_email":
                 return None
+            if correo:
+                correo_hash = hashlib.sha256(
+                    correo.strip().lower().encode("utf-8")
+                ).hexdigest()
+                if payload.get("correo_hash") != correo_hash:
+                    return None
             return payload.get("sub")
         except Exception:
             return None
@@ -260,10 +278,13 @@ class ServicioAuth:
 
     @staticmethod
     async def obtener_usuario_por_cedula(
-        db: AsyncSession, cedula: str
+        db: AsyncSession, cedula: str, *, bloquear: bool = False
     ) -> Optional[Usuario]:
         """Obtiene un usuario por cedula (Async)."""
-        result = await db.execute(select(Usuario).where(Usuario.cedula == cedula))
+        stmt = select(Usuario).where(Usuario.cedula == cedula)
+        if bloquear:
+            stmt = stmt.with_for_update()
+        result = await db.execute(stmt)
         return result.scalars().first()
 
     @staticmethod
@@ -317,6 +338,11 @@ class ServicioAuth:
         db: AsyncSession, db_erp, usuario: Usuario
     ) -> Usuario:
         """Sincroniza los datos de perfil de un usuario existente con Solid ERP."""
+        usuario = (
+            await db.execute(
+                select(Usuario).where(Usuario.id == usuario.id).with_for_update()
+            )
+        ).scalars().one()
         datos_erp = await EmpleadosService.obtener_empleado_por_cedula(
             db_erp, usuario.cedula
         )
@@ -349,7 +375,20 @@ class ServicioAuth:
             
             # Sincronización de correo corporativo
             if datos_erp.get("correocorporativo"):
-                usuario.correo = datos_erp.get("correocorporativo").strip()
+                correo_nuevo = datos_erp.get("correocorporativo").strip()
+                if correo_nuevo.lower() != (usuario.correo or "").strip().lower():
+                    usuario.correo = correo_nuevo
+                    usuario.correo_actualizado = True
+                    usuario.correo_verificado = False
+                    await db.execute(
+                        update(Token)
+                        .where(
+                            Token.usuario_id == usuario.id,
+                            Token.tipo_token == "password_recovery",
+                            Token.ultimo_uso_en.is_(None),
+                        )
+                        .values(ultimo_uso_en=datetime.now())
+                    )
             
             await db.commit()
             await db.refresh(usuario)
@@ -464,3 +503,5 @@ class ServicioAuth:
     registrar_sesion = staticmethod(registrar_sesion)
     marcar_fin_sesion = staticmethod(marcar_fin_sesion)
     invalidar_sesiones_usuario = staticmethod(invalidar_sesiones_usuario)
+    obtener_sesion_web_activa = staticmethod(obtener_sesion_web_activa)
+    rotar_sesion_web = staticmethod(rotar_sesion_web)

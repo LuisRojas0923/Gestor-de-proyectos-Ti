@@ -1,7 +1,7 @@
 import hashlib
 from datetime import datetime
 from typing import List, Dict, Any, Optional
-from fastapi import APIRouter, Depends, UploadFile, File, Form, Query, HTTPException
+from fastapi import APIRouter, Depends, UploadFile, File, Form, Query, HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import Session, select, delete
 from ....database import obtener_db, obtener_erp_db_opcional
@@ -11,16 +11,19 @@ from ....models.novedades_nomina.nomina import (
 from ....services.erp.empleados_service import EmpleadosService
 from ....services.novedades_nomina.otros_gerencia_extractor import extraer_otros_gerencia
 from ....services.novedades_nomina.nomina_manual_service import NominaManualService
+from ....services.novedades_nomina.errores_http import error_interno
 from ....services.novedades_nomina.excepcion_service import ExcepcionService
 
 from ....api.auth.router import obtener_usuario_actual_db
 from ....models.auth.usuario import Usuario
 from ....models.novedades_nomina.nomina import NominaFavorito
+from ....core.rate_limiter import limiter
 
 router = APIRouter(tags=["Otros - Gerencia"])
 
 @router.post("/preview")
-async def preview_otros_gerencia(mes: int = Form(...), anio: int = Form(...), files: List[UploadFile] = File(...), session: AsyncSession = Depends(obtener_db), db_erp = Depends(obtener_erp_db_opcional)):
+@limiter.limit("5/minute")
+async def preview_otros_gerencia(request: Request, mes: int = Form(...), anio: int = Form(...), files: List[UploadFile] = File(...), session: AsyncSession = Depends(obtener_db), db_erp = Depends(obtener_erp_db_opcional)):
     from ....services.novedades_nomina.nomina_service import NominaService
     return await NominaService.procesar_flujo(
         session=session,
@@ -57,7 +60,7 @@ async def obtener_datos_otros_gerencia(
     try:
         favs = (await session.execute(stmt)).scalars().all()
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error consultando favoritos: {e}")
+        raise error_interno("Error consultando favoritos de Otros Gerencia") from e
     fav_set = set(favs)
     
     for row in res.get("rows", []):
@@ -78,7 +81,7 @@ async def listar_favoritos_otros_gerencia(
     try:
         cedulas = (await session.execute(stmt)).scalars().all()
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error consultando favoritos: {e}")
+        raise error_interno("Error consultando favoritos de Otros Gerencia") from e
     if not cedulas: return []
     
     if not db_erp:
@@ -121,7 +124,7 @@ async def toggle_favorito_otros_gerencia(
             return {"status": "added", "cedula": cedula}
     except Exception as e:
         await session.rollback()
-        raise HTTPException(status_code=500, detail=f"Error toggleando favorito: {e}")
+        raise error_interno("Error actualizando favorito de Otros Gerencia") from e
 
 @router.post("/procesar-manual")
 async def procesar_manual_otros_gerencia(payload: Dict = None, session: AsyncSession = Depends(obtener_db), db_erp = Depends(obtener_erp_db_opcional)):
@@ -130,7 +133,7 @@ async def procesar_manual_otros_gerencia(payload: Dict = None, session: AsyncSes
     if not mes or not anio or data is None: raise HTTPException(status_code=400, detail="Faltan parámetros")
     try:
         return await NominaManualService.procesar_manual_otros_gerencia(session, db_erp, data, mes, anio)
-    except Exception as e: raise HTTPException(status_code=500, detail=str(e))
+    except Exception as e: raise error_interno("Error procesando Otros Gerencia manual") from e
 
 @router.get("/empleado/{cedula}")
 async def buscar_empleado_otros_gerencia(
@@ -151,6 +154,6 @@ async def buscar_empleado_otros_gerencia(
     try:
         fav = (await session.execute(stmt)).scalar_one_or_none()
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error consultando favorito: {e}")
+        raise error_interno("Error consultando favorito de Otros Gerencia") from e
     empleado["is_favorite"] = fav is not None
     return empleado

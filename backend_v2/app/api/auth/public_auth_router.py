@@ -24,8 +24,11 @@ from app.models.auth.usuario import (
 )
 from app.services.auth.servicio import (
     ServicioAuth,
-    enmascarar_pii,
     normalizar_cedula,
+)
+from app.services.auth.recovery_token_service import (
+    generar_token_recuperacion,
+    restablecer_contrasena_con_token,
 )
 from app.services.notifications.email_service import EmailService
 
@@ -86,8 +89,8 @@ async def setup_password(
         return {"message": "Usuario creado y contraseña configurada exitosamente", "cedula": nuevo_usuario.cedula}
     except HTTPException:
         raise
-    except Exception as e:
-        logger.error("setup-password API error", exc_info=True, extra={"detail": enmascarar_pii(str(e))})
+    except Exception:
+        logger.error("setup-password API error")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Error interno del servidor",
@@ -129,31 +132,28 @@ async def forgot_password(
     cierra el vector de brute-force / spam de correos.
     """
     usuario = await ServicioAuth.obtener_usuario_por_cedula(db, payload.cedula)
+    mensaje = "Si el usuario está registrado, se ha enviado un correo de recuperación."
+    if not usuario or not usuario.correo or not usuario.correo_verificado:
+        return {"message": mensaje}
 
-    if not usuario:
-        # Por seguridad, no revelamos si el usuario existe, pero informamos si no hay correo
-        return {"message": "Si el usuario está registrado, se ha enviado un correo de recuperación."}
-
-    if not usuario.correo or not usuario.correo_actualizado:
-        raise HTTPException(
-            status_code=400,
-            detail="El usuario no tiene un correo corporativo validado. Por favor, contacte al administrador."
-        )
-
-    token = ServicioAuth.crear_token_recuperacion(usuario.id)
+    token = await generar_token_recuperacion(db, usuario.id, origen="forgot_password")
+    await db.refresh(usuario)
+    if not usuario.correo or not usuario.correo_verificado:
+        await db.rollback()
+        return {"message": mensaje}
+    correo_destino = usuario.correo
+    nombre_destino = usuario.nombre
+    await db.commit()
     reset_url = f"{EmailService.get_frontend_url()}/reset-password?token={token}"
 
-    enviado = await EmailService.enviar_recuperacion_contrasena(
-        usuario.correo, usuario.nombre, reset_url
-    )
+    import asyncio
 
-    if not enviado:
-        raise HTTPException(
-            status_code=500,
-            detail="No se pudo enviar el correo de recuperación. Intente más tarde."
+    asyncio.create_task(
+        EmailService.enviar_recuperacion_contrasena(
+            correo_destino, nombre_destino, reset_url
         )
-
-    return {"message": "Se ha enviado un correo con instrucciones para restablecer su contraseña."}
+    )
+    return {"message": mensaje}
 
 
 @router.post("/reset-password")
@@ -164,24 +164,26 @@ async def reset_password(
     db: AsyncSession = Depends(obtener_db),
 ):
     """Restablece la contraseña de un usuario usando un token válido"""
-    usuario_id = ServicioAuth.validar_token_recuperacion(payload.token)
-
-    if not usuario_id:
-        raise HTTPException(
-            status_code=400,
-            detail="Token de recuperación inválido o expirado."
-        )
-
     try:
-        await ServicioAuth.cambiar_contrasena(db, usuario_id, payload.nueva_contrasena)
-        # Opcionalmente invalidar sesiones antiguas
-        await ServicioAuth.invalidar_sesiones_usuario(db, usuario_id)
+        actualizado = await restablecer_contrasena_con_token(
+            db, payload.token, payload.nueva_contrasena
+        )
+        if not actualizado:
+            await db.rollback()
+            raise HTTPException(
+                status_code=400,
+                detail="Token de recuperación inválido o expirado.",
+            )
 
         return {"message": "Contraseña restablecida exitosamente. Ya puede iniciar sesión."}
+    except HTTPException:
+        raise
     except ValueError as e:
+        await db.rollback()
         raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
-        logger.error("Reset Password API error", exc_info=True, extra={"detail": enmascarar_pii(str(e))})
+    except Exception:
+        await db.rollback()
+        logger.error("Reset Password API error")
         raise HTTPException(status_code=500, detail="Error interno al restablecer la contraseña.")
 
 
@@ -228,8 +230,8 @@ async def registro_usuario_portal(
         }
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
-        logger.error("Registro API error", exc_info=True, extra={"detail": enmascarar_pii(str(e))})
+    except Exception:
+        logger.error("Registro API error")
         raise HTTPException(
             status_code=500, detail="Error interno al registrar la cuenta"
         )

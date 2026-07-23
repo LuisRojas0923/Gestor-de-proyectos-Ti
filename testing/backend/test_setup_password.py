@@ -16,7 +16,6 @@ from dotenv import load_dotenv
 
 from app.models.auth.usuario import Usuario, Sesion
 from app.services.auth.servicio import ServicioAuth
-from app.config import config
 
 load_dotenv()
 
@@ -25,12 +24,12 @@ _ID_SETUP = f"USR-P-{_CEDULA_SETUP}"
 _TEST_PASSWORD = "MiClaveSegura2026!"
 
 # ---------------------------------------------------------------------------
-# Fixture: usuario con password sin configurar (hash = portal_pending_pwd)
+# Fixture: usuario con password sin configurar (hash = cedula)
 # ---------------------------------------------------------------------------
 
 @pytest.fixture
 async def usuario_pendiente(db_session):
-    """Crea un usuario con hash = portal_pending_pwd (password_set=False)."""
+    """Crea un usuario con hash de cedula (password_set=False)."""
     await db_session.execute(
         text("DELETE FROM sesiones WHERE usuario_id = :id"),
         {"id": _ID_SETUP}
@@ -41,7 +40,7 @@ async def usuario_pendiente(db_session):
     )
     await db_session.commit()
 
-    hash_pendiente = ServicioAuth.obtener_hash_contrasena(config.portal_pending_pwd)
+    hash_pendiente = ServicioAuth.obtener_hash_contrasena(_CEDULA_SETUP)
     usuario = Usuario(
         id=_ID_SETUP,
         cedula=_CEDULA_SETUP,
@@ -159,7 +158,7 @@ async def test_login_rechaza_password_no_configurado(client, usuario_pendiente):
     """Verifica que /auth/login devuelva 400 PASSWORD_NOT_SET cuando password_set=False."""
     response = await client.post("/auth/login", data={
         "username": _CEDULA_SETUP,
-        "password": config.portal_pending_pwd
+        "password": _CEDULA_SETUP
     })
     assert response.status_code == 400
     data = response.json()

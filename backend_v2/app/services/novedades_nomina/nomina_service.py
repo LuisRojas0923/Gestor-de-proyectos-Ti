@@ -2,16 +2,111 @@ import logging
 import hashlib
 from typing import List, Dict, Any, Optional
 from sqlmodel import select, delete
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 from ...models.novedades_nomina.nomina import (
     NominaArchivo, NominaRegistroNormalizado, NominaExcepcion
 )
 from .excepcion_service import ExcepcionService
+from .errores import ErrorEstructuraNomina
 from .nomina_helper import NominaHelper
+from .validacion_archivos_nomina import (
+    ArchivoNominaInvalido,
+    leer_archivos_nomina,
+    status_archivo_invalido,
+)
+from .procesamiento_seguro import ejecutar_extractor_seguro, sanear_warnings_nomina
+from .almacenamiento import guardar_archivo_nomina
 
 logger = logging.getLogger(__name__)
 
 class NominaService:
+    @staticmethod
+    def _sanear_warnings(warnings: List[Any]) -> List[str]:
+        return sanear_warnings_nomina(warnings)
+
+    @staticmethod
+    async def _bloquear_periodo(
+        session: AsyncSession,
+        subcategoria: str,
+        mes: int,
+        anio: int,
+    ) -> None:
+        scope = f"nomina:{subcategoria.strip().upper()}:{anio}:{mes}"
+        await session.execute(
+            text("SELECT pg_advisory_xact_lock(hashtextextended(:scope, 0))"),
+            {"scope": scope},
+        )
+
+    @staticmethod
+    async def preparar_reemplazo_directo(
+        session: AsyncSession,
+        subcategoria: str,
+        mes: int,
+        anio: int,
+        rows: List[Dict[str, Any]],
+    ) -> List[NominaExcepcion]:
+        from fastapi import HTTPException
+
+        if not rows:
+            raise HTTPException(
+                status_code=422,
+                detail="El archivo no contiene filas válidas para procesar.",
+            )
+
+        await NominaService._bloquear_periodo(session, subcategoria, mes, anio)
+        return await ExcepcionService.obtener_excepciones_activas(
+            session,
+            subcategoria,
+            bloquear=True,
+            mes=mes,
+            anio=anio,
+        )
+
+    @staticmethod
+    async def obtener_o_crear_archivo(
+        session: AsyncSession,
+        *,
+        hash_archivo: str,
+        subcategoria: str,
+        mes: int,
+        anio: int,
+        nombre_archivo: str,
+        tamaño_bytes: int,
+        tipo_archivo: str,
+        ruta_almacenamiento: str,
+        categoria: str,
+    ) -> NominaArchivo:
+        """Reutiliza metadata por identidad única; requiere el lock del periodo."""
+        subcategoria = subcategoria.strip()
+        resultado = await session.execute(
+            select(NominaArchivo).where(
+                NominaArchivo.hash_archivo == hash_archivo,
+                NominaArchivo.subcategoria == subcategoria,
+                NominaArchivo.mes_fact == mes,
+                NominaArchivo.año_fact == anio,
+            )
+        )
+        archivo = resultado.scalars().first()
+        if archivo:
+            return archivo
+
+        archivo = NominaArchivo(
+            nombre_archivo=nombre_archivo,
+            hash_archivo=hash_archivo,
+            tamaño_bytes=tamaño_bytes,
+            tipo_archivo=tipo_archivo,
+            ruta_almacenamiento=ruta_almacenamiento,
+            mes_fact=mes,
+            año_fact=anio,
+            categoria=categoria,
+            subcategoria=subcategoria,
+            estado="Procesado",
+        )
+        session.add(archivo)
+        await session.flush()
+        return archivo
+
     @staticmethod
     async def get_mapa_erp(db_erp, rows: List[Dict[str, Any]], excepciones: List[NominaExcepcion] = []) -> Dict[str, Any]:
         """Obtiene un mapa de empleados desde el ERP delegando en NominaHelper."""
@@ -48,7 +143,7 @@ class NominaService:
     async def crear_archivo_procesado(
         session: AsyncSession,
         nombre: str,
-        content_prefix: bytes,
+        contenido: bytes,
         size: int,
         ext: str,
         mes: int,
@@ -61,7 +156,7 @@ class NominaService:
         return await NominaHelper.crear_archivo_procesado(
             session=session,
             nombre=nombre,
-            content_prefix=content_prefix,
+            contenido=contenido,
             size=size,
             ext=ext,
             mes=mes,
@@ -83,41 +178,63 @@ class NominaService:
         anio: int
     ) -> Dict[str, Any]:
         """Flujo unificado para procesar archivos de nómina especializados."""
-        # 1. Leer archivos y guardar el primero físicamente
-        archivos_binarios = []
-        original_filenames = []
-        for f in files:
-            content = await f.read()
-            archivos_binarios.append(content)
-            original_filenames.append(getattr(f, "filename", "archivo"))
+        # 1. Validar y leer con límites antes de extraer o persistir.
+        try:
+            extension_solicitada = f".{extension.lower().lstrip('.')}"
+            extensiones_permitidas = (
+                {".xls", ".xlsx", ".xlsm"}
+                if extension_solicitada in {".xls", ".xlsx"}
+                else {extension_solicitada}
+            )
+            archivos_binarios, original_filenames, extensiones_reales = await leer_archivos_nomina(
+                files,
+                extensiones_permitidas=extensiones_permitidas,
+            )
+            extension = extensiones_reales[0]
+        except ArchivoNominaInvalido as exc:
+            from fastapi import HTTPException
+
+            raise HTTPException(
+                status_code=status_archivo_invalido(exc), detail=str(exc)
+            ) from exc
             
-        import os
-        STORAGE_DIR = "uploads/nomina"
-        os.makedirs(STORAGE_DIR, exist_ok=True)
-        
-        ruta_almacenamiento = "memory"
-        nombre_archivo = f"{subcategoria.lower().replace(' ', '_')}_{mes}_{anio}.{extension}"
-        
-        if archivos_binarios:
-            contenido = archivos_binarios[0]
-            hash_str = hashlib.md5(contenido).hexdigest()
-            nombre_archivo = original_filenames[0]
-            ext_real = nombre_archivo.split('.')[-1].lower() if '.' in nombre_archivo else extension
-            
-            ruta_almacenamiento = os.path.join(STORAGE_DIR, f"{hash_str}.{ext_real}")
-            
-            # Guardamos el archivo original intacto para descargas y auditoría
-            with open(ruta_almacenamiento, "wb") as f_out:
-                f_out.write(contenido)
-        
         # 2. Extraer datos usando la función específica en un hilo separado para no bloquear el event loop
         import asyncio
-        rows, summary, warnings_txt = await asyncio.to_thread(extractor_fn, archivos_binarios)
+        from fastapi import HTTPException
+
+        try:
+            rows, summary, warnings_txt = await ejecutar_extractor_seguro(
+                extractor_fn, archivos_binarios
+            )
+        except ErrorEstructuraNomina as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
+        except ValueError as exc:
+            raise HTTPException(
+                status_code=422,
+                detail="El archivo no cumple la estructura requerida para esta nómina.",
+            ) from exc
+        warnings_txt = NominaService._sanear_warnings(warnings_txt)
         summary.update({"mes": mes, "anio": anio})
 
-        # 3. Obtener info ERP y Excepciones
-        excepciones = await ExcepcionService.obtener_excepciones_activas(session, subcategoria)
-        mapa_erp = await NominaService.get_mapa_erp(db_erp, rows, excepciones)
+        # 2b. Protección contra pérdida de datos: si la extracción falla o devuelve 0 filas válidas,
+        # se aborta la operación ANTES de eliminar registros existentes en el periodo.
+        if not rows:
+            raise HTTPException(
+                status_code=400,
+                detail="No se pudieron extraer registros válidos del archivo proporcionado. La operación ha sido cancelada para preservar los datos existentes del periodo."
+            )
+
+        import os
+        from uuid import uuid4
+
+        contenido = archivos_binarios[0]
+        nombre_archivo = os.path.basename(original_filenames[0])
+        hash_str = hashlib.sha256(contenido).hexdigest()
+        ruta_almacenamiento = os.path.join(
+            "uploads", "nomina", f"{hash_str}_{uuid4().hex}.{extension}"
+        )
+        ruta_creada = False
+        transaccion_confirmada = False
         
         # 4. Borrar antiguos para evitar duplicados en el mismo periodo/subcat
         subcategoria_clean = subcategoria.strip()
@@ -126,22 +243,64 @@ class NominaService:
             NominaRegistroNormalizado.mes_fact == mes,
             NominaRegistroNormalizado.año_fact == anio,
         )
-        
+
         try:
+            await NominaService._bloquear_periodo(
+                session,
+                subcategoria=subcategoria_clean,
+                mes=mes,
+                anio=anio,
+            )
+            excepciones = await ExcepcionService.obtener_excepciones_activas(
+                session,
+                subcategoria,
+                bloquear=True,
+                mes=mes,
+                anio=anio,
+            )
+            mapa_erp = await NominaService.get_mapa_erp(
+                db_erp,
+                rows,
+                excepciones,
+            )
+            tarea_guardado = asyncio.create_task(
+                guardar_archivo_nomina(ruta_almacenamiento, contenido)
+            )
+            try:
+                await asyncio.shield(tarea_guardado)
+                ruta_creada = True
+            except asyncio.CancelledError:
+                await tarea_guardado
+                ruta_creada = True
+                raise
+
             await session.execute(stmt_del)
             
             # 6. Crear entrada de archivo
             archivo = await NominaService.crear_archivo_procesado(
-                session, nombre_archivo, archivos_binarios[0][:1024] if archivos_binarios else b"", 
-                sum(len(b) for b in archivos_binarios), extension, mes, anio, categoria, subcategoria, ruta_almacenamiento
+                session, nombre_archivo, contenido, len(contenido), extension,
+                mes, anio, categoria, subcategoria, ruta_almacenamiento
             )
+            if getattr(archivo, "ruta_almacenamiento", ruta_almacenamiento) != ruta_almacenamiento:
+                try:
+                    await asyncio.to_thread(os.remove, ruta_almacenamiento)
+                except FileNotFoundError:
+                    pass
+                ruta_creada = False
 
             # 7. Persistir registros (con excepciones)
             registros = await NominaService.persistir_registros_normalizados(
                 session, archivo.id, mes, anio, rows, categoria, subcategoria_clean, mapa_erp, excepciones
             )
             
-            await session.commit()
+            tarea_commit = asyncio.create_task(session.commit())
+            try:
+                await asyncio.shield(tarea_commit)
+                transaccion_confirmada = True
+            except asyncio.CancelledError:
+                await tarea_commit
+                transaccion_confirmada = True
+                raise
             
             # 8. Formatear respuesta para el frontend (Compatible con múltiples versiones)
             filas_frontend = []
@@ -222,10 +381,17 @@ class NominaService:
                 "archivo_id": archivo.id
             }
             
-        except Exception as e:
-            await session.rollback()
-            logger.error(f"FALLO CRÍTICO en flujo {subcategoria}: {str(e)}", exc_info=True)
-            raise e
+        except BaseException:
+            await asyncio.shield(session.rollback())
+            if ruta_creada and not transaccion_confirmada:
+                try:
+                    await asyncio.shield(
+                        asyncio.to_thread(os.remove, ruta_almacenamiento)
+                    )
+                except FileNotFoundError:
+                    pass
+            logger.error("Fallo controlado en flujo de nómina %s", subcategoria)
+            raise
     @staticmethod
     async def obtener_datos_periodo(
         session: AsyncSession,
@@ -317,9 +483,9 @@ class NominaService:
                 "warnings": [],
                 "warnings_detalle": warnings_detalle
             }
-        except Exception as e:
-            logger.error(f"Error al obtener datos de {subcategoria}: {str(e)}")
-            raise e
+        except Exception:
+            logger.error("Error al obtener datos de nómina %s", subcategoria)
+            raise
 
     @staticmethod
     def _agrupar_por_cedula(filas: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
