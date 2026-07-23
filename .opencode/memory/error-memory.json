@@ -91,12 +91,29 @@
       "sha_base_local": "0c222f67",
       "estado": "RESUELTO",
       "evidencia": "98 backend focalizadas PASS; health 4 passed/4 skipped; 12 frontend PASS; ESLint focal, build, py_compile y diff-check PASS"
+    },
+    {
+      "operation": "record and reconcile PR #22 blockers",
+      "ids_registrados": [
+        "ERR-010",
+        "ERR-011",
+        "ERR-012",
+        "ERR-013",
+        "ERR-014",
+        "ERR-015"
+      ],
+      "ids_existentes_actualizados": [],
+      "timestamp": "2026-07-23T00:00:00Z",
+      "commit_referencia": "a483a075",
+      "estado": "RESUELTO",
+      "evidencia": "143 backend focalizadas PASS; 16 frontend PASS; health 4 passed/4 skipped; build, ESLint, compileall y diff-check PASS; backend/frontend/docs aprobados; security/scope aprobados con riesgos",
+      "publicacion": "Cierre funcional fijado en a483a075; push y nueva revisión pendientes; no hay checks de GitHub configurados."
     }
   ],
   "stats": {
-    "total_operations": 7,
-    "last_operation": "cierre local ERR-003 a ERR-009 posterior a 0c222f67 — 2026-07-22T00:00:00Z",
-    "errors_recorded": 8,
+    "total_operations": 8,
+    "last_operation": "cierre funcional de seis bloqueantes PR #22 en a483a075 — 2026-07-23T00:00:00Z",
+    "errors_recorded": 14,
     "decisions_recorded": 1,
     "memory_persistence_enabled": true,
     "permission_grant_date": "2026-06-03"

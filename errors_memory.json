@@ -358,6 +358,224 @@
       ],
       "sha_base_local": "0c222f67",
       "nota_publicacion": "Resuelto localmente posterior a SHA base 0c222f67; commit y push pendientes."
+    },
+    {
+      "id": "ERR-010",
+      "titulo": "PR #22: cargas sin límites integrales, cancelación segura ni cuota",
+      "archivos_afectados": [
+        "backend_v2/ (carga y procesamiento de archivos de novedades de nómina)",
+        "frontend/ (flujo de carga y cancelación)",
+        "testing/ (regresiones focalizadas de carga)"
+      ],
+      "causa_raiz": "El flujo de carga no garantizaba de extremo a extremo límites y validación de archivos, rate limiting, cancelación segura del procesamiento y aplicación de cuota.",
+      "solucion_propuesta": [
+        "Aplicar límites y validación fail-closed antes y durante el procesamiento.",
+        "Proteger la carga con rate limit y cuota.",
+        "Hacer cancelable el procesamiento y limpiar recursos de forma segura."
+      ],
+      "impacto": "Una carga abusiva, inválida o cancelada podía consumir recursos sin control o dejar procesamiento y artefactos inconsistentes.",
+      "estado": "RESUELTO",
+      "prioridad": "CRITICA",
+      "componente": "multi",
+      "fecha_deteccion": "2026-07-23",
+      "fecha_resolucion": "2026-07-23",
+      "tags": [
+        "PR-22",
+        "uploads",
+        "validacion",
+        "rate-limit",
+        "cancelacion",
+        "cuota"
+      ],
+      "evidencia": [
+        "143 pruebas backend focalizadas aprobadas y 16 pruebas frontend aprobadas",
+        "Health: 4 passed y 4 skipped",
+        "Build, ESLint, compileall y diff-check aprobados",
+        "Revisión final backend, frontend y docs aprobada; security y scope aprobados con riesgos"
+      ],
+      "commit_referencia": "a483a075",
+      "nota_publicacion": "Resuelto en el commit funcional a483a075; push y nueva revisión pendientes; no hay checks de GitHub configurados."
+    },
+    {
+      "id": "ERR-011",
+      "titulo": "PR #22: persistencia concurrente y multifila incompleta para CELULARES, RETENCIONES y EMBARGOS",
+      "archivos_afectados": [
+        "backend_v2/ (persistencia PostgreSQL de CELULARES, RETENCIONES y EMBARGOS)",
+        "testing/backend/ (regresiones de serialización y persistencia multifila)"
+      ],
+      "causa_raiz": "La persistencia de CELULARES, RETENCIONES y EMBARGOS no aseguraba serialización PostgreSQL ni semántica multifila consistente bajo concurrencia.",
+      "solucion_propuesta": [
+        "Serializar en PostgreSQL las operaciones concurrentes antes de validar y persistir.",
+        "Preservar correctamente todas las filas válidas de categorías multifila.",
+        "Cubrir concurrencia y cardinalidad multifila con regresiones focalizadas."
+      ],
+      "impacto": "Operaciones concurrentes podían perder, duplicar o reconciliar incorrectamente filas de celulares, retenciones o embargos.",
+      "estado": "RESUELTO",
+      "prioridad": "CRITICA",
+      "componente": "backend",
+      "fecha_deteccion": "2026-07-23",
+      "fecha_resolucion": "2026-07-23",
+      "tags": [
+        "PR-22",
+        "PostgreSQL",
+        "serializacion",
+        "multifila",
+        "CELULARES",
+        "RETENCIONES",
+        "EMBARGOS"
+      ],
+      "evidencia": [
+        "143 pruebas backend focalizadas aprobadas y 16 pruebas frontend aprobadas",
+        "Health: 4 passed y 4 skipped",
+        "Build, ESLint, compileall y diff-check aprobados",
+        "Revisión final backend, frontend y docs aprobada; security y scope aprobados con riesgos"
+      ],
+      "commit_referencia": "a483a075",
+      "nota_publicacion": "Resuelto en el commit funcional a483a075; push y nueva revisión pendientes; no hay checks de GitHub configurados."
+    },
+    {
+      "id": "ERR-012",
+      "titulo": "PR #22: errores 500 y errores persistidos exponían detalle interno",
+      "archivos_afectados": [
+        "backend_v2/ (manejo HTTP 500 y persistencia de errores)",
+        "testing/backend/ (regresiones de redacción de errores)"
+      ],
+      "causa_raiz": "Las respuestas 500 y los errores almacenados podían conservar o exponer mensajes internos, excepciones o datos sensibles sin redacción uniforme.",
+      "solucion_propuesta": [
+        "Responder 500 con mensajes externos genéricos.",
+        "Redactar datos sensibles y detalles internos antes de persistir errores.",
+        "Mantener diagnóstico interno seguro sin filtrar información al cliente."
+      ],
+      "impacto": "Usuarios o consumidores podían recibir detalles de implementación y la evidencia persistida podía retener información sensible.",
+      "estado": "RESUELTO",
+      "prioridad": "CRITICA",
+      "componente": "backend",
+      "fecha_deteccion": "2026-07-23",
+      "fecha_resolucion": "2026-07-23",
+      "tags": [
+        "PR-22",
+        "errores-500",
+        "redaccion",
+        "persistencia",
+        "seguridad"
+      ],
+      "evidencia": [
+        "143 pruebas backend focalizadas aprobadas y 16 pruebas frontend aprobadas",
+        "Health: 4 passed y 4 skipped",
+        "Build, ESLint, compileall y diff-check aprobados",
+        "Revisión final backend, frontend y docs aprobada; security y scope aprobados con riesgos"
+      ],
+      "commit_referencia": "a483a075",
+      "nota_publicacion": "Resuelto en el commit funcional a483a075; push y nueva revisión pendientes; no hay checks de GitHub configurados."
+    },
+    {
+      "id": "ERR-013",
+      "titulo": "PR #22 HDI: propiedad de solicitudes GET/POST dividida entre clientes y estados",
+      "archivos_afectados": [
+        "frontend/src/pages/ServicePortal/pages/NOVEDADES_NOMINA/ (flujo HDI GET/POST)",
+        "frontend/ (cliente API y ciclo de vida de solicitudes)",
+        "frontend/ (pruebas HDI)"
+      ],
+      "causa_raiz": "Las solicitudes HDI GET y POST tenían ownership dividido entre clientes, efectos o estados, lo que permitía carreras, cancelaciones incompletas y respuestas obsoletas.",
+      "solucion_propuesta": [
+        "Unificar el ownership de GET y POST HDI en un único ciclo de vida de solicitud.",
+        "Centralizar autenticación, cancelación y descarte de respuestas obsoletas.",
+        "Cubrir el flujo unificado con pruebas frontend focalizadas."
+      ],
+      "impacto": "Una respuesta desplazada o una cancelación parcial podía sobrescribir el estado vigente o dejar solicitudes HDI activas.",
+      "estado": "RESUELTO",
+      "prioridad": "ALTA",
+      "componente": "frontend",
+      "fecha_deteccion": "2026-07-23",
+      "fecha_resolucion": "2026-07-23",
+      "tags": [
+        "PR-22",
+        "HDI",
+        "GET",
+        "POST",
+        "request-ownership",
+        "cancelacion",
+        "race-condition"
+      ],
+      "evidencia": [
+        "143 pruebas backend focalizadas aprobadas y 16 pruebas frontend aprobadas",
+        "Health: 4 passed y 4 skipped",
+        "Build, ESLint, compileall y diff-check aprobados",
+        "Revisión final backend, frontend y docs aprobada; security y scope aprobados con riesgos"
+      ],
+      "commit_referencia": "a483a075",
+      "nota_publicacion": "Resuelto en el commit funcional a483a075; push y nueva revisión pendientes; no hay checks de GitHub configurados."
+    },
+    {
+      "id": "ERR-014",
+      "titulo": "PR #22: migración concurrente sin advisory lock",
+      "archivos_afectados": [
+        "backend_v2/ (migración PostgreSQL de novedades de nómina)",
+        "testing/backend/ (regresiones de ejecución concurrente de migración)"
+      ],
+      "causa_raiz": "Dos instancias podían intentar ejecutar simultáneamente la misma migración sin un advisory lock PostgreSQL que serializara la sección crítica.",
+      "solucion_propuesta": [
+        "Adquirir un advisory lock PostgreSQL estable antes de ejecutar la migración.",
+        "Liberar el lock de forma segura y mantener la migración idempotente.",
+        "Validar el comportamiento ante ejecución concurrente."
+      ],
+      "impacto": "Despliegues concurrentes podían colisionar, fallar parcialmente o dejar el esquema en un estado ambiguo.",
+      "estado": "RESUELTO",
+      "prioridad": "CRITICA",
+      "componente": "infra",
+      "fecha_deteccion": "2026-07-23",
+      "fecha_resolucion": "2026-07-23",
+      "tags": [
+        "PR-22",
+        "PostgreSQL",
+        "migracion",
+        "advisory-lock",
+        "concurrencia"
+      ],
+      "evidencia": [
+        "143 pruebas backend focalizadas aprobadas y 16 pruebas frontend aprobadas",
+        "Health: 4 passed y 4 skipped",
+        "Build, ESLint, compileall y diff-check aprobados",
+        "Revisión final backend, frontend y docs aprobada; security y scope aprobados con riesgos"
+      ],
+      "commit_referencia": "a483a075",
+      "nota_publicacion": "Resuelto en el commit funcional a483a075; push y nueva revisión pendientes; no hay checks de GitHub configurados."
+    },
+    {
+      "id": "ERR-015",
+      "titulo": "PR #22: evidencia mutable no reconciliada con el estado final revisado",
+      "archivos_afectados": [
+        "docs/ (evidencia y reportes de revisión de PR #22)",
+        "testing/ (resultados focalizados referenciados por la evidencia)",
+        "errors_memory.json"
+      ],
+      "causa_raiz": "La evidencia mutable podía conservar conteos, resultados o conclusiones de revisiones intermedias que ya no representaban el working tree final.",
+      "solucion_propuesta": [
+        "Reconciliar la evidencia mutable contra el estado final revisado.",
+        "Distinguir resultados locales de checks remotos y evitar atribuirlos a un SHA que todavía no contiene los cambios.",
+        "Registrar aprobaciones y riesgos finales sin sobreafirmar publicación o CI de GitHub."
+      ],
+      "impacto": "Revisores podían tomar decisiones con evidencia desactualizada o interpretar que resultados locales estaban vinculados a un commit o a checks remotos.",
+      "estado": "RESUELTO",
+      "prioridad": "ALTA",
+      "componente": "multi",
+      "fecha_deteccion": "2026-07-23",
+      "fecha_resolucion": "2026-07-23",
+      "tags": [
+        "PR-22",
+        "evidencia",
+        "reconciliacion",
+        "documentacion",
+        "trazabilidad"
+      ],
+      "evidencia": [
+        "143 pruebas backend focalizadas aprobadas y 16 pruebas frontend aprobadas",
+        "Health: 4 passed y 4 skipped",
+        "Build, ESLint, compileall y diff-check aprobados",
+        "Revisión final backend, frontend y docs aprobada; security y scope aprobados con riesgos"
+      ],
+      "commit_referencia": "a483a075",
+      "nota_publicacion": "Resuelto en el commit funcional a483a075; push y nueva revisión pendientes; no hay checks de GitHub configurados."
     }
   ],
   "decisions": [

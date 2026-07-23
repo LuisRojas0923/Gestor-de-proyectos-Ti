@@ -49,7 +49,7 @@ Ubicación: `testing/backend/`
 | **ETL Grancoop** | `test_grancoop_nombre_matching.py` | CREDIPRIMA, NOMPRI estricto, sumatoria sin duplicar y límites PDF. | ✅ PASSED |
 | **Seguridad Cooperativas** | `test_cooperativas_archivos_seguridad.py` | Firmas, límites, nombres, permiso `nomina_novedades` y parser en proceso cancelable. | ✅ PASSED |
 | **Seguros HDI Excel** | `test_hdi_extractor_grupos.py`, `test_hdi_excel_security.py` | Encabezados y tipos exactos, formato monetario COP/US estricto, rechazo atómico, estructura XLS/XLSX, límites, archivos disfrazados, rollback y cancelación segura durante commit. | ✅ PASSED |
-| **Seguridad y concurrencia Nómina** | `test_nomina_rbac_concurrencia.py`, `test_nomina_excepciones_migration.py`, `test_nomina_manual_concurrencia.py` | RBAC del árbol y comisiones; reproceso no destructivo; flujos completos PostgreSQL, saldo agotado idempotente, migración de unicidad y serialización manual. | ✅ PASSED |
+| **Seguridad y concurrencia Nómina** | `test_nomina_hardening_bloqueantes.py`, `test_nomina_{rbac,flujos_directos}_concurrencia.py`, `test_nomina_excepciones_migration.py`, `test_nomina_manual_concurrencia.py` | RBAC; límites, firmas, ZIP, cuota concurrente y rate limit; 4xx/500; procesos cancelables; delegación HTTP y PostgreSQL real para serialización concurrente multifila de CELULARES/RETENCIONES/EMBARGOS; migración concurrente; orden de lock manual con mocks. | ✅ 143 PASSED (suite focal completa) |
 
 ### 2. Frontend (Vitest)
 Ubicación: `frontend/src/`
@@ -65,7 +65,7 @@ Ubicación: `frontend/src/`
 | **Indicadores de Auditoría** | `pages/ServicePortal/pages/AuditoriaIndicadores/index.test.tsx` | Estados de éxito, error y actualización manual del dashboard. | ✅ PASSED |
 | **Organigrama interactivo** | `pages/OrganizationalHierarchy/*.test.tsx` y `utils.test.ts` | Expansión inicial, paneo móvil, layout aislado y controles accesibles. | ✅ PASSED |
 | **Líneas Corporativas** | `components/atoms/SearchableSelect.test.tsx`, `components/molecules/__tests__/{DataTable,Modal}.test.tsx`, `pages/CorporateLines/**/*.test.tsx` | Teclado, tabla/filtros accesibles, modales, confirmaciones, reintentos y estados de gestores. | ✅ PASSED |
-| **Novedades de Nómina** | `services/nominaApi.test.ts`, `pages/ServicePortal/pages/NOVEDADES_NOMINA/__tests__/{HdiPreview,NominaDashboard}.test.tsx` | JWT real en JSON/FormData/Blob, refresh 401, aislamiento de origen, catálogo, flujo HDI, errores y descarte de respuestas obsoletas. | ✅ 12 PASSED |
+| **Novedades de Nómina** | `hooks/useApi.test.tsx`, `services/nominaApi.test.ts`, `pages/ServicePortal/pages/NOVEDADES_NOMINA/__tests__/{HdiPreview,NominaDashboard}.test.tsx` | JWT, refresh 401, aislamiento de origen, errores silenciosos controlados y propiedad unificada de respuestas HDI GET/POST al cambiar período. | ✅ 16 PASSED |
 
 ### 3. Arnés de agentes (Pytest)
 Ubicación: `testing/agent_harness/`
