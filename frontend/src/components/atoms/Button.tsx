@@ -22,9 +22,11 @@ interface ButtonProps {
   'aria-describedby'?: string;
   'aria-hidden'?: boolean;
   'aria-selected'?: boolean;
+  'aria-checked'?: boolean | 'mixed';
   'aria-pressed'?: boolean;
   'aria-expanded'?: boolean;
   'aria-controls'?: string;
+  'aria-haspopup'?: boolean | 'dialog' | 'menu' | 'listbox' | 'tree' | 'grid';
   fullWidth?: boolean;
   rounded?: 'lg' | 'full';
   tabIndex?: number;
@@ -70,9 +72,11 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(({
   'aria-describedby': ariaDescribedBy,
   'aria-hidden': ariaHidden,
   'aria-selected': ariaSelected,
+  'aria-checked': ariaChecked,
   'aria-pressed': ariaPressed,
   'aria-expanded': ariaExpanded,
   'aria-controls': ariaControls,
+  'aria-haspopup': ariaHasPopup,
 }, ref) => {
   const baseClasses = 'inline-flex items-center justify-center font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed';
 
@@ -120,9 +124,11 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(({
       aria-describedby={ariaDescribedBy}
       aria-hidden={ariaHidden}
       aria-selected={ariaSelected}
+      aria-checked={ariaChecked}
       aria-pressed={ariaPressed}
       aria-expanded={ariaExpanded}
       aria-controls={ariaControls}
+      aria-haspopup={ariaHasPopup}
       draggable={draggable}
       role={role}
       className={`
@@ -154,7 +160,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(({
       )}
 
       {children && (
-        <Text as="span" variant={textVariantMap[size]} color="inherit">
+        <Text as="span" variant={textVariantMap[size]} color="inherit" className="contents">
           {children}
         </Text>
       )}

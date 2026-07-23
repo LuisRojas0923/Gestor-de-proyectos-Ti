@@ -5,6 +5,7 @@ import {
     isInternalActivityEvidence,
     isSafeExternalEvidenceUrl,
 } from './ActivityEvidenceService';
+import { API_CONFIG } from '../config/api';
 
 
 describe('ActivityEvidenceService', () => {
@@ -45,7 +46,7 @@ describe('ActivityEvidenceService', () => {
         await downloadActivityEvidence(42);
 
         expect(fetchMock).toHaveBeenCalledWith(
-            '/api/v2/actividades/42/archivo',
+            `${API_CONFIG.BASE_URL}/actividades/42/archivo`,
             { headers: { Authorization: 'Bearer token-prueba' } }
         );
         expect(click).toHaveBeenCalledOnce();

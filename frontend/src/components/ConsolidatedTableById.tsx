@@ -2,6 +2,7 @@ import React, { useEffect, useState, useMemo, useRef } from 'react';
 import { Calendar } from 'lucide-react';
 import { API_CONFIG } from '../config/api';
 import { Text, Title, Button, Badge, Icon } from './atoms';
+import { ColumnFilterPopover } from './molecules';
 import { ActivityEvidenceButton } from '../pages/DevelopmentDetail/components/ActivityEvidenceButton';
 
 type Actividad = {
@@ -26,16 +27,19 @@ type DesarrolloCon = {
     actividades: Actividad[];
 };
 
+type ColumnFilterSelection = Set<string> | null;
+
 const COLUMNS = [
     { key: 'tarea', label: 'Tarea', width: 'flex-1 min-w-[260px]' },
-    { key: 'estado', label: 'Estado', width: 'md:w-24' },
-    { key: 'progreso', label: 'Progreso', width: 'md:w-28' },
+    { key: 'estado', label: 'Estado', width: 'md:w-24', isFilterable: true },
+    { key: 'progreso', label: 'Progreso', width: 'md:w-28', isFilterable: true },
     { key: 'fechas', label: 'Fechas', width: 'md:w-28' },
     { key: 'seguimiento', label: 'Seguimiento', width: 'md:w-40' },
     { key: 'acciones', label: 'Acciones', width: 'md:w-24', isActions: true },
 ];
 
 const getStatusVariant = (estado: string): 'error' | 'warning' | 'success' | 'default' => {
+    if (!estado) return 'default';
     const lower = estado.toLowerCase();
     if (lower.includes('pendiente')) return 'error';
     if (lower.includes('progreso') || lower.includes('curso')) return 'warning';
@@ -43,13 +47,15 @@ const getStatusVariant = (estado: string): 'error' | 'warning' | 'success' | 'de
     return 'default';
 };
 
-const getProgressColor = (pct: number) => {
-    if (pct >= 75) return 'bg-emerald-500';
-    if (pct >= 50) return 'bg-blue-500';
-    if (pct >= 25) return 'bg-yellow-500';
-    if (pct > 0) return 'bg-orange-400';
-    return 'bg-gray-200 dark:bg-gray-700';
+const getProgressBucket = (pct: number): string => {
+    if (pct === 0) return 'Sin progreso (0%)';
+    if (pct <= 25) return '0-25%';
+    if (pct <= 50) return '26-50%';
+    if (pct <= 75) return '51-75%';
+    if (pct < 100) return '76-99%';
+    return 'Completado (100%)';
 };
+
 
 const getProgressWidthClass = (pct: number) => {
     if (pct >= 100) return 'w-full';
@@ -69,48 +75,51 @@ const formatDateShort = (dateStr?: string) => {
     }
 };
 
+const isFilterActive = (selection: ColumnFilterSelection | undefined): boolean =>
+    selection === null || (selection?.size ?? 0) > 0;
+
 const ConsolidatedTableById: React.FC<{ desarrolloId: string }> = ({ desarrolloId }) => {
     const [data, setData] = useState<DesarrolloCon | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    const [columnFilters, setColumnFilters] = useState<Record<string, Set<string>>>({});
-    const [filterSearchTerm, setFilterSearchTerm] = useState('');
+    const [columnFilters, setColumnFilters] = useState<Record<string, ColumnFilterSelection>>({});
     const [activeFilter, setActiveFilter] = useState<string | null>(null);
-    const [anchorRect, setAnchorRect] = useState<DOMRect | null>(null);
     const filterRefs = useRef<Record<string, HTMLButtonElement | null>>({});
 
     useEffect(() => {
         if (!desarrolloId) return;
+        const controller = new AbortController();
+        setColumnFilters({});
+        setActiveFilter(null);
+        setError(null);
+        setData(null);
         setLoading(true);
-        fetch(`${API_CONFIG.BASE_URL}/desarrollos_actividades/${desarrolloId}`)
+        fetch(`${API_CONFIG.BASE_URL}/desarrollos_actividades/${desarrolloId}`, {
+            signal: controller.signal,
+        })
             .then((r) => {
                 if (!r.ok) throw new Error('No encontrado');
                 return r.json();
             })
             .then((d: DesarrolloCon) => {
+                if (controller.signal.aborted) return;
                 setData(d);
                 setLoading(false);
             })
             .catch((e) => {
-                setError((e as Error).message);
+                if (controller.signal.aborted) return;
+                setError(e instanceof Error ? e.message : 'Error al cargar actividades');
                 setLoading(false);
             });
+        return () => controller.abort();
     }, [desarrolloId]);
 
     const uniqueValues = useMemo(() => {
         if (!data) return {};
-        const estadoSet = new Set(data.actividades.map((a) => a.estado));
+        const estadoSet = new Set(data.actividades.map((a) => a.estado || 'Sin estado'));
         const progresoSet = new Set(
-            data.actividades.map((a) => {
-                const pct = a.porcentaje_avance ?? 0;
-                if (pct === 0) return 'Sin progreso (0%)';
-                if (pct <= 25) return '0-25%';
-                if (pct <= 50) return '26-50%';
-                if (pct <= 75) return '51-75%';
-                if (pct < 100) return '76-99%';
-                return 'Completado (100%)';
-            })
+            data.actividades.map((a) => getProgressBucket(a.porcentaje_avance ?? 0))
         );
         return {
             estado: Array.from(estadoSet).sort(),
@@ -118,25 +127,15 @@ const ConsolidatedTableById: React.FC<{ desarrolloId: string }> = ({ desarrolloI
         };
     }, [data]);
 
-    const columnOptions = (key: string) => uniqueValues[key as keyof typeof uniqueValues] || [];
-
-    const getProgressBucket = (pct: number): string => {
-        if (pct === 0) return 'Sin progreso (0%)';
-        if (pct <= 25) return '0-25%';
-        if (pct <= 50) return '26-50%';
-        if (pct <= 75) return '51-75%';
-        if (pct < 100) return '76-99%';
-        return 'Completado (100%)';
-    };
-
     const filteredActividades = useMemo(() => {
         if (!data) return [];
         return data.actividades.filter((a) => {
             for (const [key, selected] of Object.entries(columnFilters)) {
+                if (selected === null) return false;
                 if (selected.size === 0) continue;
                 let value: string;
                 if (key === 'estado') {
-                    value = a.estado;
+                    value = a.estado || 'Sin estado';
                 } else if (key === 'progreso') {
                     value = getProgressBucket(a.porcentaje_avance ?? 0);
                 } else {
@@ -148,20 +147,21 @@ const ConsolidatedTableById: React.FC<{ desarrolloId: string }> = ({ desarrolloI
         });
     }, [data, columnFilters]);
 
-    const hasActiveFilters = Object.values(columnFilters).some((s) => s.size > 0);
+    const hasActiveFilters = Object.values(columnFilters).some((selection) => isFilterActive(selection));
+
+    const closeFilter = (key: string, restoreFocus = true) => {
+        if (activeFilter !== key) return;
+        setActiveFilter(null);
+        if (restoreFocus) {
+            filterRefs.current[key]?.focus();
+        }
+    };
 
     const toggleFilter = (key: string) => {
         if (activeFilter === key) {
-            setActiveFilter(null);
-            setAnchorRect(null);
-            setFilterSearchTerm('');
+            closeFilter(key);
         } else {
             setActiveFilter(key);
-            setFilterSearchTerm('');
-            const ref = filterRefs.current[key];
-            if (ref) {
-                setAnchorRect(ref.getBoundingClientRect());
-            }
         }
     };
 
@@ -190,6 +190,7 @@ const ConsolidatedTableById: React.FC<{ desarrolloId: string }> = ({ desarrolloI
     const averageProgress = data.actividades.length
         ? Math.round(data.actividades.reduce((sum, item) => sum + (item.porcentaje_avance ?? 0), 0) / data.actividades.length)
         : 0;
+    const activeSelection = activeFilter ? columnFilters[activeFilter] : undefined;
 
     return (
         <div className="space-y-4">
@@ -229,62 +230,73 @@ const ConsolidatedTableById: React.FC<{ desarrolloId: string }> = ({ desarrolloI
 
             {data.actividades.length > 0 ? (
                 <div className="relative flex max-h-[calc(100vh-220px)] min-h-[320px] flex-col overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-sm">
-                    <table className="w-full text-left border-collapse table-fixed">
-                        <colgroup>
-                            {COLUMNS.map((col) => (
-                                <col key={col.key} className={col.width} />
-                            ))}
-                        </colgroup>
-                        <thead className="bg-[var(--deep-navy)]">
-                            <tr>
-                                {COLUMNS.map((col, idx) => (
-                                    col.isActions ? (
-                                        <th
-                                            key={col.key}
-                                            className={`${col.width} shrink-0 py-2.5 px-4 bg-white/10`}
-                                        >
-                                            <Text as="span" variant="caption" weight="bold" color="white" className="uppercase tracking-wider !text-[11px]">
-                                                {col.label}
-                                            </Text>
-                                        </th>
-                                    ) : (
-                                        <th
-                                            key={col.key}
-                                            className={`${col.width} shrink-0 py-2.5 px-4 ${idx === 0 ? 'bg-blue-500/20' : 'hover:bg-white/5'} transition-colors cursor-pointer group`}
-                                            onClick={() => toggleFilter(col.key)}
-                                            ref={(el) => { filterRefs.current[col.key] = el; }}
-                                        >
-                                            <div className="flex items-center justify-between">
-                                                <Text as="span" variant="caption" weight="bold" color="inherit" className={`
-                                                    text-xs font-bold uppercase tracking-wider !text-[11px] transition-colors
-                                                    ${idx === 0 ? 'text-blue-300' : 'text-white/70 group-hover:text-white'}
-                                                `}>
-                                                    {col.label}
-                                                </Text>
-                                                {columnFilters[col.key]?.size > 0 && (
-                                                    <Text as="span" className="w-2 h-2 rounded-full bg-yellow-400 shrink-0" />
-                                                )}
-                                            </div>
-                                        </th>
-                                    )
-                                ))}
-                            </tr>
-                        </thead>
-                    </table>
-
-                    <div className="min-h-0 flex-1 overflow-y-auto custom-scrollbar">
-                        <table className="w-full text-left border-collapse table-fixed">
+                    <div className="min-h-0 flex-1 overflow-auto custom-scrollbar">
+                        <table className="w-full text-left border-collapse table-fixed min-w-[1000px]">
                             <colgroup>
                                 {COLUMNS.map((col) => (
                                     <col key={col.key} className={col.width} />
                                 ))}
                             </colgroup>
+                            <thead className="bg-[var(--deep-navy)] sticky top-0 z-10 shadow-sm">
+                                <tr>
+                                    {COLUMNS.map((col, idx) => (
+                                        col.isActions ? (
+                                            <th
+                                                key={col.key}
+                                                scope="col"
+                                                className={`${col.width} shrink-0 py-2.5 px-4 bg-[var(--white)]/10`}
+                                            >
+                                                <Text as="span" variant="caption" weight="bold" color="inherit" className="uppercase tracking-wider !text-[11px] text-[var(--white)]">
+                                                    {col.label}
+                                                </Text>
+                                            </th>
+                                        ) : (
+                                            <th
+                                                key={col.key}
+                                                scope="col"
+                                                className={`${col.width} shrink-0 py-2.5 px-4 ${idx === 0 ? 'bg-[var(--color-primary)]/20' : 'bg-[var(--deep-navy)]'} transition-colors`}
+                                            >
+                                                {col.isFilterable ? (
+                                                    <Button
+                                                        variant="custom"
+                                                        type="button"
+                                                        onClick={() => toggleFilter(col.key)}
+                                                        ref={(el) => { filterRefs.current[col.key] = el; }}
+                                                        aria-haspopup="dialog"
+                                                        aria-expanded={activeFilter === col.key}
+                                                        aria-label={`${col.label}${isFilterActive(columnFilters[col.key]) ? ', filtro activo' : ''}`}
+                                                        className="w-full flex items-center justify-between group rounded p-1 -m-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-secondary)] hover:bg-[var(--white)]/5 transition-colors"
+                                                    >
+                                                        <Text as="span" variant="caption" weight="bold" color="inherit" className={`
+                                                            text-xs font-bold uppercase tracking-wider !text-[11px] transition-colors
+                                                            ${idx === 0 ? 'text-[var(--color-secondary)]' : 'text-[var(--white)]/70 group-hover:text-[var(--white)]'}
+                                                        `}>
+                                                            {col.label}
+                                                        </Text>
+                                                        {isFilterActive(columnFilters[col.key]) && (
+                                                            <Text as="span" aria-hidden="true" className="w-2 h-2 rounded-full bg-[var(--color-secondary)] shrink-0">{''}</Text>
+                                                        )}
+                                                    </Button>
+                                                ) : (
+                                                    <div className="flex items-center justify-between p-1 -m-1">
+                                                        <Text as="span" variant="caption" weight="bold" color="inherit" className={`
+                                                            text-xs font-bold uppercase tracking-wider !text-[11px] transition-colors
+                                                            ${idx === 0 ? 'text-[var(--color-secondary)]' : 'text-[var(--white)]/70'}
+                                                        `}>
+                                                            {col.label}
+                                                        </Text>
+                                                    </div>
+                                                )}
+                                            </th>
+                                        )
+                                    ))}
+                                </tr>
+                            </thead>
                             <tbody className="divide-y divide-[var(--color-border)]">
                                 {filteredActividades.length > 0 ? (
                                     filteredActividades.map((a) => (
                                         <tr key={`${data.id}-${a.id}`} className="group hover:bg-[var(--color-surface-variant)] transition-colors cursor-pointer relative">
-                                            <td className="absolute left-0 top-0 bottom-0 w-1.5 bg-[var(--deep-navy)]"></td>
-                                            <td className="flex-1 min-w-[260px] py-3 px-4">
+                                            <td className="flex-1 min-w-[260px] py-3 px-4 border-l-[6px] border-l-[var(--deep-navy)]">
                                                 <Text variant="body2" weight="bold" className="truncate leading-snug group-hover:text-[var(--color-primary)] transition-colors">
                                                     {a.titulo}
                                                 </Text>
@@ -378,6 +390,63 @@ const ConsolidatedTableById: React.FC<{ desarrolloId: string }> = ({ desarrolloI
                 <div className="py-12 text-center bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)]">
                     <Text variant="body2" color="text-secondary">No hay actividades registradas para este desarrollo.</Text>
                 </div>
+            )}
+            {activeFilter && filterRefs.current[activeFilter] && (
+                <ColumnFilterPopover
+                    columnKey={activeFilter}
+                    title={COLUMNS.find((c) => c.key === activeFilter)?.label || ''}
+                    options={uniqueValues[activeFilter as keyof typeof uniqueValues] || []}
+                    selectedValues={activeSelection === undefined ? new Set<string>() : activeSelection}
+                    onToggleOption={(columnKey, option) => {
+                        setColumnFilters((prev) => {
+                            const currentSelection = prev[columnKey];
+                            const allValues = uniqueValues[columnKey as keyof typeof uniqueValues] || [];
+                            // Set vacío representa todos; null representa ninguno.
+                            if (currentSelection === null) {
+                                const newSet = new Set([option]);
+                                return {
+                                    ...prev,
+                                    [columnKey]: newSet.size === allValues.length ? new Set<string>() : newSet,
+                                };
+                            }
+
+                            if (!currentSelection || currentSelection.size === 0) {
+                                const newSet = new Set(allValues);
+                                newSet.delete(option);
+                                return { ...prev, [columnKey]: newSet.size === 0 ? null : newSet };
+                            }
+
+                            const newSet = new Set(currentSelection);
+                            if (newSet.has(option)) {
+                                newSet.delete(option);
+                            } else {
+                                newSet.add(option);
+                            }
+
+                            if (newSet.size === 0) {
+                                return { ...prev, [columnKey]: null };
+                            }
+
+                            // Si el usuario vuelve a seleccionarlos todos, normalizamos a todos.
+                            if (newSet.size === allValues.length) {
+                                return { ...prev, [columnKey]: new Set<string>() };
+                            }
+
+                            return { ...prev, [columnKey]: newSet };
+                        });
+                    }}
+                    onSelectAll={(columnKey) => {
+                        setColumnFilters((prev) => ({
+                            ...prev,
+                            [columnKey]: new Set<string>()
+                        }));
+                    }}
+                    onClear={(columnKey) => {
+                        setColumnFilters((prev) => ({ ...prev, [columnKey]: new Set<string>() }));
+                    }}
+                    onClose={(reason) => closeFilter(activeFilter, reason !== 'focus')}
+                    anchorEl={filterRefs.current[activeFilter]}
+                />
             )}
         </div>
     );
