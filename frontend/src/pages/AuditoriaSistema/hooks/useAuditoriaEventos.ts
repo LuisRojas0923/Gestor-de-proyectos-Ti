@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useApi } from '../../../hooks/useApi';
+import { API_ENDPOINTS } from '../../../config/api';
 import type { AuditoriaEvento, AuditoriaEventosPaginados, FiltrosAuditoria } from '../../../types/auditoria';
 
 const PAGE_SIZE = 50;
@@ -29,7 +30,7 @@ export function useAuditoriaEventos() {
     setError(null);
     try {
       const data = await get(
-        `/auditoria/eventos${buildQuery({ ...filtros, page, page_size: PAGE_SIZE })}`
+        `${API_ENDPOINTS.AUDIT_EVENTS}${buildQuery({ ...filtros, page, page_size: PAGE_SIZE })}`
       );
       if (data) {
         setEventos(data.items);

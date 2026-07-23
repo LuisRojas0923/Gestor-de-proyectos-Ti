@@ -7,6 +7,9 @@ import KpiCards from './components/KpiCards';
 import EventosPorModulo from './components/EventosPorModulo';
 import TiposFallos from './components/TiposFallos';
 import ActividadEnTiempo from './components/ActividadEnTiempo';
+import TopUsuariosTable from './components/TopUsuariosTable';
+import TopRutasTable from './components/TopRutasTable';
+import UltimosEventosTable from './components/UltimosEventosTable';
 
 import { useAuditoriaStats } from './hooks/useAuditoriaStats';
 
@@ -78,6 +81,12 @@ const AuditoriaIndicadores: React.FC = () => {
             <ActividadEnTiempo datos={estadisticas.por_dia} />
           </div>
 
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6">
+            <TopUsuariosTable datos={estadisticas.top_usuarios} />
+            <TopRutasTable datos={estadisticas.top_rutas} />
+          </div>
+
+          <UltimosEventosTable datos={estadisticas.por_modulo} />
         </>
       ) : null}
     </div>

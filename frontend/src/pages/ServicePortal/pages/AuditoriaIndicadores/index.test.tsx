@@ -11,6 +11,9 @@ vi.mock('./components/KpiCards', () => ({ default: () => <div>Tarjetas KPI</div>
 vi.mock('./components/EventosPorModulo', () => ({ default: () => <div>Eventos por modulo</div> }));
 vi.mock('./components/TiposFallos', () => ({ default: () => <div>Tipos de fallos</div> }));
 vi.mock('./components/ActividadEnTiempo', () => ({ default: () => <div>Actividad en tiempo</div> }));
+vi.mock('./components/TopUsuariosTable', () => ({ default: () => <div>Usuarios con más actividad</div> }));
+vi.mock('./components/TopRutasTable', () => ({ default: () => <div>Rutas más utilizadas</div> }));
+vi.mock('./components/UltimosEventosTable', () => ({ default: () => <div>Últimos eventos</div> }));
 
 const estadisticas: AuditoriaEstadisticas = {
   total_eventos: 12,
@@ -53,6 +56,9 @@ describe('AuditoriaIndicadores', () => {
     expect(screen.getByText('Tarjetas KPI')).toBeInTheDocument();
     expect(screen.getByText('Eventos por modulo')).toBeInTheDocument();
     expect(screen.getByText('Actividad en tiempo')).toBeInTheDocument();
+    expect(screen.getByText('Usuarios con más actividad')).toBeInTheDocument();
+    expect(screen.getByText('Rutas más utilizadas')).toBeInTheDocument();
+    expect(screen.getByText('Últimos eventos')).toBeInTheDocument();
   });
 
   it('muestra el error sin renderizar las gráficas', () => {

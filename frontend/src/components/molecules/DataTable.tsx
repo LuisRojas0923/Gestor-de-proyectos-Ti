@@ -55,6 +55,7 @@ export interface DataTableProps<T> {
 
     emptyMessage?: string;
     emptyIcon?: React.ReactNode;
+    ariaLabel?: string;
 
     maxHeight?: string;
     minHeight?: string;
@@ -89,6 +90,7 @@ export function DataTable<T>({
     loadingMessage = 'Cargando...',
     emptyMessage = 'No hay datos',
     emptyIcon,
+    ariaLabel,
     maxHeight = 'max-h-[calc(100vh-300px)]',
     minHeight = 'min-h-[100px]',
     className = '',
@@ -228,6 +230,7 @@ export function DataTable<T>({
         <div
             className={`relative flex flex-col overflow-x-auto overflow-y-hidden border border-[var(--color-border)] bg-[var(--color-surface)] shadow-sm ${maxHeight} ${minHeight} ${className}`}
             role="table"
+            aria-label={ariaLabel}
             aria-rowcount={data.length + 1}
         >
 

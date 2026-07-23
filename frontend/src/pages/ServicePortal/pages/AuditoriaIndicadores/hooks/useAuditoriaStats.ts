@@ -17,14 +17,19 @@ export function useAuditoriaStats() {
     const [fechaHasta, setFechaHasta] = useState<string>('');
     const activeDatesRef = useRef<{ desde?: string; hasta?: string }>({});
 
-    const cargar = useCallback(async (desde?: string, hasta?: string, silencioso = false) => {
+    const cargar = useCallback(async (
+        desde?: string,
+        hasta?: string,
+        silencioso = false,
+        forzarRecarga = false,
+    ) => {
         if (!silencioso) setIsLoading(true);
         setError(null);
         try {
             const params = new URLSearchParams();
             if (desde) params.append('fecha_desde', desde);
             if (hasta) params.append('fecha_hasta', hasta);
-            params.append('_t', Date.now().toString());
+            if (forzarRecarga) params.append('_t', Date.now().toString());
 
             const statsUrl = `${API_ENDPOINTS.AUDIT_STATS}${params.toString() ? `?${params.toString()}` : ''}`;
             const statsData = await get(statsUrl);
@@ -83,6 +88,6 @@ export function useAuditoriaStats() {
         setFechaDesde,
         fechaHasta,
         setFechaHasta,
-        recargar: () => cargar(activeDatesRef.current.desde, activeDatesRef.current.hasta),
+        recargar: () => cargar(activeDatesRef.current.desde, activeDatesRef.current.hasta, false, true),
     };
 }
