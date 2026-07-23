@@ -16,7 +16,7 @@ from sqlalchemy import text
 from sqlmodel import select
 from dotenv import load_dotenv
 
-from app.models.auth.usuario import Usuario, Sesion
+from app.models.auth.usuario import Usuario, Sesion, Token
 from app.services.auth.servicio import ServicioAuth
 from app.config import config
 
@@ -64,6 +64,10 @@ async def usuario_escalado(db_session):
         {"id": _ID_ESCALADO}
     )
     await db_session.execute(
+        text("DELETE FROM tokens WHERE usuario_id = :id"),
+        {"id": _ID_ESCALADO}
+    )
+    await db_session.execute(
         text("DELETE FROM usuarios WHERE id = :id"),
         {"id": _ID_ESCALADO}
     )
@@ -73,6 +77,9 @@ async def usuario_escalado(db_session):
         id=_ID_ESCALADO,
         cedula=_CEDULA_ESCALADO,
         nombre="Usuario Test Escalado",
+        correo="escalado.seguro@example.com",
+        correo_actualizado=True,
+        correo_verificado=True,
         hash_contrasena=ServicioAuth.obtener_hash_contrasena("clave_inicial"),
         rol="usuario",  # rol sin acceso admin → era_admin=False → reset dispara al escalar
         esta_activo=True,
@@ -86,6 +93,10 @@ async def usuario_escalado(db_session):
     # Teardown
     await db_session.execute(
         text("DELETE FROM sesiones WHERE usuario_id = :id"),
+        {"id": _ID_ESCALADO}
+    )
+    await db_session.execute(
+        text("DELETE FROM tokens WHERE usuario_id = :id"),
         {"id": _ID_ESCALADO}
     )
     await db_session.execute(
@@ -103,7 +114,7 @@ async def usuario_escalado(db_session):
 async def test_password_set_false_cuando_hash_es_cedula():
     """
     Verifica que es_password_configurado() devuelva False cuando el hash
-    corresponde a la propia cédula del usuario (caso post-escalado).
+    corresponde a la propia cédula del usuario (cuenta heredada pendiente).
     """
     cedula = "123456789"
     hash_cedula = ServicioAuth.obtener_hash_contrasena(cedula)
@@ -188,19 +199,21 @@ async def test_escalado_rol_via_api_resetea_password(client, admin_token, usuari
     """
     PRUEBA DE ORO: Verifica el flujo completo de escalado.
 
-    Al escalar un usuario de 'analyst' a 'admin' vía PATCH /auth/analistas/:id,
-    y dado que 'admin' tiene acceso a módulos de categoría 'panel'/'analistas':
-      - El hash de contraseña debe cambiar a la cédula del usuario
-      - password_set debe ser False en /auth/yo
+    Al escalar un usuario de 'usuario' a 'admin' vía PATCH /auth/analistas/:id,
+    incluso si el rol anterior ya tenía acceso limitado a un módulo de panel:
+      - El hash debe cambiar a un secreto aleatorio inaccesible
+      - Debe emitirse un token de activación de un solo uso
+      - Las sesiones anteriores deben quedar revocadas
     """
     if not admin_token:
         pytest.skip("No hay token admin disponible. Verificar TEST_ADMIN_CEDULA/TEST_ADMIN_PASS.")
 
-    from app.models.auth.usuario import ModuloSistema, PermisoRol
+    from app.models.auth.usuario import ModuloSistema, PermisoRol, Sesion, Token
 
     # Crear un módulo de test controlado con permisos exactos:
-    # - admin: permitido=True   → tiene_acceso_admin = True
-    # - analyst: no tiene entrada → era_admin = False → reset dispara
+    # - admin: permitido=True → tiene_acceso_admin = True
+    # - usuario: permitido=True → ya tiene acceso limitado al panel, pero la
+    #   promoción explícita a admin debe resetear sus credenciales igualmente.
     _MODULO_TEST_ID = "panel_test_escalado"
 
     # Limpiar y recrear para garantizar estado conocido
@@ -219,10 +232,18 @@ async def test_escalado_rol_via_api_resetea_password(client, admin_token, usuari
     await db_session.flush()
 
     permiso_admin = PermisoRol(rol="admin", modulo=_MODULO_TEST_ID, permitido=True)
-    db_session.add(permiso_admin)
+    permiso_usuario = PermisoRol(rol="usuario", modulo=_MODULO_TEST_ID, permitido=True)
+    db_session.add_all([permiso_admin, permiso_usuario])
     await db_session.commit()
 
     try:
+        login_usuario = await client.post(
+            "/auth/login",
+            data={"username": _CEDULA_ESCALADO, "password": "clave_inicial"},
+        )
+        assert login_usuario.status_code == 200
+        token_anterior = login_usuario.json()["access_token"]
+
         headers = {"Authorization": f"Bearer {admin_token}"}
         response = await client.patch(
             f"/auth/analistas/{_ID_ESCALADO}",
@@ -232,12 +253,39 @@ async def test_escalado_rol_via_api_resetea_password(client, admin_token, usuari
 
         assert response.status_code == 200, f"Escalado falló: {response.text}"
 
-        # Verificar en DB que el hash cambió a la cédula
+        # La cuenta queda bloqueada con un secreto aleatorio hasta que el
+        # usuario consuma el enlace de activación enviado a su correo.
         await db_session.refresh(usuario_escalado)
-        assert ServicioAuth.verificar_contrasena(_CEDULA_ESCALADO, usuario_escalado.hash_contrasena), \
-            "El hash no fue reseteado a la cédula del usuario tras el escalado."
+        assert not ServicioAuth.verificar_contrasena(
+            _CEDULA_ESCALADO, usuario_escalado.hash_contrasena
+        )
+        assert not ServicioAuth.verificar_contrasena(
+            "clave_inicial", usuario_escalado.hash_contrasena
+        )
 
-        assert ServicioAuth.es_password_configurado(usuario_escalado.hash_contrasena, _CEDULA_ESCALADO) is False
+        token_recuperacion = (
+            await db_session.execute(
+                select(Token).where(
+                    Token.usuario_id == _ID_ESCALADO,
+                    Token.tipo_token == "password_recovery",
+                    Token.ultimo_uso_en.is_(None),
+                )
+            )
+        ).scalars().first()
+        assert token_recuperacion is not None
+
+        sesion_anterior = (
+            await db_session.execute(
+                select(Sesion).where(Sesion.token_sesion == token_anterior)
+            )
+        ).scalars().one()
+        assert sesion_anterior.fin_sesion is not None
+
+        respuesta_token_anterior = await client.get(
+            "/auth/yo",
+            headers={"Authorization": f"Bearer {token_anterior}"},
+        )
+        assert respuesta_token_anterior.status_code == 401
 
     finally:
         await db_session.execute(
@@ -292,7 +340,7 @@ async def test_cambio_forzado_password_exitoso(client, db_session):
     clave_temporal = "ClaveTemporal2026!"
     clave_nueva = "NuevaClaveSegura99!"
 
-    # Setup: usuario con hash = cédula (post-escalado)
+    # Setup: usuario heredado con hash = cédula
     await db_session.execute(
         text("DELETE FROM usuarios WHERE id = :id"), {"id": usuario_id}
     )
@@ -309,7 +357,7 @@ async def test_cambio_forzado_password_exitoso(client, db_session):
     db_session.add(usuario)
     await db_session.commit()
 
-    # Setup password primero (post-escalado: login bloqueado hasta configurar)
+    # Setup password primero para la cuenta heredada pendiente
     setup_res = await client.post("/auth/setup-password", json={
         "cedula": cedula,
         "contrasena": clave_temporal
@@ -530,8 +578,8 @@ async def test_yo_refleja_password_set_true_tras_cambio(client, db_session):
 @pytest.mark.asyncio
 async def test_resetear_contrasena_analista_exito(client, db_session, admin_token):
     """
-    Verifica que un administrador pueda resetear exitosamente la contraseña
-    de un usuario a su cédula.
+    Verifica que el reset administrativo bloquee la clave anterior y emita un
+    token de recuperación, sin usar la cédula como contraseña temporal.
     """
     cedula_usuario = "999888777"
     id_usuario = f"USR-{cedula_usuario}"
@@ -550,6 +598,9 @@ async def test_resetear_contrasena_analista_exito(client, db_session, admin_toke
         id=id_usuario,
         cedula=cedula_usuario,
         nombre="Usuario Para Reset",
+        correo="reset.seguro@example.com",
+        correo_actualizado=True,
+        correo_verificado=True,
         hash_contrasena=ServicioAuth.obtener_hash_contrasena("ClaveSuperSegura123!"),
         rol="usuario",
         esta_activo=True,
@@ -566,12 +617,24 @@ async def test_resetear_contrasena_analista_exito(client, db_session, admin_toke
     assert response.status_code == 200
     assert response.json()["mensaje"] == "Contraseña reseteada exitosamente"
 
-    # Verificar que el hash se reestableció a la cédula
+    # Verificar bloqueo seguro y token de activación pendiente.
     await db_session.refresh(usuario)
-    assert ServicioAuth.verificar_contrasena(cedula_usuario, usuario.hash_contrasena) is True
+    assert not ServicioAuth.verificar_contrasena(cedula_usuario, usuario.hash_contrasena)
+    assert not ServicioAuth.verificar_contrasena(
+        "ClaveSuperSegura123!", usuario.hash_contrasena
+    )
+    token_recuperacion = (
+        await db_session.execute(
+            select(Token).where(
+                Token.usuario_id == id_usuario,
+                Token.tipo_token == "password_recovery",
+                Token.ultimo_uso_en.is_(None),
+            )
+        )
+    ).scalars().first()
+    assert token_recuperacion is not None
 
     # Teardown
-    await db_session.execute(
-        text("DELETE FROM usuarios WHERE id = :id"), {"id": id_usuario}
-    )
+    await db_session.execute(text("DELETE FROM tokens WHERE usuario_id = :id"), {"id": id_usuario})
+    await db_session.execute(text("DELETE FROM usuarios WHERE id = :id"), {"id": id_usuario})
     await db_session.commit()

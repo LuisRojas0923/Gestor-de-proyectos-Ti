@@ -12,12 +12,16 @@ from app.models.auth.usuario import (
     UsuarioPublico,
     PermisoRol,
     AnalistaCrear,
+    AnalistaActualizar,
     RolSistema,
     RolCrear,
     RolPublico,
     ModuloSistema,
 )
 from app.services.auth.servicio import ServicioAuth
+from app.services.auth.recovery_token_service import (
+    bloquear_cuenta_y_generar_recuperacion,
+)
 from app.services.notifications.email_service import EmailService
 from .profile_router import obtener_usuario_actual_db
 
@@ -29,14 +33,18 @@ async def crear_analista(
     datos: AnalistaCrear,
     db: AsyncSession = Depends(obtener_db),
     db_erp=Depends(obtener_erp_db),
+    admin: Usuario = Depends(obtener_usuario_actual_db),
 ):
     """Crea un analista validando contra Solid ERP"""
+    if admin.rol != "admin":
+        raise HTTPException(status_code=403, detail="No tiene permisos para crear analistas")
     try:
         return await ServicioAuth.crear_analista_desde_erp(db, db_erp, datos.cedula)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error interno: {str(e)}")
+    except Exception:
+        logging.error("Error interno al crear analista")
+        raise HTTPException(status_code=500, detail="Error interno al crear analista")
 
 
 @router.get("/analistas", response_model=List[UsuarioPublico])
@@ -95,14 +103,14 @@ async def listar_analistas(
     except HTTPException:
         raise
     except Exception as e:
-        logging.error(f"Error en GET /analistas: {e}")
+        logging.error("Error en GET /analistas")
         raise HTTPException(status_code=500, detail="Error al consultar analistas")
 
 
 @router.patch("/analistas/{usuario_id}", response_model=UsuarioPublico)
 async def actualizar_analista(
     usuario_id: str,
-    datos: dict,
+    datos: AnalistaActualizar,
     db: AsyncSession = Depends(obtener_db),
     admin: Usuario = Depends(obtener_usuario_actual_db),
 ):
@@ -113,14 +121,18 @@ async def actualizar_analista(
         )
 
     try:
-        result = await db.execute(select(Usuario).where(Usuario.id == usuario_id))
+        cambios = datos.model_dump(exclude_unset=True)
+        result = await db.execute(
+            select(Usuario).where(Usuario.id == usuario_id).with_for_update()
+        )
         usuario = result.scalars().first()
         if not usuario:
             raise HTTPException(status_code=404, detail="Usuario no encontrado")
 
         # --- Lógica de Seguridad para Escalado de Roles ---
-        nuevo_rol = datos.get("rol")
+        nuevo_rol = cambios.get("rol")
         reseteo_seguridad = False
+        token_recuperacion = None
         
         if nuevo_rol and nuevo_rol != usuario.rol:
             # Detección dinámica de escalado (Acceso a categorías admin/panel)
@@ -151,44 +163,58 @@ async def actualizar_analista(
             res_prev = await db.execute(stmt_prev_admin)
             era_admin = res_prev.scalars().first() is not None
             
-            if tiene_acceso_admin and not era_admin:
+            es_promocion_admin = nuevo_rol == "admin"
+            if es_promocion_admin or (tiene_acceso_admin and not era_admin):
                 reseteo_seguridad = True
                 logging.info(f"Escalado detectado para {usuario.id}: {usuario.rol} -> {nuevo_rol}. Ejecutando reseteo de seguridad.")
 
+        if reseteo_seguridad and (
+            not usuario.correo or not usuario.correo_verificado
+        ):
+            raise HTTPException(
+                status_code=400,
+                detail="El usuario requiere un correo validado antes de recibir privilegios administrativos",
+            )
+
         # Aplicar cambios
-        if "rol" in datos:
-            usuario.rol = datos["rol"]
-        if "especialidades" in datos:
-            usuario.especialidades = json.dumps(datos["especialidades"])
-        if "areas_asignadas" in datos:
-            usuario.areas_asignadas = json.dumps(datos["areas_asignadas"])
-        if "esta_activo" in datos:
-            usuario.esta_activo = datos["esta_activo"]
+        if "rol" in cambios:
+            usuario.rol = cambios["rol"]
+        if "especialidades" in cambios:
+            usuario.especialidades = json.dumps(cambios["especialidades"])
+        if "areas_asignadas" in cambios:
+            usuario.areas_asignadas = json.dumps(cambios["areas_asignadas"])
+        if "esta_activo" in cambios:
+            usuario.esta_activo = cambios["esta_activo"]
+            if not usuario.esta_activo:
+                await ServicioAuth.invalidar_sesiones_usuario(
+                    db, usuario.id, confirmar=False
+                )
 
         if reseteo_seguridad:
-            # 1. Resetear hash a la cédula
-            usuario.hash_contrasena = ServicioAuth.obtener_hash_contrasena(usuario.cedula)
-            # 2. Invalidar todas las sesiones
-            await ServicioAuth.invalidar_sesiones_usuario(db, usuario.id)
-            # 3. Notificar por correo
-            if usuario.correo:
-                # Disparamos sin esperar para no bloquear la respuesta
-                import asyncio
-                asyncio.create_task(
-                    EmailService.enviar_notificacion_reseteo_clave(
-                        usuario.correo, 
-                        usuario.nombre
-                    )
-                )
+            token_recuperacion = await bloquear_cuenta_y_generar_recuperacion(
+                db, usuario, origen="escalado_privilegios"
+            )
 
         await db.commit()
         await db.refresh(usuario)
+        if token_recuperacion:
+            import asyncio
+
+            reset_url = (
+                f"{EmailService.get_frontend_url()}/reset-password"
+                f"?token={token_recuperacion}"
+            )
+            asyncio.create_task(
+                EmailService.enviar_recuperacion_contrasena(
+                    usuario.correo, usuario.nombre, reset_url
+                )
+            )
         return usuario
     except HTTPException:
         raise
     except Exception as e:
         await db.rollback()
-        logging.error(f"Error en PATCH /analistas/{usuario_id}: {e}")
+        logging.error("Error en PATCH /analistas")
         raise HTTPException(status_code=500, detail="Error al actualizar analista")
 
 
@@ -207,7 +233,7 @@ async def listar_permisos(
         result = await db.execute(select(PermisoRol))
         return result.scalars().all()
     except Exception as e:
-        logging.error(f"Error en GET /permisos: {e}")
+        logging.error("Error en GET /permisos")
         raise HTTPException(status_code=500, detail="Error al consultar permisos")
 
 
@@ -247,7 +273,7 @@ async def actualizar_permisos(
         raise
     except Exception as e:
         await db.rollback()
-        logging.error(f"Error en POST /permisos: {e}")
+        logging.error("Error en POST /permisos")
         raise HTTPException(status_code=500, detail="Error al actualizar permisos")
 
 
@@ -286,7 +312,7 @@ async def listar_roles(
 
         return roles_db
     except Exception as e:
-        logging.error(f"Error en GET /roles: {e}")
+        logging.error("Error en GET /roles")
         raise HTTPException(status_code=500, detail="Error al listar roles")
 
 
@@ -322,7 +348,7 @@ async def crear_rol(
         raise
     except Exception as e:
         await db.rollback()
-        logging.error(f"Error en POST /roles: {e}")
+        logging.error("Error en POST /roles")
         raise HTTPException(status_code=500, detail="Error al crear rol")
 
 
@@ -354,7 +380,7 @@ async def eliminar_rol(
         raise
     except Exception as e:
         await db.rollback()
-        logging.error(f"Error en DELETE /roles/{rol_id}: {e}")
+        logging.error("Error en DELETE /roles")
         raise HTTPException(status_code=500, detail="Error al eliminar rol")
 
 
@@ -371,7 +397,9 @@ async def desbloquear_rate_limit(
         )
 
     try:
-        result = await db.execute(select(Usuario).where(Usuario.id == usuario_id))
+        result = await db.execute(
+            select(Usuario).where(Usuario.id == usuario_id).with_for_update()
+        )
         usuario = result.scalars().first()
         if not usuario:
             raise HTTPException(status_code=404, detail="Usuario no encontrado")
@@ -408,7 +436,7 @@ async def desbloquear_rate_limit(
     except HTTPException:
         raise
     except Exception as e:
-        logging.error(f"Error al desbloquear rate limit para {usuario_id}: {e}")
+        logging.error("Error al desbloquear rate limit")
         raise HTTPException(status_code=500, detail="Error interno al procesar el desbloqueo")
 
 
@@ -418,37 +446,47 @@ async def resetear_contrasena_analista(
     db: AsyncSession = Depends(obtener_db),
     admin: Usuario = Depends(obtener_usuario_actual_db),
 ):
-    """Resetea la contraseña de un usuario a su cédula (Solo Admin)"""
+    """Bloquea la clave actual y envia recuperacion segura (Solo Admin)."""
     if admin.rol != "admin":
         raise HTTPException(
             status_code=403, detail="No tiene permisos para resetear contraseñas"
         )
 
     try:
-        result = await db.execute(select(Usuario).where(Usuario.id == usuario_id))
+        result = await db.execute(
+            select(Usuario).where(Usuario.id == usuario_id).with_for_update()
+        )
         usuario = result.scalars().first()
         if not usuario:
             raise HTTPException(status_code=404, detail="Usuario no encontrado")
-
-        # 1. Resetear hash a la cédula
-        usuario.hash_contrasena = ServicioAuth.obtener_hash_contrasena(usuario.cedula)
-        # 2. Invalidar todas las sesiones
-        await ServicioAuth.invalidar_sesiones_usuario(db, usuario.id)
-        # 3. Notificar por correo
-        if usuario.correo:
-            import asyncio
-            asyncio.create_task(
-                EmailService.enviar_notificacion_reseteo_clave(
-                    usuario.correo, 
-                    usuario.nombre
-                )
+        if not usuario.correo or not usuario.correo_verificado:
+            raise HTTPException(
+                status_code=400,
+                detail="El usuario requiere un correo validado para restablecer su contraseña",
             )
 
+        token_recuperacion = await bloquear_cuenta_y_generar_recuperacion(
+            db, usuario, origen="reset_administrativo"
+        )
+        correo_destino = usuario.correo
+        nombre_destino = usuario.nombre
+
         await db.commit()
+        import asyncio
+
+        reset_url = (
+            f"{EmailService.get_frontend_url()}/reset-password"
+            f"?token={token_recuperacion}"
+        )
+        asyncio.create_task(
+            EmailService.enviar_recuperacion_contrasena(
+                correo_destino, nombre_destino, reset_url
+            )
+        )
         return {"mensaje": "Contraseña reseteada exitosamente"}
     except HTTPException:
         raise
     except Exception as e:
         await db.rollback()
-        logging.error(f"Error en POST /analistas/{usuario_id}/reset-password: {e}")
+        logging.error("Error en POST /analistas/reset-password")
         raise HTTPException(status_code=500, detail="Error al resetear la contraseña")

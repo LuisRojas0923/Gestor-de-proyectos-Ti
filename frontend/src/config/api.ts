@@ -113,6 +113,7 @@ export const API_ENDPOINTS = {
 
   // Autenticación
   AUTH_LOGIN: '/auth/login',
+  AUTH_REFRESH: '/auth/refresh',
   AUTH_REGISTRO: '/auth/registro',
   AUTH_ME: '/auth/yo',
   AUTH_UPDATE_EMAIL: '/auth/update-email',

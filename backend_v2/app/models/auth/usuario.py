@@ -297,6 +297,15 @@ class UsuarioActualizar(SQLModel):
     url_avatar: Optional[str] = None
 
 
+class AnalistaActualizar(SQLModel):
+    """Campos administrativos permitidos para actualizar un analista."""
+
+    rol: Optional[str] = Field(default=None, max_length=50)
+    especialidades: Optional[List[str]] = None
+    areas_asignadas: Optional[List[str]] = None
+    esta_activo: Optional[bool] = None
+
+
 class UsuarioPublico(SQLModel):
     """Schema publico de usuario (respuesta)"""
 

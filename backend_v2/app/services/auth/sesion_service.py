@@ -34,36 +34,29 @@ async def registrar_sesion(
     `jwt_token_expire_minutes` cuando se registran tokens con vigencia
     personalizada (MCP: 30/90 dias).
     """
-    from app.database import AsyncSessionLocal
     from app.models.auth.usuario import Sesion
 
-    try:
-        async with AsyncSessionLocal() as session:
-            ahora = get_bogota_now()
-            expira = ahora + (
-                tiempo_expiracion
-                if tiempo_expiracion
-                else timedelta(minutes=config.jwt_token_expire_minutes)
-            )
-
-            nueva_sesion = Sesion(
-                usuario_id=usuario_id,
-                token_sesion=token_jwt,
-                nombre_usuario=nombre_usuario,
-                rol_usuario=rol_usuario,
-                direccion_ip=direccion_ip,
-                agente_usuario=agente_usuario,
-                expira_en=expira,
-                tipo_sesion=tipo_sesion,
-                jti=jti,
-                scope=scope,
-            )
-            session.add(nueva_sesion)
-            await session.commit()
-    except Exception as e:
-        import logging
-
-        logging.warning(f"No se pudo registrar sesion para {usuario_id}: {e}")
+    ahora = get_bogota_now()
+    expira = ahora + (
+        tiempo_expiracion
+        if tiempo_expiracion
+        else timedelta(minutes=config.jwt_token_expire_minutes)
+    )
+    db.add(
+        Sesion(
+            usuario_id=usuario_id,
+            token_sesion=token_jwt,
+            nombre_usuario=nombre_usuario,
+            rol_usuario=rol_usuario,
+            direccion_ip=direccion_ip,
+            agente_usuario=agente_usuario,
+            expira_en=expira,
+            tipo_sesion=tipo_sesion,
+            jti=jti,
+            scope=scope,
+        )
+    )
+    await db.commit()
 
 
 async def marcar_fin_sesion(db: AsyncSession, token_jwt: str) -> bool:
@@ -87,23 +80,61 @@ async def marcar_fin_sesion(db: AsyncSession, token_jwt: str) -> bool:
         return False
 
 
-async def invalidar_sesiones_usuario(db: AsyncSession, usuario_id: str) -> int:
-    """Invalida todas las sesiones activas de un usuario (para reseteos de seguridad)."""
+async def invalidar_sesiones_usuario(
+    db: AsyncSession,
+    usuario_id: str,
+    *,
+    confirmar: bool = True,
+) -> int:
+    """Invalida sesiones y permite integrarlo en una transaccion mayor."""
     from app.models.auth.usuario import Sesion
 
-    try:
-        ahora = get_bogota_now()
-        stmt = (
-            update(Sesion)
-            .where(Sesion.usuario_id == usuario_id, Sesion.fin_sesion.is_(None))
-            .values(fin_sesion=ahora)
-        )
-        result = await db.execute(stmt)
+    ahora = get_bogota_now()
+    stmt = (
+        update(Sesion)
+        .where(Sesion.usuario_id == usuario_id, Sesion.fin_sesion.is_(None))
+        .values(fin_sesion=ahora)
+    )
+    result = await db.execute(stmt)
+    if confirmar:
         await db.commit()
-        return result.rowcount
-    except Exception as e:
-        import logging
+    return result.rowcount
 
-        logging.error(f"Error al invalidar sesiones de {usuario_id}: {e}")
-        await db.rollback()
-        return 0
+
+async def obtener_sesion_web_activa(
+    db: AsyncSession, token_jwt: str, *, bloquear: bool = False
+):
+    """Retorna la sesion web vigente asociada exactamente al JWT recibido."""
+    from app.models.auth.usuario import Sesion
+
+    ahora = get_bogota_now()
+    stmt = select(Sesion).where(
+        Sesion.token_sesion == token_jwt,
+        Sesion.tipo_sesion == "web",
+        Sesion.fin_sesion.is_(None),
+        Sesion.expira_en > ahora,
+    )
+    if bloquear:
+        stmt = stmt.with_for_update()
+    return (await db.execute(stmt)).scalars().first()
+
+
+async def rotar_sesion_web(db: AsyncSession, sesion, nuevo_token: str) -> None:
+    """Reemplaza una sesion web por otra dentro de una sola transaccion."""
+    from app.models.auth.usuario import Sesion
+
+    ahora = get_bogota_now()
+    sesion.fin_sesion = ahora
+    db.add(
+        Sesion(
+            usuario_id=sesion.usuario_id,
+            token_sesion=nuevo_token,
+            direccion_ip=sesion.direccion_ip,
+            agente_usuario=sesion.agente_usuario,
+            expira_en=ahora + timedelta(minutes=config.jwt_token_expire_minutes),
+            nombre_usuario=sesion.nombre_usuario,
+            rol_usuario=sesion.rol_usuario,
+            tipo_sesion="web",
+        )
+    )
+    await db.commit()

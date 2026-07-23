@@ -8,6 +8,42 @@ function getAuthHeaders(): Record<string, string> {
     return { Authorization: `Bearer ${token}` };
 }
 
+let refreshEnCurso: Promise<string | null> | null = null;
+
+function obtenerErrorApi(error: unknown): { status?: number; detail?: string } {
+    const response = (error as {
+        response?: { status?: number; data?: { detail?: unknown } };
+    }).response;
+    return {
+        status: response?.status,
+        detail: typeof response?.data?.detail === 'string' ? response.data.detail : undefined,
+    };
+}
+
+async function ejecutarRefresh(): Promise<string | null> {
+    const tokenInicial = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+    if (!tokenInicial) return null;
+    try {
+        const response = await axios.post(
+            `${API_CONFIG.BASE_URL}${API_ENDPOINTS.AUTH_REFRESH}`,
+            {},
+            { headers: { Authorization: `Bearer ${tokenInicial}` } }
+        );
+        const newToken: string | undefined = response.data?.access_token;
+        if (
+            newToken &&
+            typeof newToken === 'string' &&
+            localStorage.getItem('token') === tokenInicial
+        ) {
+            localStorage.setItem('token', newToken);
+            return newToken;
+        }
+        return null;
+    } catch {
+        return null;
+    }
+}
+
 /**
  * Servicio para manejar operaciones de autenticación y gestión de usuarios
  */
@@ -23,8 +59,8 @@ export const AuthService = {
                 { headers: getAuthHeaders() }
             );
             return response.data;
-        } catch (error: any) {
-            throw error.response?.data?.detail || 'Error al crear analista';
+        } catch (error: unknown) {
+            throw obtenerErrorApi(error).detail || 'Error al crear analista';
         }
     },
 
@@ -43,9 +79,8 @@ export const AuthService = {
                 { headers }
             );
             return response.data;
-        } catch (error: any) {
-            const status = error.response?.status;
-            const detail = error.response?.data?.detail;
+        } catch (error: unknown) {
+            const { status, detail } = obtenerErrorApi(error);
             if (status === 401) {
                 throw detail || 'Sesión expirada o inválida. Cierra sesión e inicia sesión de nuevo, luego intenta cambiar la contraseña.';
             }
@@ -65,8 +100,8 @@ export const AuthService = {
                 { headers }
             );
             return response.data;
-        } catch (error: any) {
-            throw error.response?.data?.detail || 'Error al actualizar el correo corporativo';
+        } catch (error: unknown) {
+            throw obtenerErrorApi(error).detail || 'Error al actualizar el correo corporativo';
         }
     },
 
@@ -80,23 +115,12 @@ export const AuthService = {
      * Si falla (401, red, etc.), retorna null sin lanzar excepcion: el
      * caller decide si hacer logout o no.
      */
-    async refreshAccessToken(): Promise<string | null> {
-        const headers = getAuthHeaders();
-        if (!headers.Authorization) return null;
-        try {
-            const response = await axios.post(
-                `${API_CONFIG.BASE_URL}${API_ENDPOINTS.AUTH_LOGIN.replace('/login', '/refresh')}`,
-                {},
-                { headers }
-            );
-            const newToken: string | undefined = response.data?.access_token;
-            if (newToken && typeof newToken === 'string') {
-                localStorage.setItem('token', newToken);
-                return newToken;
-            }
-            return null;
-        } catch {
-            return null;
+    refreshAccessToken(): Promise<string | null> {
+        if (!refreshEnCurso) {
+            refreshEnCurso = ejecutarRefresh().finally(() => {
+                refreshEnCurso = null;
+            });
         }
+        return refreshEnCurso;
     }
 };

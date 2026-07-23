@@ -1,10 +1,10 @@
 from typing import Any, Optional
 import logging
 from fastapi import APIRouter, Depends, HTTPException, status, Request
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import obtener_db, obtener_erp_db_opcional
-from app.models.auth.usuario import Sesion, Usuario, UsuarioPublico, PasswordCambiar, EmailActualizar
+from app.models.auth.usuario import Sesion, Token, Usuario, UsuarioPublico, PasswordCambiar, EmailActualizar
 from app.database import AsyncSessionLocal
 from app.models.auditoria.accion_usuario import AccionAuditoria
 from app.services.auditoria.servicio import ServicioAuditoria
@@ -73,6 +73,12 @@ async def obtener_usuario_actual_db(
                     await db.commit()
                 except Exception:
                     await db.rollback()
+        elif payload.get("token_type", "session") == "session":
+            sesion = await ServicioAuth.obtener_sesion_web_activa(db, token)
+            if not sesion:
+                raise HTTPException(401, "Sesion web revocada o expirada")
+        else:
+            raise HTTPException(401, "Tipo de token no permitido")
 
         usuario = await ServicioAuth.obtener_usuario_por_cedula(db, cedula)
 
@@ -113,14 +119,17 @@ async def obtener_usuario_actual_db(
             request.state.token_type = payload.get("token_type", "session")
             return usuario
 
+        if not usuario.esta_activo:
+            raise HTTPException(401, "Cuenta desactivada")
+
         # Si el usuario es local y no tiene area/sede pero hay ERP disponible, sincronizar:
         if db_erp and (not usuario.area or not usuario.sede):
             try:
                 usuario = await ServicioAuth.sincronizar_perfil_desde_erp(
                     db, db_erp, usuario
                 )
-            except Exception as e:
-                print(f"DEBUG: ERP no disponible o fallo en sincronizacion local: {e}")
+            except Exception:
+                logger.warning("No fue posible sincronizar el perfil local con ERP")
 
         request.state.usuario_id = usuario.id
         request.state.usuario_nombre = usuario.nombre
@@ -129,11 +138,9 @@ async def obtener_usuario_actual_db(
         return usuario
     except HTTPException:
         raise
-    except Exception as e:
-        logger.exception("obtener_usuario_actual_db: error inesperado")
-        raise HTTPException(
-            status_code=500, detail=f"Error al validar usuario: {str(e)}"
-        )
+    except Exception:
+        logger.error("obtener_usuario_actual_db: error inesperado")
+        raise HTTPException(status_code=500, detail="Error al validar usuario")
 
 
 async def obtener_usuario_actual_opcional(
@@ -231,10 +238,9 @@ async def cambiar_contrasena(
         raise
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"Error al cambiar contrasena: {str(e)}"
-        )
+    except Exception:
+        logger.error("Error al cambiar contrasena")
+        raise HTTPException(status_code=500, detail="Error al cambiar contrasena")
 
 
 @router.patch("/update-email", response_model=UsuarioPublico)
@@ -244,6 +250,14 @@ async def actualizar_correo(
     usuario: Usuario = Depends(obtener_usuario_actual_db),
 ):
     """Actualiza el correo corporativo en el sistema y en el ERP"""
+    usuario = (
+        await db.execute(
+            select(Usuario).where(Usuario.id == usuario.id).with_for_update()
+        )
+    ).scalars().one()
+    if not usuario.esta_activo:
+        raise HTTPException(status_code=403, detail="Cuenta desactivada")
+
     # 1. Validar formato de correo (básico)
     if "@" not in datos.correo or "." not in datos.correo:
         raise HTTPException(status_code=400, detail="Formato de correo inválido")
@@ -256,8 +270,8 @@ async def actualizar_correo(
             exito_erp = await EmpleadosService.actualizar_correo_erp(
                 db_erp, usuario.cedula, datos.correo
             )
-    except Exception as e:
-        print(f"DEBUG: Error conectando a ERP para actualizar correo: {e}")
+    except Exception:
+        logger.warning("Error conectando a ERP para actualizar correo")
         # No bloqueamos si el ERP falla, pero notificamos el error
         raise HTTPException(status_code=503, detail="No se pudo conectar con el ERP para actualizar el correo")
 
@@ -269,6 +283,15 @@ async def actualizar_correo(
         usuario.correo = datos.correo
         usuario.correo_actualizado = True
         usuario.correo_verificado = False  # Resetear verificacion al cambiar correo
+        await db.execute(
+            update(Token)
+            .where(
+                Token.usuario_id == usuario.id,
+                Token.tipo_token == "password_recovery",
+                Token.ultimo_uso_en.is_(None),
+            )
+            .values(ultimo_uso_en=get_bogota_now())
+        )
         db.add(usuario)
         await db.commit()
         await db.refresh(usuario)
@@ -276,7 +299,7 @@ async def actualizar_correo(
         # 4. Enviar correo de verificación (Trigger confirmación)
         try:
             from app.config import config
-            token = ServicioAuth.crear_token_verificacion(usuario.id)
+            token = ServicioAuth.crear_token_verificacion(usuario.id, usuario.correo)
             verify_url = f"{EmailService.get_frontend_url()}/verify-email?token={token}"
             
             sent = await EmailService.enviar_confirmacion_registro(usuario.correo, usuario.nombre, verify_url)
@@ -288,15 +311,16 @@ async def actualizar_correo(
                 )
         except HTTPException:
             raise
-        except Exception as e:
-            print(f"WARNING: No se pudo enviar correo de verificacion: {e}")
+        except Exception:
+            logger.warning("No se pudo enviar correo de verificacion")
 
         return usuario
     except HTTPException:
         raise
-    except Exception as e:
+    except Exception:
         await db.rollback()
-        raise HTTPException(status_code=500, detail=f"Error al actualizar registro local: {str(e)}")
+        logger.error("Error al actualizar registro local")
+        raise HTTPException(status_code=500, detail="Error al actualizar registro local")
 
 
 @router.get("/verify-email")
@@ -314,11 +338,19 @@ async def confirmar_correo(
             )
         
         from sqlmodel import select
-        result = await db.execute(select(Usuario).where(Usuario.id == usuario_id))
+        result = await db.execute(
+            select(Usuario).where(Usuario.id == usuario_id).with_for_update()
+        )
         usuario = result.scalars().first()
         
         if not usuario:
             raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
+        if ServicioAuth.validar_token_verificacion(token, usuario.correo) != usuario.id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Token de verificación inválido o expirado",
+            )
         
         if usuario.correo_verificado:
             return {"message": "El correo ya estaba verificado"}
@@ -330,18 +362,16 @@ async def confirmar_correo(
         # Enviar notificación de éxito
         try:
             await EmailService.enviar_exito_verificacion(usuario.correo, usuario.nombre)
-        except Exception as e:
-            print(f"WARNING: No se pudo enviar confirmación de éxito: {e}")
+        except Exception:
+            logger.warning("No se pudo enviar confirmacion de verificacion")
         
         return {"message": "Correo verificado exitosamente"}
     except HTTPException:
         raise
-    except Exception as e:
+    except Exception:
         await db.rollback()
-        raise HTTPException(
-            status_code=500, 
-            detail=f"Error inesperado durante la verificación: {str(e)}"
-        )
+        logger.error("Error inesperado durante la verificacion")
+        raise HTTPException(status_code=500, detail="Error durante la verificacion")
 
 
 @router.post("/resend-verification")
@@ -350,6 +380,11 @@ async def reenviar_verificacion(
     usuario: Usuario = Depends(obtener_usuario_actual_db)
 ):
     """Reenvía el correo de verificación al usuario actual"""
+    usuario = (
+        await db.execute(
+            select(Usuario).where(Usuario.id == usuario.id).with_for_update()
+        )
+    ).scalars().one()
     if not usuario.correo or not usuario.correo_actualizado:
         raise HTTPException(status_code=400, detail="No hay un correo corporativo configurado")
     
@@ -358,7 +393,7 @@ async def reenviar_verificacion(
         
     try:
         from app.config import config
-        token = ServicioAuth.crear_token_verificacion(usuario.id)
+        token = ServicioAuth.crear_token_verificacion(usuario.id, usuario.correo)
         base_url = (config.hostveremail or config.frontend_url).rstrip("/")
         verify_url = f"{base_url}/verify-email?token={token}"
         
@@ -371,5 +406,6 @@ async def reenviar_verificacion(
         return {"message": "Correo de verificación reenviado"}
     except HTTPException:
         raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al enviar el correo: {str(e)}")
+    except Exception:
+        logger.error("Error al enviar correo de verificacion")
+        raise HTTPException(status_code=500, detail="Error al enviar el correo")

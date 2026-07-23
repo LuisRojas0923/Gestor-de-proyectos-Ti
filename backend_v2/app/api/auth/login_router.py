@@ -27,7 +27,6 @@ from app.models.auditoria.accion_usuario import AccionAuditoria
 from app.services.auditoria.servicio import ServicioAuditoria
 from app.services.auth.servicio import (
     ServicioAuth,
-    enmascarar_pii,
     normalizar_cedula,
 )
 
@@ -88,7 +87,9 @@ async def login(
                 headers={"Retry-After": str(lockout_segundos)},
             )
 
-        usuario = await ServicioAuth.obtener_usuario_por_cedula(db, cedula_normalizada)
+        usuario = await ServicioAuth.obtener_usuario_por_cedula(
+            db, cedula_normalizada, bloquear=True
+        )
 
         if not usuario:
             jit_creado = False
@@ -200,8 +201,8 @@ async def login(
                 usuario = await ServicioAuth.sincronizar_perfil_desde_erp(
                     db, db_erp, usuario
                 )
-            except Exception as e:
-                logger.warning("Error no crítico sincronizando perfil en login: %s", enmascarar_pii(str(e)))
+            except Exception:
+                logger.warning("Error no critico sincronizando perfil en login")
 
         permisos = await ServicioAuth.obtener_permisos_por_rol(db, usuario.rol)
         # Stamp last_ip en el JWT: la IP real de la conexión (no el XFF claim).
@@ -254,8 +255,8 @@ async def login(
         }
     except HTTPException:
         raise
-    except Exception as e:
-        logger.error("Login API error", exc_info=True, extra={"detail": enmascarar_pii(str(e))})
+    except Exception:
+        logger.error("Login API error")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Error interno del servidor durante la autenticacion",
@@ -298,6 +299,6 @@ async def logout(
                 )
 
         return {"message": "Sesion cerrada correctamente"}
-    except Exception as e:
-        logger.error("Logout API error", exc_info=True, extra={"detail": enmascarar_pii(str(e))})
+    except Exception:
+        logger.error("Logout API error")
         return {"message": "Sesion cerrada localmente con errores en servidor"}
