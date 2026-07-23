@@ -1,7 +1,7 @@
 # Security/RBAC review: blocked
 
-**Fecha:** 2026-07-23  
-**Alcance:** working tree de nómina; PII/JWT/logging, abuso de reproceso, atomicidad de carga y migración de identidad de archivos.  
+**Fecha:** 2026-07-23
+**Alcance:** working tree de nómina; PII/JWT/logging, abuso de reproceso, atomicidad de carga y migración de identidad de archivos.
 **Método:** revisión estática de cambios staged/unstaged/untracked y del código vigente alcanzado por esos flujos. No se ejecutaron tests ni servicios.
 
 ## Checklist results
@@ -98,5 +98,5 @@ No se añadieron módulos ni endpoints sin protección observados. El impacto pr
 3. Reproceso directo incompatible con la restricción única recién introducida.
 4. El wrapper ERP puede quedar agotado indefinidamente.
 
-**Severity:** BLOQUEANTE  
+**Severity:** BLOQUEANTE
 **Conteo:** 1 bloqueante, 3 altos, 3 medios, 0 bajos.

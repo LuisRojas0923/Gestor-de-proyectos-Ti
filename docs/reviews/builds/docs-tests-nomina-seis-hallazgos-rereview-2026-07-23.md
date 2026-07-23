@@ -3,8 +3,8 @@
 > [!NOTE]
 > Instantánea histórica superada por `docs-tests-nomina-seis-hallazgos-final-2026-07-23.md` (202 backend, 18 frontend, `approved_with_risks`).
 
-**Fecha:** 2026-07-23  
-**Resultado:** `blocked`  
+**Fecha:** 2026-07-23
+**Resultado:** `blocked`
 **Alcance:** delta posterior con metadata PostgreSQL concurrente para ocho subcategorías, ERP ownership/timeout/Grancoop, migración concurrente, reporte consolidado y catálogo 198/18.
 
 ## Evidencia y conteos

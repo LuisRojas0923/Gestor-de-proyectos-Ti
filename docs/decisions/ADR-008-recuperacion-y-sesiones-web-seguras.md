@@ -1,6 +1,6 @@
 # ADR-008: Recuperacion y sesiones web seguras
 
-**Estado:** Aceptado  
+**Estado:** Aceptado
 **Fecha:** 2026-07-23
 
 ## Contexto

@@ -3,8 +3,8 @@
 > [!NOTE]
 > Instantánea histórica superada por `docs-tests-nomina-seis-hallazgos-final-2026-07-23.md` (202 backend, 18 frontend, `approved_with_risks`).
 
-**Fecha:** 2026-07-23  
-**Resultado:** `blocked`  
+**Fecha:** 2026-07-23
+**Resultado:** `blocked`
 **Alcance:** cobertura PostgreSQL de flujos directos, SALDO_FAVOR, logs, reproceso, carga/migración, ERP no bloqueante, catálogo, esquema y evidencia del working tree.
 
 ## Evidencia revisada

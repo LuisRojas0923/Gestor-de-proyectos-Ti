@@ -1,9 +1,9 @@
 # Reporte de Revision de Build
 
-**Fecha:** 2026-07-23  
-**Build:** Recuperacion, escalado y sesiones web seguras  
-**Autor del build:** OpenCode  
-**Modo:** build  
+**Fecha:** 2026-07-23
+**Build:** Recuperacion, escalado y sesiones web seguras
+**Autor del build:** OpenCode
+**Modo:** build
 **Proyecto:** Gestor-de-proyectos-Ti
 
 ## 1. Archivos modificados

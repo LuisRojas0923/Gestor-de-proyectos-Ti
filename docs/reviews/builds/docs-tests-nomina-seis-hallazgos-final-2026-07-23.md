@@ -1,7 +1,7 @@
 # Docs/tests final review — nómina, seis hallazgos
 
-**Fecha:** 2026-07-23  
-**Resultado:** `approved_with_risks`  
+**Fecha:** 2026-07-23
+**Resultado:** `approved_with_risks`
 **Alcance:** únicamente bloqueantes atribuibles al delta de hardening de nómina.
 
 ## Evidencia aceptada

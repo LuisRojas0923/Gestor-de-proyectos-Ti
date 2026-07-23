@@ -1,7 +1,7 @@
 # Frontend review — useApi JWT/401 (revisión posterior)
 
-**Fecha:** 2026-07-23  
-**Alcance:** `frontend/src/hooks/useApi.ts`, `frontend/src/hooks/useApi.test.tsx` (working tree)  
+**Fecha:** 2026-07-23
+**Alcance:** `frontend/src/hooks/useApi.ts`, `frontend/src/hooks/useApi.test.tsx` (working tree)
 **Veredicto:** approved
 
 ## Findings bloqueantes residuales

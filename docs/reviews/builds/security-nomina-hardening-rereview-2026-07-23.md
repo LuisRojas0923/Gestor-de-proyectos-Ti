@@ -1,6 +1,6 @@
 # Security/RBAC review: approved
 
-**Fecha:** 2026-07-23  
+**Fecha:** 2026-07-23
 **Alcance:** segunda revisión exclusivamente de bloqueantes causados o no resueltos por el delta actual de hardening de nómina. Revisión estática; no se ejecutaron tests ni servicios.
 
 ## Checklist results
@@ -40,5 +40,5 @@ No se observaron endpoints nuevos sin `requiere_permiso_nomina_novedades`, debil
 
 Ninguno.
 
-**Severity:** N/A  
+**Severity:** N/A
 **Conteo del delta:** 0 bloqueantes.

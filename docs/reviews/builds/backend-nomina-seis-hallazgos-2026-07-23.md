@@ -1,6 +1,6 @@
 # Backend review — nómina, segunda revisión
 
-**Fecha:** 2026-07-23  
+**Fecha:** 2026-07-23
 **Veredicto:** `approved`
 
 ## Evidencia considerada
