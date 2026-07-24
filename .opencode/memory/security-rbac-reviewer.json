@@ -39,10 +39,44 @@
         "BAJO": 0
       },
       "cwe_references": []
+    },
+    {
+      "date": "2026-07-24",
+      "scope": "PR3 WebSocket + autenticación/JTI plan",
+      "outcome": "blocked",
+      "finding_count_by_severity": {
+        "BLOQUEANTE": 5,
+        "ALTO": 4,
+        "MEDIO": 0,
+        "BAJO": 0
+      },
+      "cwe_references": [
+        "CWE-598",
+        "CWE-200",
+        "CWE-294",
+        "CWE-613",
+        "CWE-362",
+        "CWE-384",
+        "CWE-346",
+        "CWE-942",
+        "CWE-287",
+        "CWE-862",
+        "CWE-863",
+        "CWE-284",
+        "CWE-307",
+        "CWE-400",
+        "CWE-770",
+        "CWE-359",
+        "CWE-532",
+        "CWE-209",
+        "CWE-798",
+        "CWE-522",
+        "CWE-16"
+      ]
     }
   ],
   "stats": {
-    "total_reviews": 2,
-    "last_review": "2026-07-06"
+    "total_reviews": 3,
+    "last_review": "2026-07-24"
   }
 }

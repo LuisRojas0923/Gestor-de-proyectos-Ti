@@ -83,10 +83,22 @@
         "low": 3
       },
       "test_coverage_observations": "Se recolectan 10 tests backend y se reportan 10 passed; cubren servicio, 413 previo al parser, lifecycle HTTP POST/GET/DELETE y RBAC. Frontend reporta 3 passed, incluido éxito parcial y reintento sin duplicar. Persisten gaps no bloqueantes de DB real/rollback/auditoría, matriz de formatos, carga exitosa/edición/refresh 401, health checks con skips y sync_docs."
+    },
+    {
+      "date": "2026-07-24",
+      "scope": "plan PR3 WebSocket + auth/JTI, suites backend/frontend, Docker/PostgreSQL/Redis y trazabilidad",
+      "outcome": "blocked",
+      "finding_count_by_severity": {
+        "blocking": 4,
+        "high": 3,
+        "medium": 3,
+        "low": 0
+      },
+      "test_coverage_observations": "Se recolectan 76 tests auth/JTI existentes, pero no hay tests WebSocket backend/frontend. El login web genera JTI sin persistirlo en la fila Sesion; los routers WS aceptan sin auth. Falta contrato ADR de transporte/revocación, catálogo PR3 y runner Docker reproducible con testing montado y DB de pruebas aislada."
     }
   ],
   "stats": {
-    "total_reviews": 6,
-    "last_review": "2026-07-15"
+    "total_reviews": 7,
+    "last_review": "2026-07-24"
   }
 }
