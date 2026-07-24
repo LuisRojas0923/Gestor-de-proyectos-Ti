@@ -14,10 +14,10 @@
 
 ## PR1: Filtros de tabla consolidada
 
-**Rama:** `fix/frontend-syntax`  
-**Commit:** `dc7f3d14ae0ded144936706b51ddd033673c8a16`  
-**Base:** `origin/main`  
-**Perfil:** `filtros-tabla-consolidada`  
+**Rama:** `fix/frontend-syntax`
+**Commit:** `dc7f3d14ae0ded144936706b51ddd033673c8a16`
+**Base:** `origin/main`
+**Perfil:** `filtros-tabla-consolidada`
 **Estado:** pendiente de revisión/aprobación
 
 ### Alcance
@@ -35,10 +35,10 @@
 
 ## PR2: UI y estadísticas de auditoría
 
-**Rama:** `feat/auditoria-ui-estadisticas`  
-**Commit:** `ec0c948e27a400a406a50f3557c881198d0ade94`  
-**Base:** `origin/main`  
-**Perfil:** `auditoria-ui-estadisticas`  
+**Rama:** `feat/auditoria-ui-estadisticas`
+**Commit:** `ec0c948e27a400a406a50f3557c881198d0ade94`
+**Base:** `origin/main`
+**Perfil:** `auditoria-ui-estadisticas`
 **Estado:** commit local listo; pendiente de push y revisión
 
 ### Incluido
@@ -68,9 +68,9 @@
 
 ## PR3: WebSocket y autenticación/JTI
 
-**Rama propuesta:** `feat/auditoria-ws-auth`  
-**Base:** la versión actualizada de `origin/main` después de integrar PR2  
-**Perfil pendiente:** `auditoria-ws-auth`  
+**Rama propuesta:** `feat/auditoria-ws-auth`
+**Base:** la versión actualizada de `origin/main` después de integrar PR2
+**Perfil pendiente:** `auditoria-ws-auth`
 **Estado:** diseño pendiente; se puede adelantar backend sin integrar la UI
 
 ### Puede adelantarse antes de aprobar PR2
@@ -103,9 +103,9 @@
 
 ## PR4: Reservas y migraciones PostgreSQL
 
-**Rama propuesta:** `feat/reserva-salas-migraciones`  
-**Base:** la versión actual de `origin/main`  
-**Perfil pendiente:** `reserva-migraciones`  
+**Rama propuesta:** `feat/reserva-salas-migraciones`
+**Base:** la versión actual de `origin/main`
+**Perfil pendiente:** `reserva-migraciones`
 **Estado:** independiente; se puede implementar en paralelo con PR1–PR3
 
 ### Alcance
